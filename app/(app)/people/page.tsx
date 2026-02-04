@@ -49,8 +49,8 @@ const voiceBorderColors: Record<Voice, string> = {
   Bass: "var(--voice-bass)"
 };
 
-const getVoiceHaloStyle = (voice: Voice) => ({
-  boxShadow: `0 0 0 6px color-mix(in srgb, ${voiceBorderColors[voice]} 35%, white)`
+const getVoiceAreaStyle = (voice: Voice) => ({
+  backgroundColor: `color-mix(in srgb, ${voiceBorderColors[voice]} 18%, white)`
 });
 
 const voiceSplitDefaults = [
@@ -364,7 +364,6 @@ export default function PeoplePage() {
                     key={person.id}
                     href={`/people/${person.id}`}
                     className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
-                    style={getVoiceHaloStyle("Bass")}
                   >
                     {getInitials(getPersonName(person))}
                     <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
@@ -376,86 +375,57 @@ export default function PeoplePage() {
             </div>
 
             <div className="w-full">
-              {(() => {
-                const size = 56;
-                const radius = 420;
-                const ringSize = radius * 2 + size;
-                const outerRingSize = ringSize + 220;
-                const outerRadius = outerRingSize / 2;
-                const perVoice = voiceOrder.map((voice) =>
-                  (activeByVoice.get(voice) ?? []).slice(0, 8)
-                );
-                const lowerRow = voiceOrder.flatMap((voice, index) =>
-                  perVoice[index].slice(0, 4).map((person) => ({
-                    person,
-                    voice
-                  }))
-                );
-                const upperRow = voiceOrder.flatMap((voice, index) =>
-                  perVoice[index].slice(4, 8).map((person) => ({
-                    person,
-                    voice
-                  }))
-                );
-                return (
-                  <div className="flex justify-center">
-                    <div className="relative h-[860px] w-[980px]">
-                      {lowerRow.map((item, index) => {
-                        const angle =
-                          Math.PI -
-                          (index / Math.max(lowerRow.length - 1, 1)) * Math.PI;
-                        const x = radius * Math.cos(angle);
-                        const y = radius * Math.sin(angle);
-                        return (
-                          <Link
-                            key={`lower-${item.person.id}`}
-                            href={`/people/${item.person.id}`}
-                            className="group absolute flex items-center justify-center rounded-full border bg-white text-[10px] font-medium text-slate-700 shadow-sm"
-                            style={{
-                              width: size,
-                              height: size,
-                              ...getVoiceHaloStyle(item.voice),
-                              left: `calc(50% + ${x}px - ${size / 2}px)`,
-                              top: `calc(-2% + ${y}px - ${size / 2}px)`
-                            }}
-                          >
-                            {getInitials(getPersonName(item.person))}
-                            <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
-                              {getPersonName(item.person)} · {getVoiceLabel(item.voice)}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                      {upperRow.map((item, index) => {
-                        const angle =
-                          Math.PI -
-                          (index / Math.max(upperRow.length - 1, 1)) * Math.PI;
-                        const x = (outerRadius - size / 2) * Math.cos(angle);
-                        const y = (outerRadius - size / 2) * Math.sin(angle);
-                        return (
-                          <Link
-                            key={`upper-${item.person.id}`}
-                            href={`/people/${item.person.id}`}
-                            className="group absolute flex items-center justify-center rounded-full border bg-white text-[10px] font-medium text-slate-700 shadow-sm"
-                            style={{
-                              width: size,
-                              height: size,
-                              ...getVoiceHaloStyle(item.voice),
-                              left: `calc(50% + ${x}px - ${size / 2}px)`,
-                              top: `calc(-2% + ${y}px - ${size / 2}px)`
-                            }}
-                          >
-                            {getInitials(getPersonName(item.person))}
-                            <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
-                              {getPersonName(item.person)} · {getVoiceLabel(item.voice)}
-                            </span>
-                          </Link>
-                        );
-                      })}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {voiceOrder.map((voice) => {
+                  const members = activeByVoice.get(voice) ?? [];
+                  let splitIndex = 0;
+                  return (
+                    <div key={voice} className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
+                      </div>
+                      <div className="space-y-3">
+                        {voiceSplitDefaults.map((split) => {
+                          const slice = members.slice(
+                            splitIndex,
+                            splitIndex + split.count
+                          );
+                          splitIndex += split.count;
+                          return (
+                            <div
+                              key={`${voice}-${split.label}`}
+                              className="rounded-2xl border border-slate-200 p-3"
+                              style={getVoiceAreaStyle(voice)}
+                            >
+                              <div className="text-xs font-semibold text-slate-600">
+                                {getVoiceLabel(voice)} {split.label}
+                              </div>
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {slice.map((person) => (
+                                  <Link
+                                    key={person.id}
+                                    href={`/people/${person.id}`}
+                                    className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-700 shadow-sm"
+                                  >
+                                    {getInitials(getPersonName(person))}
+                                    <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
+                                      {getPersonName(person)} · {getVoiceLabel(voice)}
+                                    </span>
+                                  </Link>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
