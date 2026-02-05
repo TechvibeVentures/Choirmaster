@@ -182,8 +182,8 @@ export default function DashboardPage() {
               <tbody className="divide-y divide-slate-100">
                 {(
                   [
-                    { label: "aktiv", key: "active" },
-                    { label: "passiv", key: "passive" },
+                    { label: "aktiv", shortLabel: "aktiv", key: "active" },
+                    { label: "passiv", shortLabel: "passiv", key: "passive" },
                     { label: "ehemalig", shortLabel: "ehem.", key: "former" }
                   ] as const
                 ).map((row) => {
