@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Copy,
   MapPin,
-  Sparkles,
-  Users
+  Sparkles
 } from "lucide-react";
 import Card from "@/components/Card";
 import { strings } from "@/lib/i18n";
 import type { Voice, Weekday } from "@/lib/mockData";
+import { getVoiceLabel } from "@/lib/labels";
 
 type Props = {
   open: boolean;
@@ -24,7 +24,8 @@ type ChoirType = "mixed" | "chamber" | "project";
 const steps = [
   strings.ensembleOnboarding.stepBasics,
   strings.ensembleOnboarding.stepRehearsal,
-  strings.ensembleOnboarding.stepTeam,
+  strings.ensembleOnboarding.stepVoices,
+  strings.ensembleOnboarding.stepProject,
   strings.ensembleOnboarding.stepFinish
 ];
 
@@ -65,36 +66,19 @@ const weekdayOptions: { id: Weekday; label: string }[] = [
   { id: "Sun", label: "So" }
 ];
 
-const voiceColors: Record<Voice, string> = {
+const voiceBorderColors: Record<Voice, string> = {
   Soprano: "var(--voice-soprano)",
   Alto: "var(--voice-alto)",
   Tenor: "var(--voice-tenor)",
   Bass: "var(--voice-bass)"
 };
 
-const voiceGroups: { id: Voice; label: string; target: string }[] = [
-  { id: "Soprano", label: "Sopran", target: "8-10" },
-  { id: "Alto", label: "Alt", target: "6-8" },
-  { id: "Tenor", label: "Tenor", target: "4-6" },
-  { id: "Bass", label: "Bass", target: "4-6" }
-];
+const voiceOrder: Voice[] = ["Soprano", "Alto", "Tenor", "Bass"];
 
-const roleOptions = [
-  {
-    id: "conductor",
-    label: "Leitung",
-    description: "Dirigat & musikalische Verantwortung"
-  },
-  {
-    id: "chairman",
-    label: "Vorstand",
-    description: "Organisation, Kommunikation, Finanzen"
-  },
-  {
-    id: "section",
-    label: "Stimmführer",
-    description: "Ansprechpersonen pro Stimmgruppe"
-  }
+const voiceSplitDefaults = [
+  { label: "1", count: 4 },
+  { label: "2", count: 4 },
+  { label: "3", count: 0 }
 ];
 
 export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
@@ -110,19 +94,17 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
-  const [roles, setRoles] = useState<string[]>(["conductor", "chairman"]);
-  const [copied, setCopied] = useState(false);
+  const [projectName, setProjectName] = useState("Frühlingskonzert 2026");
+  const [projectStart, setProjectStart] = useState("2026-04-10");
+  const [projectEnd, setProjectEnd] = useState("2026-06-12");
+  const [projectLocation, setProjectLocation] = useState("");
+  const [projectSkipped, setProjectSkipped] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setStep(0);
     }
   }, [open]);
-
-  const inviteLink = useMemo(
-    () => `choirmaster.app/chor/${name.toLowerCase().replace(/\s+/g, "-")}/join`,
-    [name]
-  );
 
   if (!open) return null;
 
@@ -138,18 +120,10 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     );
   };
 
-  const toggleRole = (role: string) => {
-    setRoles((prev) =>
-      prev.includes(role) ? prev.filter((item) => item !== role) : [...prev, role]
-    );
-  };
-
   const handleNext = () => setStep((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
-
-  const handleCopy = () => {
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1500);
+  const handleComingSoon = () => {
+    window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
   return (
@@ -362,63 +336,146 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">
-                      {strings.ensembleOnboarding.teamTitle}
+                      {strings.ensembleOnboarding.voiceTitle}
                     </h3>
                     <p className="mt-1 text-sm text-slate-500">
-                      {strings.ensembleOnboarding.teamSubtitle}
+                      {strings.ensembleOnboarding.voiceSubtitle}
                     </p>
                   </div>
-                  <Users className="h-5 w-5 text-slate-300" />
+                  <Sparkles className="h-5 w-5 text-slate-300" />
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  {roleOptions.map((role) => (
-                    <button
-                      key={role.id}
-                      type="button"
-                      onClick={() => toggleRole(role.id)}
-                      className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
-                        roles.includes(role.id)
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-200 text-slate-600 hover:border-slate-300"
-                      }`}
+                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {voiceOrder.map((voice) => (
+                    <div
+                      key={voice}
+                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
                     >
-                      <div className="font-semibold">{role.label}</div>
-                      <div className="mt-1 text-xs opacity-80">
-                        {role.description}
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
                       </div>
-                    </button>
+                      <div className="mt-3 space-y-2">
+                        {voiceSplitDefaults.map((split) => (
+                          <div
+                            key={`${voice}-${split.label}`}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
+                          >
+                            <span className="text-xs text-slate-500">
+                              {getVoiceLabel(voice)} {split.label}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                –
+                              </button>
+                              <span className="min-w-[18px] text-center text-xs font-semibold text-slate-700">
+                                {split.count}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-                <div className="mt-5">
-                  <div className="text-sm text-slate-600">
-                    {strings.ensembleOnboarding.voiceTargets}
-                  </div>
-                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                    {voiceGroups.map((voice) => (
-                      <div
-                        key={voice.id}
-                        className="rounded-xl border border-slate-200 px-3 py-3 text-sm"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-slate-800">
-                            {voice.label}
-                          </span>
-                          <span
-                            className="h-3 w-8 rounded-full"
-                            style={{ backgroundColor: voiceColors[voice.id] }}
-                          />
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">
-                          Zielbesetzung: {voice.target} Stimmen
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  {strings.ensembleOnboarding.voiceHint}
                 </div>
               </Card>
             ) : null}
 
             {step === 3 ? (
+              <Card>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {strings.ensembleOnboarding.projectTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.projectSubtitle}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectSkipped(true);
+                        handleNext();
+                      }}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                    >
+                      {strings.ensembleOnboarding.projectSkip}
+                    </button>
+                    <CalendarDays className="h-5 w-5 text-slate-300" />
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm text-slate-600 sm:col-span-2">
+                    {strings.ensembleOnboarding.projectName}
+                    <input
+                      value={projectName}
+                      onChange={(event) => {
+                        setProjectName(event.target.value);
+                        setProjectSkipped(false);
+                      }}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.projectStart}
+                    <input
+                      value={projectStart}
+                      onChange={(event) => {
+                        setProjectStart(event.target.value);
+                        setProjectSkipped(false);
+                      }}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.projectEnd}
+                    <input
+                      value={projectEnd}
+                      onChange={(event) => {
+                        setProjectEnd(event.target.value);
+                        setProjectSkipped(false);
+                      }}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600 sm:col-span-2">
+                    {strings.ensembleOnboarding.projectLocation}
+                    <input
+                      value={projectLocation}
+                      onChange={(event) => {
+                        setProjectLocation(event.target.value);
+                        setProjectSkipped(false);
+                      }}
+                      placeholder={location}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  {strings.ensembleOnboarding.projectHint}
+                </div>
+              </Card>
+            ) : null}
+
+            {step === 4 ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -454,26 +511,32 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       <li>
                         {strings.ensembleOnboarding.summaryLocation}: {location}
                       </li>
+                      <li>
+                        {strings.ensembleOnboarding.summaryGenres}: {genres.length ? genres.join(", ") : strings.ensembleOnboarding.summaryGenresEmpty}
+                      </li>
                     </ul>
                   </div>
                   <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
                     <div className="text-xs uppercase tracking-wide text-slate-400">
-                      {strings.ensembleOnboarding.share}
+                      {strings.ensembleOnboarding.projectSummary}
                     </div>
-                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                      <span className="truncate">{inviteLink}</span>
-                      <button
-                        type="button"
-                        onClick={handleCopy}
-                        className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500"
-                      >
-                        <Copy className="h-3 w-3" />
-                        {copied ? strings.ensembleOnboarding.copied : strings.ensembleOnboarding.copy}
-                      </button>
-                    </div>
-                    <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                      {strings.ensembleOnboarding.shareHint}
-                    </div>
+                    {projectSkipped ? (
+                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                        {strings.ensembleOnboarding.projectSkipped}
+                      </div>
+                    ) : (
+                      <div className="mt-3 space-y-2 text-sm text-slate-600">
+                        <div className="font-semibold text-slate-800">
+                          {projectName || strings.ensembleOnboarding.projectNamePlaceholder}
+                        </div>
+                        <div>
+                          {strings.ensembleOnboarding.projectDates}: {projectStart} – {projectEnd}
+                        </div>
+                        <div>
+                          {strings.ensembleOnboarding.projectLocation}: {projectLocation || location}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>
