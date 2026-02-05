@@ -26,6 +26,7 @@ const steps = [
   strings.ensembleOnboarding.stepRehearsal,
   strings.ensembleOnboarding.stepVoices,
   strings.ensembleOnboarding.stepProject,
+  strings.ensembleOnboarding.stepSingers,
   strings.ensembleOnboarding.stepFinish
 ];
 
@@ -81,6 +82,24 @@ const voiceSplitDefaults = [
   { label: "3", count: 0 }
 ];
 
+const singerFilters = [
+  "Zürich",
+  "Winterthur",
+  "Erfahren",
+  "Fortgeschritten",
+  "Sopran",
+  "Alt",
+  "Tenor",
+  "Bass"
+];
+
+const mockSingerResults = [
+  { id: "s-1", name: "Mara König", email: "mara.koenig@example.com", voice: "Sopran" },
+  { id: "s-2", name: "Noah Keller", email: "noah.keller@example.com", voice: "Tenor" },
+  { id: "s-3", name: "Lina Frei", email: "lina.frei@example.com", voice: "Alt" },
+  { id: "s-4", name: "Jonas Graf", email: "jonas.graf@example.com", voice: "Bass" }
+];
+
 export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Luzia Chor");
@@ -99,6 +118,14 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [projectEnd, setProjectEnd] = useState("2026-06-12");
   const [projectLocation, setProjectLocation] = useState("");
   const [projectSkipped, setProjectSkipped] = useState(false);
+  const [activeSingerFilters, setActiveSingerFilters] = useState<string[]>([
+    "Zürich",
+    "Sopran"
+  ]);
+  const [selectedSingerIds, setSelectedSingerIds] = useState<string[]>([]);
+  const [directEntries, setDirectEntries] = useState([
+    { id: "entry-1", first: "Lea", last: "Suter", email: "lea.suter@example.com", voice: "Sopran" }
+  ]);
 
   useEffect(() => {
     if (!open) {
@@ -124,6 +151,31 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+
+  const toggleSingerFilter = (value: string) => {
+    setActiveSingerFilters((prev) =>
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    );
+  };
+
+  const toggleSingerSelection = (id: string) => {
+    setSelectedSingerIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const addDirectEntry = () => {
+    setDirectEntries((prev) => [
+      ...prev,
+      { id: `entry-${prev.length + 1}`, first: "", last: "", email: "", voice: "" }
+    ]);
+  };
+
+  const updateDirectEntry = (id: string, key: "first" | "last" | "email" | "voice", value: string) => {
+    setDirectEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, [key]: value } : entry))
+    );
   };
 
   return (
@@ -477,6 +529,151 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
 
             {step === 4 ? (
               <Card>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {strings.ensembleOnboarding.singersTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.singersSubtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="text-sm font-semibold text-slate-800">
+                      {strings.ensembleOnboarding.singersSearch}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {strings.ensembleOnboarding.singersSearchHint}
+                    </p>
+                    <div className="mt-3 text-xs uppercase tracking-wide text-slate-400">
+                      {strings.ensembleOnboarding.singersFilters}
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {singerFilters.map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => toggleSingerFilter(filter)}
+                          className={`rounded-full border px-3 py-1 text-xs transition ${
+                            activeSingerFilters.includes(filter)
+                              ? "border-slate-900 bg-slate-900 text-white"
+                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                          }`}
+                        >
+                          {filter}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-4 text-xs uppercase tracking-wide text-slate-400">
+                      {strings.ensembleOnboarding.singersResults}
+                    </div>
+                    <div className="mt-2 space-y-2">
+                      {mockSingerResults.map((singer) => (
+                        <div
+                          key={singer.id}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
+                        >
+                          <div>
+                            <div className="font-semibold text-slate-800">
+                              {singer.name}
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {singer.email} · {singer.voice}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleSingerSelection(singer.id)}
+                            className={`rounded-full border px-2 py-1 text-[11px] transition ${
+                              selectedSingerIds.includes(singer.id)
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : "border-slate-200 text-slate-500 hover:border-slate-300"
+                            }`}
+                          >
+                            {selectedSingerIds.includes(singer.id)
+                              ? strings.ensembleOnboarding.singersAdded
+                              : strings.ensembleOnboarding.singersAdd}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="text-sm font-semibold text-slate-800">
+                      {strings.ensembleOnboarding.singersUpload}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {strings.ensembleOnboarding.singersUploadHint}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleComingSoon}
+                      className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-xs text-slate-500 transition hover:border-slate-300"
+                    >
+                      <span>{strings.ensembleOnboarding.singersUploadDrop}</span>
+                      <span className="text-[11px] text-slate-400">
+                        {strings.ensembleOnboarding.singersUploadFormat}
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="text-sm font-semibold text-slate-800">
+                      {strings.ensembleOnboarding.singersDirect}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {strings.ensembleOnboarding.singersDirectHint}
+                    </p>
+                    <div className="mt-3 space-y-3">
+                      {directEntries.map((entry) => (
+                        <div
+                          key={entry.id}
+                          className="grid gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-600 sm:grid-cols-2"
+                        >
+                          <input
+                            value={entry.first}
+                            onChange={(event) => updateDirectEntry(entry.id, "first", event.target.value)}
+                            placeholder="Vorname"
+                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                          />
+                          <input
+                            value={entry.last}
+                            onChange={(event) => updateDirectEntry(entry.id, "last", event.target.value)}
+                            placeholder="Nachname"
+                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                          />
+                          <input
+                            value={entry.email}
+                            onChange={(event) => updateDirectEntry(entry.id, "email", event.target.value)}
+                            placeholder="E-Mail"
+                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 sm:col-span-2"
+                          />
+                          <input
+                            value={entry.voice}
+                            onChange={(event) => updateDirectEntry(entry.id, "voice", event.target.value)}
+                            placeholder="Stimme"
+                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 sm:col-span-2"
+                          />
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={addDirectEntry}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300"
+                      >
+                        {strings.ensembleOnboarding.singersEntryAdd}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
+            {step === 5 ? (
+              <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">
@@ -513,6 +710,9 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </li>
                       <li>
                         {strings.ensembleOnboarding.summaryGenres}: {genres.length ? genres.join(", ") : strings.ensembleOnboarding.summaryGenresEmpty}
+                      </li>
+                      <li>
+                        {strings.ensembleOnboarding.singersSummary}: {selectedSingerIds.length + directEntries.length || strings.ensembleOnboarding.singersSummaryEmpty}
                       </li>
                     </ul>
                   </div>
