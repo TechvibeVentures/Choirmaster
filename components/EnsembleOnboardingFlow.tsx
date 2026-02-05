@@ -156,18 +156,18 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
           </div>
         </div>
 
-        <div className="mt-4 grid flex-1 gap-4 md:grid-cols-[220px_1fr]">
-          <Card className="h-fit">
-            <div className="space-y-3">
+        <div className="mt-4 flex flex-1 flex-col gap-4">
+          <Card>
+            <div className="flex flex-wrap items-center gap-2">
               {steps.map((label, index) => (
                 <button
                   key={label}
                   type="button"
                   onClick={() => setStep(index)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-left text-xs font-medium transition sm:text-sm ${
                     step === index
                       ? "bg-slate-900 text-white"
-                      : "border border-transparent text-slate-600 hover:border-slate-200 hover:text-slate-800"
+                      : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
                   }`}
                 >
                   <span
