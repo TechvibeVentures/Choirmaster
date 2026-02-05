@@ -70,7 +70,16 @@ export const strings = {
     roles: "Rollen",
     singerStatus: "Sängerstatus",
     participations: "Projektbeteiligungen",
-    availability: "Anwesenheit"
+    availability: "Anwesenheit",
+    findSingers: "Sänger finden"
+  },
+  onboarding: {
+    title: "Sänger finden",
+    subtitle: "Onboarding in vier übersichtlichen Schritten.",
+    stepChoir: "Ensemble & Ziel",
+    stepChannels: "Kanäle wählen",
+    stepInvites: "Einladungen vorbereiten",
+    stepReview: "Überblick"
   },
   repertoire: {
     title: "Noten",

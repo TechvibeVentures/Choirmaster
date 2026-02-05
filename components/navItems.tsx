@@ -35,6 +35,9 @@ export const getPageTitle = (pathname: string) => {
     const project = projects.find((item) => item.id === projectId);
     return project?.name ?? strings.nav.projects;
   }
+  if (pathname === "/people/onboarding") {
+    return strings.onboarding.title;
+  }
   if (pathname.startsWith("/people/")) {
     const personId = pathname.split("/")[2];
     const person = people.find((item) => item.id === personId);

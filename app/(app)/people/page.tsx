@@ -15,6 +15,7 @@ import {
   rehearsalsByProject,
   type Voice
 } from "@/lib/mockData";
+import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
 
 const experienceLabels: Record<string, string> = {
@@ -264,7 +265,7 @@ export default function PeoplePage() {
               </span>
             </button>
             <span className="invisible rounded-lg border border-slate-900 px-4 py-2 text-sm sm:hidden">
-              Sänger finden
+              {strings.people.findSingers}
             </span>
           </div>
           <div className="order-1 flex items-center gap-3 sm:order-2">
@@ -292,22 +293,20 @@ export default function PeoplePage() {
                 Details
               </button>
             </div>
-            <button
-              type="button"
-              onClick={handleComingSoon}
+            <Link
+              href="/people/onboarding"
               className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:hidden"
             >
-              Sänger finden
-            </button>
+              {strings.people.findSingers}
+            </Link>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleComingSoon}
+        <Link
+          href="/people/onboarding"
           className="hidden rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:inline-flex"
         >
-          Sänger finden
-        </button>
+          {strings.people.findSingers}
+        </Link>
       </div>
 
       {view === "list" ? (
