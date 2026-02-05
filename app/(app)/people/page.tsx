@@ -241,7 +241,7 @@ export default function PeoplePage() {
             <button
               type="button"
               onClick={() => setVoiceSplitOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
+              className="w-full flex-1 min-w-[140px] justify-between gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500 sm:w-auto sm:flex-none"
             >
               Stimmaufteilung
               <span className="text-slate-400">
@@ -271,11 +271,11 @@ export default function PeoplePage() {
               Sänger finden
             </button>
           </div>
-          <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
+          <div className="flex w-full flex-1 min-w-[140px] rounded-full border border-slate-200 bg-white p-0.5 sm:w-auto sm:flex-none">
             <button
               type="button"
               onClick={() => setView("seating")}
-              className={`rounded-full px-3 py-1 text-xs transition ${
+              className={`flex-1 rounded-full px-3 py-1 text-xs transition ${
                 view === "seating"
                   ? "bg-slate-900 text-white"
                   : "text-slate-500 hover:text-slate-700"
@@ -286,7 +286,7 @@ export default function PeoplePage() {
             <button
               type="button"
               onClick={() => setView("list")}
-              className={`rounded-full px-3 py-1 text-xs transition ${
+              className={`flex-1 rounded-full px-3 py-1 text-xs transition ${
                 view === "list"
                   ? "bg-slate-900 text-white"
                   : "text-slate-500 hover:text-slate-700"
