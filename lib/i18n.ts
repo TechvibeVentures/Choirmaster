@@ -4,10 +4,10 @@ export const strings = {
     projects: "Projekte",
     repertoire: "Noten",
     people: "Sänger",
-    communication: "Kommunikation"
+    communication: "Nachrichten"
   },
   communication: {
-    title: "Kommunikation",
+    title: "Nachrichten",
     subtitle:
       "Zentraler Kanal für Chat, E-Mail-Historie und Rollen-Gruppen.",
     preview: "Vorschau",

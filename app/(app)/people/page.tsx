@@ -236,32 +236,41 @@ export default function PeoplePage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            onClick={() => setVoiceSplitOpen((prev) => !prev)}
-            className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
-          >
-            Stimmaufteilung
-            <span className="text-slate-400">
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 12 8"
-                className={`h-3 w-3 transition ${
-                  voiceSplitOpen ? "rotate-180" : "translate-y-px"
-                }`}
-              >
-                <path
-                  d="M1 1l5 5 5-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span>
-          </button>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3 sm:justify-start">
+            <button
+              type="button"
+              onClick={() => setVoiceSplitOpen((prev) => !prev)}
+              className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
+            >
+              Stimmaufteilung
+              <span className="text-slate-400">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 12 8"
+                  className={`h-3 w-3 transition ${
+                    voiceSplitOpen ? "rotate-180" : "translate-y-px"
+                  }`}
+                >
+                  <path
+                    d="M1 1l5 5 5-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleComingSoon}
+              className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:hidden"
+            >
+              Sänger finden
+            </button>
+          </div>
           <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
             <button
               type="button"
@@ -290,7 +299,7 @@ export default function PeoplePage() {
         <button
           type="button"
           onClick={handleComingSoon}
-          className="self-start rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:self-auto"
+          className="hidden rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:inline-flex"
         >
           Sänger finden
         </button>

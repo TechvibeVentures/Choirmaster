@@ -185,7 +185,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
               event.stopPropagation();
               handleComingSoon();
             }}
-            className="absolute left-3 top-3 rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:hidden"
+            className="absolute right-3 top-3 rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:hidden"
             aria-label={strings.projects.edit}
           >
             <Pencil className="h-3.5 w-3.5" />

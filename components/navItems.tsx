@@ -9,7 +9,7 @@ export const navItems = [
   { label: strings.nav.people, href: "/people", icon: Users },
   {
     label: strings.nav.communication,
-    mobileLabel: "Komm.",
+    mobileLabel: "Nachr.",
     href: "/communication",
     icon: MessageCircle
   }

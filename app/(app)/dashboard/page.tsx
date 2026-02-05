@@ -151,13 +151,13 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="w-full min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-slate-900">Sänger</h2>
             <span className="text-xs text-slate-400">{choirName}</span>
           </div>
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[360px] table-fixed text-left text-xs sm:text-sm">
+          <div className="mt-3 max-w-full overflow-x-auto">
+            <table className="w-full min-w-full table-fixed text-left text-xs sm:min-w-[360px] sm:text-sm">
               <colgroup>
                 <col className="w-1/4" />
                 <col className="w-1/4" />
@@ -237,7 +237,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card>
+        <Card className="w-full min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-slate-900">Projekt</h2>
             <span className="text-xs text-slate-400">

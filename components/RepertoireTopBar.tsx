@@ -12,8 +12,8 @@ export default function RepertoireTopBar() {
   };
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative w-full sm:max-w-md">
+    <div className="flex items-center justify-between gap-3">
+      <div className="relative w-full min-w-0 flex-1 sm:max-w-md">
         <input
           type="search"
           placeholder="Noten durchsuchen"
@@ -24,7 +24,7 @@ export default function RepertoireTopBar() {
       <button
         type="button"
         onClick={showComingSoon}
-        className="rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+        className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
       >
         Noten hinzufügen
       </button>

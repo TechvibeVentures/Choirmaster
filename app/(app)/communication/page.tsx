@@ -1,7 +1,7 @@
  "use client";
 
 import { useState } from "react";
-import { Clock, Mail, MessageCircle, MessagesSquare } from "lucide-react";
+import { Mail, MessageCircle, MessagesSquare } from "lucide-react";
 import Card from "@/components/Card";
 import Badge from "@/components/Badge";
 import { strings } from "@/lib/i18n";
@@ -172,10 +172,6 @@ export default function CommunicationPage() {
               <p className="mt-1 text-sm text-slate-500">
                 {strings.communication.timelineSubtitle}
               </p>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500">
-              <Clock className="h-3.5 w-3.5" />
-              Letzte 7 Tage
             </div>
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
