@@ -49,10 +49,6 @@ const voiceBorderColors: Record<Voice, string> = {
   Bass: "var(--voice-bass)"
 };
 
-const getVoiceAreaStyle = (voice: Voice) => ({
-  backgroundColor: `color-mix(in srgb, ${voiceBorderColors[voice]} 18%, white)`
-});
-
 const voiceSplitDefaults = [
   { label: "1", count: 4 },
   { label: "2", count: 4 },
@@ -88,11 +84,43 @@ const getAttendanceClass = (value: number | null) => {
   return "border-rose-200 bg-rose-50 text-rose-700";
 };
 
+const getEvenSplitCounts = (total: number, parts: number) => {
+  if (parts <= 0) return [];
+  const base = Math.floor(total / parts);
+  const remainder = total % parts;
+  return Array.from({ length: parts }, (_, index) =>
+    base + (index < remainder ? 1 : 0)
+  );
+};
+
+const shiftTargetsLeftInTwoColumn = (
+  items: typeof people,
+  targetIds: string[]
+) => {
+  const targets = new Set(targetIds);
+  let reordered = [...items];
+  targetIds.forEach((targetId) => {
+    const index = reordered.findIndex((person) => person.id === targetId);
+    if (index <= 0 || index % 2 === 0) return;
+    if (targets.has(reordered[index - 1]?.id)) return;
+    const temp = reordered[index - 1];
+    reordered[index - 1] = reordered[index];
+    reordered[index] = temp;
+  });
+  return reordered;
+};
+
 export default function PeoplePage() {
   const [view, setView] = useState<"list" | "seating">("list");
+  const [voiceSplitOpen, setVoiceSplitOpen] = useState(false);
   const currentProjectId = useMemo(() => getCurrentProjectId(), []);
   const handleComingSoon = () => {
     alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+  const handleRepositionInfo = () => {
+    window.alert(
+      "In einer späteren Version der App können die Positionen der Stimmen und Sänger per Drag- and Drop neu positioniert werden."
+    );
   };
 
   const grouped = useMemo(() => {
@@ -105,31 +133,6 @@ export default function PeoplePage() {
     });
     return result;
   }, []);
-
-  const activeMembers = useMemo(() => {
-    return people.filter((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
-      return membership?.singer_status === "active";
-    });
-  }, []);
-
-  const passiveMembers = useMemo(() => {
-    return people.filter((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
-      return membership && membership.singer_status !== "active";
-    });
-  }, []);
-
-  const activeByVoice = useMemo(() => {
-    const result = new Map<Voice, typeof people>();
-    voiceOrder.forEach((voice) => result.set(voice, []));
-    activeMembers.forEach((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
-      if (!membership) return;
-      result.get(membership.voice)?.push(person);
-    });
-    return result;
-  }, [activeMembers]);
 
   const confirmedIds = useMemo(
     () =>
@@ -182,138 +185,130 @@ export default function PeoplePage() {
     () => people.filter((person) => person.roles.includes("conductor")),
     []
   );
+  const conductorIds = useMemo(
+    () => new Set(conductors.map((person) => person.id)),
+    [conductors]
+  );
+
+  const projectActiveMembers = useMemo(() => {
+    return people.filter((person) => {
+      const membership = getMembership(person.id, defaultChoirId);
+      return membership && confirmedIds.has(person.id) && !conductorIds.has(person.id);
+    });
+  }, [confirmedIds, conductorIds]);
+
+  const projectPassiveMembers = useMemo(() => {
+    return people.filter((person) => {
+      const membership = getMembership(person.id, defaultChoirId);
+      return membership && !confirmedIds.has(person.id) && !conductorIds.has(person.id);
+    });
+  }, [confirmedIds, conductorIds]);
+
+  const activeByVoice = useMemo(() => {
+    const result = new Map<Voice, typeof people>();
+    voiceOrder.forEach((voice) => result.set(voice, []));
+    projectActiveMembers.forEach((person) => {
+      const membership = getMembership(person.id, defaultChoirId);
+      if (!membership) return;
+      result.get(membership.voice)?.push(person);
+    });
+    return result;
+  }, [projectActiveMembers]);
+
+  const passiveByVoice = useMemo(() => {
+    const result = new Map<Voice, typeof people>();
+    voiceOrder.forEach((voice) => result.set(voice, []));
+    projectPassiveMembers.forEach((person) => {
+      const membership = getMembership(person.id, defaultChoirId);
+      if (!membership) return;
+      result.get(membership.voice)?.push(person);
+    });
+    return result;
+  }, [projectPassiveMembers]);
+
+  const formerSingers = useMemo(() => {
+    return people.filter((person) => {
+      const membership = getMembership(person.id, defaultChoirId);
+      return membership?.singer_status === "inactive";
+    });
+  }, []);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-end gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setVoiceSplitOpen((prev) => !prev)}
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-500"
+          >
+            Stimmaufteilung
+            <span className="text-slate-400">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 12 8"
+                className={`h-3 w-3 transition ${
+                  voiceSplitOpen ? "rotate-180" : "translate-y-px"
+                }`}
+              >
+                <path
+                  d="M1 1l5 5 5-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </button>
+          <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
+            <button
+              type="button"
+              onClick={() => setView("seating")}
+              className={`rounded-full px-3 py-1 text-xs transition ${
+                view === "seating"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Aufstellung
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`rounded-full px-3 py-1 text-xs transition ${
+                view === "list"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              Details
+            </button>
+          </div>
+        </div>
         <button
           type="button"
-          onClick={() => setView("seating")}
-          className={`rounded-full border px-3 py-1 text-xs transition ${
-            view === "seating"
-              ? "border-slate-300 bg-slate-100 text-slate-900"
-              : "border-slate-200 bg-white text-slate-500"
-          }`}
+          onClick={handleComingSoon}
+          className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
         >
-          Aufstellung
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("list")}
-          className={`rounded-full border px-3 py-1 text-xs transition ${
-            view === "list"
-              ? "border-slate-300 bg-slate-100 text-slate-900"
-              : "border-slate-200 bg-white text-slate-500"
-          }`}
-        >
-          Liste
+          Sänger finden
         </button>
       </div>
 
       {view === "list" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {voiceOrder.map((voice) => {
-            const group = grouped.get(voice) ?? [];
-            return (
-              <section key={voice} className="flex flex-col gap-3">
-                <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: voiceBorderColors[voice] }}
-                    />
-                    <span>{getVoiceLabel(voice)}</span>
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {group.length}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-3">
-                  {group.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
-                      Noch keine Stimmen eingetragen
-                    </div>
-                  ) : null}
-                  {[...group]
-                    .sort((a, b) => {
-                      const aActive = confirmedIds.has(a.id);
-                      const bActive = confirmedIds.has(b.id);
-                      if (aActive === bActive) return 0;
-                      return aActive ? -1 : 1;
-                    })
-                    .map((person) => {
-                    const experienceTag = experienceLabels[person.experience_level];
-                    const attendance = attendanceByPerson.get(person.id);
-                    const statusLabel = confirmedIds.has(person.id)
-                      ? "aktiv"
-                      : "passiv";
-                    return (
-                      <Link key={person.id} href={`/people/${person.id}`}>
-                        <Card
-                          className="border-l-4 transition hover:border-slate-300"
-                          style={{ borderLeftColor: voiceBorderColors[voice] }}
-                        >
-                          <div className="flex flex-col gap-3">
-                            <div className="space-y-2">
-                              <div className="flex items-baseline gap-2">
-                                <h2
-                                  className="text-lg font-semibold text-slate-900"
-                                  title={getPersonName(person)}
-                                >
-                                  {getDisplayName(person.first_name, person.last_name)}
-                                </h2>
-                                <span className="text-[10px] tracking-wide text-slate-400">
-                                  {statusLabel}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm text-slate-500">
-                                  {person.city}
-                                </p>
-                                <Badge className="text-slate-600">
-                                  {experienceTag}
-                                </Badge>
-                              </div>
-                              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                                <span
-                                  className={`inline-flex rounded-full border px-2 py-1 text-xs ${getAttendanceClass(
-                                    attendance === null ? null : attendance.percent
-                                  )}`}
-                                >
-                                  {attendance === null
-                                    ? "–"
-                                    : `${attendance.percent}%`}
-                                </span>
-                                <span>
-                                  Anwesenheit:{" "}
-                                  <span className="font-semibold text-slate-700">
-                                    {attendance === null
-                                      ? "–"
-                                      : `${attendance.yes}/${attendance.total} Proben`}
-                                  </span>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col items-center gap-6">
+        <div className="space-y-6">
+          {voiceSplitOpen ? (
             <section className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="text-xs uppercase text-slate-400">
                 Stimmaufteilung
               </div>
               <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {voiceOrder.map((voice) => (
-                  <div key={voice} className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
+                  <div
+                    key={voice}
+                    className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
+                  >
                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                       <span
                         className="h-2 w-2 rounded-full"
@@ -356,28 +351,444 @@ export default function PeoplePage() {
                 ))}
               </div>
             </section>
-            <div className="flex flex-col items-center gap-3">
-              <div className="mt-4 text-xs uppercase text-slate-400">Leitung</div>
-              <div className="flex flex-wrap justify-center gap-3">
+          ) : null}
+          <section>
+            <div className="mb-3 text-xs uppercase text-slate-400">Leitung</div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              {conductors.map((person) => {
+                const attendance = attendanceByPerson.get(person.id) ?? null;
+                return (
+                  <Link key={person.id} href={`/people/${person.id}`} className="block">
+                    <Card
+                      className="w-full border-l-4 transition hover:border-slate-300"
+                      style={{
+                        borderLeftColor:
+                          voiceBorderColors[
+                            getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                          ]
+                      }}
+                    >
+                      <div className="flex flex-col gap-3">
+                        <div className="space-y-2">
+                          <div className="flex items-baseline gap-2">
+                            <h2
+                              className="text-lg font-semibold text-slate-900"
+                              title={getPersonName(person)}
+                            >
+                              {getDisplayName(person.first_name, person.last_name)}
+                            </h2>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm text-slate-500">
+                              {person.city}
+                            </p>
+                            <Badge className="text-slate-600">
+                              {experienceLabels[person.experience_level]}
+                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                            <span
+                              className={`inline-flex rounded-full border px-2 py-1 text-xs ${getAttendanceClass(
+                                attendance === null ? null : attendance.percent
+                              )}`}
+                            >
+                              {attendance === null ? "–" : `${attendance.percent}%`}
+                            </span>
+                            <span>
+                              Anwesenheit:{" "}
+                              <span className="font-semibold text-slate-700">
+                                {attendance === null
+                                  ? "–"
+                                  : `${attendance.yes}/${attendance.total} Proben`}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 text-xs uppercase text-slate-400">
+              Aktive Sänger
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {voiceOrder.map((voice) => {
+                const group = (grouped.get(voice) ?? []).filter(
+                  (person) =>
+                    confirmedIds.has(person.id) && !conductorIds.has(person.id)
+                );
+                const targetSeats = voiceSplitDefaults.reduce(
+                  (sum, split) => sum + split.count,
+                  0
+                );
+                const emptySeats = Math.max(0, targetSeats - group.length);
+                return (
+                  <section key={`active-${voice}`} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {group.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {group.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
+                          Noch keine Stimmen eingetragen
+                        </div>
+                      ) : null}
+                      {group.map((person) => {
+                        const experienceTag = experienceLabels[person.experience_level];
+                        const attendance = attendanceByPerson.get(person.id) ?? null;
+                        return (
+                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                            <Card
+                              className="w-full border-l-4 transition hover:border-slate-300"
+                              style={{ borderLeftColor: voiceBorderColors[voice] }}
+                            >
+                              <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-baseline gap-2">
+                                    <h2
+                                      className="text-lg font-semibold text-slate-900"
+                                      title={getPersonName(person)}
+                                    >
+                                      {getDisplayName(
+                                        person.first_name,
+                                        person.last_name
+                                      )}
+                                    </h2>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm text-slate-500">
+                                      {person.city}
+                                    </p>
+                                    <Badge className="text-slate-600">
+                                      {experienceTag}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                                    <span
+                                      className={`inline-flex rounded-full border px-2 py-1 text-xs ${getAttendanceClass(
+                                        attendance === null ? null : attendance.percent
+                                      )}`}
+                                    >
+                                      {attendance === null
+                                        ? "–"
+                                        : `${attendance.percent}%`}
+                                    </span>
+                                    <span>
+                                      Anwesenheit:{" "}
+                                      <span className="font-semibold text-slate-700">
+                                        {attendance === null
+                                          ? "–"
+                                          : `${attendance.yes}/${attendance.total} Proben`}
+                                      </span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                      {Array.from({ length: emptySeats }).map((_, index) => (
+                        <button
+                          key={`${voice}-empty-${index}`}
+                          type="button"
+                          onClick={handleComingSoon}
+                          className="w-full text-left"
+                        >
+                          <Card className="border-dashed border-slate-200 text-slate-400">
+                            <div className="flex flex-col gap-3">
+                              <div className="space-y-2">
+                                <div className="flex items-baseline gap-2">
+                                  <h2 className="text-lg font-semibold text-slate-300">
+                                    Platz frei
+                                  </h2>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-sm text-slate-300">–</p>
+                                  <Badge className="text-slate-300">
+                                    {getVoiceLabel(voice)}
+                                  </Badge>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                                  <span className="inline-flex rounded-full border border-slate-200 px-2 py-1 text-xs">
+                                    –%
+                                  </span>
+                                  <span>Anwesenheit: –</span>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 text-xs uppercase text-slate-400">
+              Passive Sänger
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {voiceOrder.map((voice) => {
+                const group = (grouped.get(voice) ?? []).filter(
+                  (person) =>
+                    !confirmedIds.has(person.id) &&
+                    !conductorIds.has(person.id) &&
+                    getMembership(person.id, defaultChoirId)?.singer_status !==
+                      "inactive"
+                );
+                return (
+                  <section key={`passive-${voice}`} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {group.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {group.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
+                          Noch keine Stimmen eingetragen
+                        </div>
+                      ) : null}
+                      {group.map((person) => {
+                        const experienceTag = experienceLabels[person.experience_level];
+                        return (
+                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                            <Card
+                              className="w-full border-l-4 transition hover:border-slate-300"
+                              style={{ borderLeftColor: voiceBorderColors[voice] }}
+                            >
+                              <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-baseline gap-2">
+                                    <h2
+                                      className="text-lg font-semibold text-slate-900"
+                                      title={getPersonName(person)}
+                                    >
+                                      {getDisplayName(
+                                        person.first_name,
+                                        person.last_name
+                                      )}
+                                    </h2>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm text-slate-500">
+                                      {person.city}
+                                    </p>
+                                    <Badge className="text-slate-600">
+                                      {experienceTag}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 text-xs uppercase text-slate-400">
+              Ehemalige Sänger
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {voiceOrder.map((voice) => {
+                const group = (grouped.get(voice) ?? []).filter(
+                  (person) =>
+                    !conductorIds.has(person.id) &&
+                    getMembership(person.id, defaultChoirId)?.singer_status ===
+                      "inactive"
+                );
+                return (
+                  <section key={`former-${voice}`} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                      <span className="flex items-center gap-2">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {group.length}
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      {group.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
+                          Noch keine Stimmen eingetragen
+                        </div>
+                      ) : null}
+                      {group.map((person) => {
+                        return (
+                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                            <Card
+                              className="w-full border-l-4 transition hover:border-slate-300"
+                              style={{ borderLeftColor: voiceBorderColors[voice] }}
+                            >
+                              <div className="flex flex-col gap-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-baseline gap-2">
+                                    <h2
+                                      className="text-lg font-semibold text-slate-900"
+                                      title={getPersonName(person)}
+                                    >
+                                      {getDisplayName(
+                                        person.first_name,
+                                        person.last_name
+                                      )}
+                                    </h2>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm text-slate-500">
+                                      {person.city}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col items-center gap-6">
+            {voiceSplitOpen ? (
+              <section className="w-full rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="text-xs uppercase text-slate-400">
+                  Stimmaufteilung
+                </div>
+                <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {voiceOrder.map((voice) => (
+                    <div
+                      key={voice}
+                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
+                    >
+                      <button
+                        type="button"
+                        onClick={handleRepositionInfo}
+                        className="relative z-10 flex items-center gap-2 text-left text-sm font-semibold text-slate-700 transition hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: voiceBorderColors[voice] }}
+                        />
+                        <span>{getVoiceLabel(voice)}</span>
+                      </button>
+                      <div className="mt-3 space-y-2">
+                        {voiceSplitDefaults.map((split) => (
+                          <div
+                            key={`${voice}-${split.label}`}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
+                          >
+                            <span className="text-xs text-slate-500">
+                              {getVoiceLabel(voice)} {split.label}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                –
+                              </button>
+                              <span className="min-w-[18px] text-center text-xs font-semibold text-slate-700">
+                                {split.count}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="flex w-full flex-col items-start gap-3">
+              <div className="text-xs uppercase text-slate-400">Leitung</div>
+              <div className="flex flex-wrap justify-start gap-3">
                 {conductors.map((person) => (
                   <Link
                     key={person.id}
                     href={`/people/${person.id}`}
                     className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
+                    style={{
+                      borderColor:
+                        voiceBorderColors[
+                          getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                        ]
+                    }}
                   >
                     {getInitials(getPersonName(person))}
                     <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
-                      {getPersonName(person)} · Leitung
+                      {getPersonName(person)} · Leitung ·{" "}
+                      {getVoiceLabel(
+                        getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                      )}
                     </span>
                   </Link>
                 ))}
               </div>
-            </div>
+            </section>
 
             <div className="w-full">
+              <div className="mb-3 text-xs uppercase text-slate-400">
+                Aktive Sänger
+              </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {voiceOrder.map((voice) => {
                   const members = activeByVoice.get(voice) ?? [];
+                  const splitCuts = voiceSplitDefaults.filter(
+                    (split) => split.count > 0
+                  );
+                  const splitCounts = getEvenSplitCounts(
+                    members.length,
+                    splitCuts.length
+                  );
                   let splitIndex = 0;
                   return (
                     <div key={voice} className="space-y-3">
@@ -388,34 +799,44 @@ export default function PeoplePage() {
                         />
                         <span>{getVoiceLabel(voice)}</span>
                       </div>
-                      <div className="space-y-3">
-                        {voiceSplitDefaults.map((split) => {
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {splitCuts.map((split, splitPosition) => {
+                          const count = splitCounts[splitPosition] ?? 0;
                           const slice = members.slice(
                             splitIndex,
-                            splitIndex + split.count
+                            splitIndex + count
                           );
-                          splitIndex += split.count;
+                          splitIndex += count;
+                          const missingSeats = Math.max(0, split.count - slice.length);
                           return (
-                            <div
-                              key={`${voice}-${split.label}`}
-                              className="rounded-2xl border border-slate-200 p-3"
-                              style={getVoiceAreaStyle(voice)}
-                            >
-                              <div className="text-xs font-semibold text-slate-600">
+                            <div key={`${voice}-${split.label}`}>
+                              <div className="text-xs font-normal text-slate-400 text-center">
                                 {getVoiceLabel(voice)} {split.label}
                               </div>
-                              <div className="mt-3 flex flex-wrap gap-2">
+                              <div className="mt-1 h-px w-full bg-slate-200" />
+                              <div className="mt-2 grid grid-cols-2 gap-2">
                                 {slice.map((person) => (
                                   <Link
                                     key={person.id}
                                     href={`/people/${person.id}`}
                                     className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-700 shadow-sm"
+                                    style={{ borderColor: voiceBorderColors[voice] }}
                                   >
                                     {getInitials(getPersonName(person))}
                                     <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
                                       {getPersonName(person)} · {getVoiceLabel(voice)}
                                     </span>
                                   </Link>
+                                ))}
+                                {Array.from({ length: missingSeats }).map((_, index) => (
+                                  <button
+                                    key={`${voice}-${split.label}-empty-${index}`}
+                                    type="button"
+                                    onClick={handleComingSoon}
+                                    className="flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-slate-200 bg-slate-50 text-[9px] text-slate-300 transition hover:border-slate-300 hover:text-slate-400"
+                                  >
+                                    frei
+                                  </button>
                                 ))}
                               </div>
                             </div>
@@ -433,12 +854,49 @@ export default function PeoplePage() {
             <div className="mb-3 text-xs uppercase text-slate-400">
               Passive Sänger
             </div>
-            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-2">
-              {passiveMembers.map((person) => (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {voiceOrder.map((voice) => {
+                const members = passiveByVoice.get(voice) ?? [];
+                const orderedMembers =
+                  voice === "Tenor"
+                    ? shiftTargetsLeftInTwoColumn(members, [
+                        "benjamin-zwicky",
+                        "adrian-lutz"
+                      ])
+                    : members;
+                return (
+                  <div key={voice}>
+                    <div className="grid grid-cols-2 gap-2">
+                      {orderedMembers.map((person) => (
+                        <Link
+                          key={person.id}
+                          href={`/people/${person.id}`}
+                          className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-600 shadow-sm"
+                          style={{ borderColor: voiceBorderColors[voice] }}
+                        >
+                          {getInitials(getPersonName(person))}
+                            <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
+                              {getPersonName(person)} · {getVoiceLabel(voice)}
+                            </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 text-xs uppercase text-slate-400">
+              Ehemalige Sänger
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formerSingers.map((person) => (
                 <Link
                   key={person.id}
                   href={`/people/${person.id}`}
-                  className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-600 shadow-sm"
+                  className="group relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-500 shadow-sm"
                 >
                   {getInitials(getPersonName(person))}
                   <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
