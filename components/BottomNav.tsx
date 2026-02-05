@@ -11,7 +11,7 @@ export default function BottomNav({
 }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
-      <nav className="grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
+      <nav className="grid grid-cols-5 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(currentPath, item.href);
@@ -19,7 +19,7 @@ export default function BottomNav({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 px-2 py-3 text-xs ${
+              className={`flex flex-col items-center gap-1 px-1 py-3 text-[11px] ${
                 active ? "text-slate-900" : "text-slate-500"
               }`}
             >

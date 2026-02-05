@@ -18,9 +18,9 @@ export default function ShellChrome({
     <div className="min-h-screen bg-white text-slate-900">
       <div className="md:flex">
         <SidebarNav currentPath={pathname} />
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <PageHeader title={title} currentPath={pathname} />
-          <main className="px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pb-10">
+          <main className="min-w-0 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pb-10">
             {children}
           </main>
         </div>
