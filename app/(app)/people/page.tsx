@@ -264,7 +264,7 @@ export default function PeoplePage() {
                 </svg>
               </span>
             </button>
-            <span className="invisible rounded-lg border border-slate-900 px-4 py-2 text-sm sm:hidden">
+            <span className="invisible whitespace-nowrap rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium shadow-sm sm:hidden">
               {strings.people.findSingers}
             </span>
           </div>
@@ -295,7 +295,7 @@ export default function PeoplePage() {
             </div>
             <Link
               href="/people/onboarding"
-              className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:hidden"
+              className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:hidden"
             >
               {strings.people.findSingers}
             </Link>
@@ -303,7 +303,7 @@ export default function PeoplePage() {
         </div>
         <Link
           href="/people/onboarding"
-          className="hidden rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white sm:inline-flex"
+          className="hidden whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:inline-flex"
         >
           {strings.people.findSingers}
         </Link>
