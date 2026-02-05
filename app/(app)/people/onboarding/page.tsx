@@ -98,6 +98,12 @@ const profileFields = [
   { id: "notes", label: "Notizen", required: false }
 ];
 
+const voiceSplitDefaults = [
+  { label: "1", count: 4 },
+  { label: "2", count: 4 },
+  { label: "3", count: 0 }
+];
+
 const getInitialInviteRows = (): InviteRow[] => [
   { id: "row-1", name: "Anna Berger", email: "anna@example.com", voice: "" },
   { id: "row-2", name: "Jonas Frei", email: "jonas@example.com", voice: "" },
@@ -146,12 +152,10 @@ export default function PeopleOnboardingPage() {
     "Hallo! Wir suchen Verstärkung für unser nächstes Projekt. Hier findest du alle Infos und kannst dich direkt eintragen."
   );
   const [copied, setCopied] = useState(false);
-  const [voiceTargets, setVoiceTargets] = useState<Record<Voice, number>>({
-    Soprano: 6,
-    Alto: 6,
-    Tenor: 5,
-    Bass: 5
-  });
+
+  const handleComingSoon = () => {
+    window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
 
   const choirProjects = useMemo(
     () => projects.filter((project) => project.choir_id === selectedChoirId),
@@ -203,6 +207,7 @@ export default function PeopleOnboardingPage() {
   };
 
   const handleCopy = () => {
+    handleComingSoon();
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
@@ -328,11 +333,18 @@ export default function PeopleOnboardingPage() {
                     </label>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={handleComingSoon}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300"
+                >
+                  + Neues Ensemble hinzufügen
+                </button>
               </Card>
 
               <Card>
                 <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Zielprojekt
+                  Projekt
                 </div>
                 <div className="mt-3 space-y-3">
                   {choirProjects.map((project) => {
@@ -385,41 +397,63 @@ export default function PeopleOnboardingPage() {
                     </div>
                   ) : null}
                 </div>
+                <button
+                  type="button"
+                  onClick={handleComingSoon}
+                  className="mt-3 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300"
+                >
+                  + Neues Projekt anlegen
+                </button>
               </Card>
 
               <Card>
                 <div className="text-xs uppercase tracking-wide text-slate-400">
-                  Stimmfokus
+                  Stimmverteilung
                 </div>
-                <p className="mt-2 text-sm text-slate-500">
-                  Definiere, wie viele Sänger:innen pro Stimme für dieses Projekt
-                  benötigt werden.
-                </p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {voiceOrder.map((voice) => (
                     <div
                       key={voice}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2"
+                      className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
                     >
-                      <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                         <span
-                          className="h-2.5 w-2.5 rounded-full"
+                          className="h-2 w-2 rounded-full"
                           style={{ backgroundColor: voiceColors[voice] }}
                         />
-                        {getVoiceLabel(voice)}
+                        <span>{getVoiceLabel(voice)}</span>
                       </div>
-                      <input
-                        type="number"
-                        min={0}
-                        value={voiceTargets[voice]}
-                        onChange={(event) =>
-                          setVoiceTargets((prev) => ({
-                            ...prev,
-                            [voice]: Number(event.target.value)
-                          }))
-                        }
-                        className="w-16 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm text-slate-700"
-                      />
+                      <div className="mt-3 space-y-2">
+                        {voiceSplitDefaults.map((split) => (
+                          <div
+                            key={`${voice}-${split.label}`}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
+                          >
+                            <span className="text-xs text-slate-500">
+                              {getVoiceLabel(voice)} {split.label}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                –
+                              </button>
+                              <span className="min-w-[18px] text-center text-xs font-semibold text-slate-700">
+                                {split.count}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleComingSoon}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -715,6 +749,7 @@ export default function PeopleOnboardingPage() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
+                    onClick={handleComingSoon}
                     className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
                   >
                     Onboarding starten
@@ -803,7 +838,7 @@ export default function PeopleOnboardingPage() {
                     {getVoiceLabel(voice)}
                   </span>
                   <span className="font-medium text-slate-900">
-                    {voiceTargets[voice]}
+                    {voiceSplitDefaults.reduce((sum, split) => sum + split.count, 0)}
                   </span>
                 </div>
               ))}
