@@ -15,6 +15,7 @@ export default function BottomNav({
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(currentPath, item.href);
+          const label = item.mobileLabel ?? item.label;
           return (
             <Link
               key={item.href}
@@ -24,7 +25,7 @@ export default function BottomNav({
               }`}
             >
               <Icon className={`h-5 w-5 ${active ? "" : ""}`} />
-              <span>{item.label}</span>
+              <span>{label}</span>
             </Link>
           );
         })}

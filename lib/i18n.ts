@@ -3,7 +3,7 @@ export const strings = {
     dashboard: "Übersicht",
     projects: "Projekte",
     repertoire: "Noten",
-    people: "Personen",
+    people: "Sänger",
     communication: "Kommunikation"
   },
   communication: {

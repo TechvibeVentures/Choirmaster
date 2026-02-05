@@ -54,7 +54,7 @@ export default function PageHeader({
           {showOverviewLink ? (
             <Link
               href="/projects/overview"
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              className="hidden rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:inline-flex"
             >
               {strings.projects.overviewButton}
             </Link>

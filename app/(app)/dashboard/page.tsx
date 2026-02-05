@@ -184,9 +184,18 @@ export default function DashboardPage() {
                   [
                     { label: "aktiv", key: "active" },
                     { label: "passiv", key: "passive" },
-                    { label: "ehemalig", key: "former" }
+                    { label: "ehemalig", shortLabel: "ehem.", key: "former" }
                   ] as const
-                ).map((row) => (
+                ).map((row) => {
+                  const label = row.shortLabel ? (
+                    <>
+                      <span className="sm:hidden">{row.shortLabel}</span>
+                      <span className="hidden sm:inline">{row.label}</span>
+                    </>
+                  ) : (
+                    row.label
+                  );
+                  return (
                   <tr key={row.key} className="text-slate-600">
                     {voiceStats.map((voiceRow) => (
                       <td key={voiceRow.voice} className="py-2 pr-3">
@@ -196,18 +205,18 @@ export default function DashboardPage() {
                               voiceRow.active
                             )}`}
                           >
-                            {voiceRow.active} {row.label}
+                            {voiceRow.active} {label}
                           </span>
                         ) : (
                           <span className="inline-flex rounded-full border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600">
-                            {voiceRow[row.key]}{" "}
-                            {row.label}
+                            {voiceRow[row.key]} {label}
                           </span>
                         )}
                       </td>
                     ))}
                   </tr>
-                ))}
+                );
+                })}
               </tbody>
             </table>
           </div>

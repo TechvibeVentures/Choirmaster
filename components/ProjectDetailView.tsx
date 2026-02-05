@@ -177,7 +177,19 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
   return (
     <div className="flex flex-col gap-6">
       <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="relative">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleComingSoon();
+            }}
+            className="absolute left-3 top-3 rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:hidden"
+            aria-label={strings.projects.edit}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -200,7 +212,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                   event.stopPropagation();
                   handleComingSoon();
                 }}
-                className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                className="hidden rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:inline-flex"
                 aria-label={strings.projects.edit}
               >
                 <Pencil className="h-3.5 w-3.5" />

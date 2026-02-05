@@ -36,7 +36,7 @@ export default function RepertoirePage() {
     <div className="flex flex-col gap-6">
       <RepertoireTopBar />
       <section className="grid gap-4 lg:grid-cols-[2fr,1fr]">
-        <Card className="flex h-full flex-col">
+        <Card className="order-2 flex h-full flex-col lg:order-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900">
@@ -106,7 +106,7 @@ export default function RepertoirePage() {
           </div>
         </Card>
 
-        <div className="flex flex-col gap-4">
+        <div className="order-1 flex flex-col gap-4 lg:order-2">
           <Card>
             <div className="text-xs uppercase text-slate-400">
               {strings.repertoire.totalLibrary}

@@ -7,7 +7,12 @@ export const navItems = [
   { label: strings.nav.projects, href: "/projects", icon: FolderKanban },
   { label: strings.nav.repertoire, href: "/repertoire", icon: Music2 },
   { label: strings.nav.people, href: "/people", icon: Users },
-  { label: strings.nav.communication, href: "/communication", icon: MessageCircle }
+  {
+    label: strings.nav.communication,
+    mobileLabel: "Komm.",
+    href: "/communication",
+    icon: MessageCircle
+  }
 ];
 
 export const getPageTitle = (pathname: string) => {
