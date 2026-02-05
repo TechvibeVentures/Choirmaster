@@ -237,7 +237,7 @@ export default function PeoplePage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center justify-between gap-3 sm:justify-start">
+          <div className="order-2 flex items-center justify-between gap-3 sm:order-1 sm:justify-start">
             <button
               type="button"
               onClick={() => setVoiceSplitOpen((prev) => !prev)}
@@ -271,7 +271,7 @@ export default function PeoplePage() {
               Sänger finden
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="order-1 flex items-center gap-3 sm:order-2">
             <div className="flex w-full flex-1 min-w-[140px] rounded-full border border-slate-200 bg-white p-0.5 sm:w-auto sm:flex-none">
               <button
                 type="button"
