@@ -185,15 +185,17 @@ export default function DashboardPage() {
                     { label: "aktiv", shortLabel: "aktiv", key: "active" },
                     { label: "passiv", shortLabel: "passiv", key: "passive" },
                     { label: "ehemalig", shortLabel: "ehem.", key: "former" }
-                  ] as const
+                  ] as {
+                    label: string;
+                    shortLabel: string;
+                    key: "active" | "passive" | "former";
+                  }[]
                 ).map((row) => {
-                  const label = row.shortLabel ? (
+                  const label = (
                     <>
                       <span className="sm:hidden">{row.shortLabel}</span>
                       <span className="hidden sm:inline">{row.label}</span>
                     </>
-                  ) : (
-                    row.label
                   );
                   return (
                   <tr key={row.key} className="text-slate-600">
