@@ -8,10 +8,12 @@ import { strings } from "@/lib/i18n";
 
 export default function PageHeader({
   title,
-  currentPath
+  currentPath,
+  onCreateChoir
 }: {
   title: string;
   currentPath: string;
+  onCreateChoir: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(choirs[0]?.name ?? "Ensemble");
@@ -32,7 +34,7 @@ export default function PageHeader({
 
   const handleSelect = (value: string, label: string) => {
     if (value === "new") {
-      window.alert("Diese Funktion kommt in einer späteren Version der App.");
+      onCreateChoir();
       setOpen(false);
       return;
     }
