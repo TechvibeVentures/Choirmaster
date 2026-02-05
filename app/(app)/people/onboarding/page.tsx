@@ -627,7 +627,7 @@ export default function PeopleOnboardingPage() {
                         onChange={(event) =>
                           updateInviteRow(row.id, "voice", event.target.value)
                         }
-                        className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/60"
                       >
                         <option value="">Stimme</option>
                         {voiceOrder.map((voice) => (
