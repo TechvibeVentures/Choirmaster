@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Choirmaster",
-  description: "Choirmaster dashboard"
+  description: "Choirmaster dashboard",
+  icons: {
+    icon: "/Choirmaster%20Icon%20Transparent.svg"
+  }
 };
 
 export default function RootLayout({

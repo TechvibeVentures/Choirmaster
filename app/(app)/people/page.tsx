@@ -236,7 +236,7 @@ export default function PeoplePage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center justify-between gap-3 sm:justify-start">
             <button
               type="button"

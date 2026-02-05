@@ -1,8 +1,16 @@
+import type { LucideIcon } from "lucide-react";
 import { FolderKanban, Home, MessageCircle, Music2, Users } from "lucide-react";
 import { getPersonName, people, projects } from "@/lib/mockData";
 import { strings } from "@/lib/i18n";
 
-export const navItems = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  mobileLabel?: string;
+};
+
+export const navItems: NavItem[] = [
   { label: strings.nav.dashboard, href: "/dashboard", icon: Home },
   { label: strings.nav.projects, href: "/projects", icon: FolderKanban },
   { label: strings.nav.repertoire, href: "/repertoire", icon: Music2 },
