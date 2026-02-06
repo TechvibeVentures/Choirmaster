@@ -220,7 +220,7 @@ export default function SingerViewPage() {
                   <p className="text-sm text-slate-600">
                     {strings.singer.fields.experience}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
                     {experienceKeys.map((key) => (
                       <button
                         key={key}
@@ -232,7 +232,16 @@ export default function SingerViewPage() {
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
                       >
-                        {experienceLabels[key]}
+                        <span className="sm:hidden">
+                          {key === "advanced"
+                            ? "Fortgeschr."
+                            : key === "professional"
+                              ? "Prof."
+                              : experienceLabels[key]}
+                        </span>
+                        <span className="hidden sm:inline">
+                          {experienceLabels[key]}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -241,7 +250,7 @@ export default function SingerViewPage() {
                   <p className="text-sm text-slate-600">
                     {strings.singer.fields.voice}
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
                     {voiceOptions.map((voiceOption) => {
                       const isSelected = selectedVoice === voiceOption;
                       return (
@@ -472,7 +481,7 @@ export default function SingerViewPage() {
                             }
                             className="flex items-center gap-2 text-xs text-slate-500"
                           >
-                            <span className="text-xs text-slate-500">
+                            <span className="hidden text-xs text-slate-500 sm:inline">
                               {isPresent ? "anwesend" : "abwesend"}
                             </span>
                             <span
