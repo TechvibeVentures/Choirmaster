@@ -44,12 +44,19 @@ const getCurrentProject = (choirId: string) => {
   return active ?? sorted[sorted.length - 1];
 };
 
-const experienceLabels: Record<string, string> = {
+const experienceLabels: Record<
+  "junior" | "regular" | "advanced" | "professional",
+  string
+> = {
   junior: "Einsteiger",
   regular: "Erfahren",
   advanced: "Fortgeschritten",
   professional: "Professionell"
 };
+
+const experienceKeys = Object.keys(experienceLabels) as Array<
+  keyof typeof experienceLabels
+>;
 
 const singerStatusLabels: Record<string, string> = {
   active: "Aktiv",
@@ -187,7 +194,7 @@ export default function SingerViewPage() {
                     {strings.singer.fields.experience}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {Object.entries(experienceLabels).map(([key, label]) => (
+                    {experienceKeys.map((key) => (
                       <button
                         key={key}
                         type="button"
@@ -198,7 +205,7 @@ export default function SingerViewPage() {
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
                       >
-                        {label}
+                        {experienceLabels[key]}
                       </button>
                     ))}
                   </div>
