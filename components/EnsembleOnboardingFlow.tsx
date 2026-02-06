@@ -538,35 +538,32 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                     <p className="mt-1 text-xs text-slate-500">
                       {strings.ensembleOnboarding.singersSearchHint}
                     </p>
-                    <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto]">
-                      <label className="text-xs text-slate-500">
-                        {strings.ensembleOnboarding.singersLocation}
+                    <div className="mt-4 flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{strings.ensembleOnboarding.singersLocation}</span>
                         <input
                           value={locationQuery}
                           onChange={(event) => setLocationQuery(event.target.value)}
                           placeholder={strings.ensembleOnboarding.singersLocationPlaceholder}
-                          className="mt-2 w-full max-w-sm rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="w-56 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
                         />
-                      </label>
-                      <label className="text-xs text-slate-500">
-                        {strings.ensembleOnboarding.singersExperience}
-                        <div className="mt-2 flex flex-nowrap gap-2">
-                          {experienceOptions.map((level) => (
-                            <button
-                              key={level.id}
-                              type="button"
-                              onClick={() => toggleExperience(level.id)}
-                              className={`rounded-full border px-3 py-1 text-xs transition ${
-                                selectedExperiences.includes(level.id)
-                                  ? "border-slate-900 bg-slate-900 text-white"
-                                  : "border-slate-200 text-slate-500 hover:border-slate-300"
-                              }`}
-                            >
-                              {level.label}
-                            </button>
-                          ))}
-                        </div>
-                      </label>
+                      </div>
+                      <div className="flex flex-nowrap gap-2">
+                        {experienceOptions.map((level) => (
+                          <button
+                            key={level.id}
+                            type="button"
+                            onClick={() => toggleExperience(level.id)}
+                            className={`rounded-full border px-3 py-1 text-xs transition ${
+                              selectedExperiences.includes(level.id)
+                                ? "border-slate-900 bg-slate-900 text-white"
+                                : "border-slate-200 text-slate-500 hover:border-slate-300"
+                            }`}
+                          >
+                            {level.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                     <div className="mt-4 text-xs uppercase tracking-wide text-slate-400">
                       {strings.ensembleOnboarding.singersResults}
