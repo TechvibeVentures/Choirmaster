@@ -812,19 +812,19 @@ const resultsByVoice = useMemo(() => {
                             value={entry.first}
                             onChange={(event) => updateDirectEntry(entry.id, "first", event.target.value)}
                             placeholder="Vorname"
-                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
                           />
                           <input
                             value={entry.last}
                             onChange={(event) => updateDirectEntry(entry.id, "last", event.target.value)}
                             placeholder="Nachname"
-                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
                           />
                           <input
                             value={entry.email}
                             onChange={(event) => updateDirectEntry(entry.id, "email", event.target.value)}
                             placeholder="E-Mail"
-                            className="min-w-[220px] flex-[2] rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                            className="min-w-[220px] flex-[2] rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
                           />
                           <div className="flex flex-wrap items-center gap-2">
                             {voiceOptions.map((voice) => {
@@ -885,7 +885,7 @@ const resultsByVoice = useMemo(() => {
                 <div className="mt-4 grid gap-4 lg:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="text-xs uppercase tracking-wide text-slate-400">
-                      Bereits verfügbar
+                      Nachrichten
                     </div>
                     <div className="mt-3 space-y-3">
                       {[
@@ -996,7 +996,7 @@ const resultsByVoice = useMemo(() => {
                         {voiceOrder.map((voice) => (
                           <div
                             key={`summary-${voice}`}
-                            className="flex items-center justify-between text-sm text-slate-600"
+                            className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-sm text-slate-600"
                           >
                             <span className="flex items-center gap-2">
                               <span
@@ -1004,6 +1004,9 @@ const resultsByVoice = useMemo(() => {
                                 style={{ backgroundColor: voiceBorderColors[voice] }}
                               />
                               {getVoiceLabel(voice)}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              Ziel {voiceSplitDefaults.reduce((sum, split) => sum + split.count, 0)}
                             </span>
                             <span className="font-medium text-slate-900">
                               {selectedCountsByVoice.get(voice) ?? 0}
