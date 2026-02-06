@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Card from "@/components/Card";
 import { strings } from "@/lib/i18n";
-import type { Voice, Weekday } from "@/lib/mockData";
+import { choirs, projects, type Voice, type Weekday } from "@/lib/mockData";
 import { getVoiceLabel } from "@/lib/labels";
 
 type Props = {
@@ -230,6 +230,9 @@ export default function EnsembleOnboardingFlow({
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    projects[0]?.id ?? ""
+  );
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([
     "regular"
@@ -238,6 +241,8 @@ export default function EnsembleOnboardingFlow({
   const [directEntries, setDirectEntries] = useState([
     { id: "entry-1", first: "Lea", last: "Suter", email: "lea.suter@example.com", voice: "Sopran" }
   ]);
+  const [inviteSent, setInviteSent] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -256,6 +261,14 @@ export default function EnsembleOnboardingFlow({
   const integrationsStepIndex = isSingerOnly ? -1 : 4;
   const finishStepIndex = isSingerOnly ? -1 : 5;
   const invitesStepIndex = isSingerOnly ? 1 : -1;
+  const currentChoir = choirs[0];
+  const choirProjects = projects.filter(
+    (project) => project.choir_id === currentChoir?.id
+  );
+  const selectedProject =
+    choirProjects.find((project) => project.id === selectedProjectId) ??
+    choirProjects[0] ??
+    null;
 
   useEffect(() => {
     if (!open) return;
@@ -283,6 +296,18 @@ export default function EnsembleOnboardingFlow({
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+  const inviteLink = selectedProject
+    ? `choirmaster.app/projekt/${selectedProject.id}/einladung`
+    : "choirmaster.app/projekt";
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      handleComingSoon();
+    }
   };
 
   const toggleSingerSelection = (id: string) => {
@@ -408,6 +433,41 @@ const resultsByVoice = useMemo(() => {
         )}
 
         <div className="mt-4 flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
+          <Card className="border-slate-200 bg-slate-50/80">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-slate-400">
+                  {isSingerOnly ? strings.people.findSingers : strings.ensembleOnboarding.title}
+                </div>
+                <div className="mt-2 text-lg font-semibold text-slate-900">
+                  {currentChoir?.name ?? "Ensemble"}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">
+                  {currentChoir?.city ?? "—"}
+                </div>
+              </div>
+              <div className="min-w-[220px]">
+                <div className="text-xs uppercase tracking-wide text-slate-400">
+                  Projekt
+                </div>
+                <select
+                  value={selectedProject?.id ?? ""}
+                  onChange={(event) => setSelectedProjectId(event.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  {choirProjects.length ? (
+                    choirProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">Kein Projekt verfügbar</option>
+                  )}
+                </select>
+              </div>
+            </div>
+          </Card>
           {isSingerOnly ? null : (
             <Card>
               <div className="flex flex-wrap items-center gap-2">
@@ -911,127 +971,158 @@ const resultsByVoice = useMemo(() => {
             ) : null}
 
             {step === invitesStepIndex ? (
-              <Card>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-900">
-                      {strings.ensembleOnboarding.invitesTitle}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {strings.ensembleOnboarding.invitesSubtitle}
-                    </p>
-                  </div>
-                  <Check className="h-5 w-5 text-emerald-400" />
-                </div>
-                <div className="mt-4 space-y-3">
-                  {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                      {strings.ensembleOnboarding.singersSummaryEmpty}
+              inviteSent ? (
+                <Card>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        Einladungen verschickt
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Der Link zur Projektseite kann direkt geteilt werden.
+                      </p>
                     </div>
-                  ) : null}
-                  {selectedSingerIds.map((id) => {
-                    const singer = mockSingerResults.find((entry) => entry.id === id);
-                    if (!singer) return null;
-                    return (
+                    <Check className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">
+                      Projektlink
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                      <span className="truncate">{inviteLink}</span>
+                      <button
+                        type="button"
+                        onClick={handleCopyLink}
+                        className="ml-auto rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500"
+                      >
+                        {copied ? "Kopiert" : "Kopieren"}
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              ) : (
+                <Card>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-slate-900">
+                        {strings.ensembleOnboarding.invitesTitle}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {strings.ensembleOnboarding.invitesSubtitle}
+                      </p>
+                    </div>
+                    <Check className="h-5 w-5 text-emerald-400" />
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                        {strings.ensembleOnboarding.singersSummaryEmpty}
+                      </div>
+                    ) : null}
+                    {selectedSingerIds.map((id) => {
+                      const singer = mockSingerResults.find((entry) => entry.id === id);
+                      if (!singer) return null;
+                      return (
+                        <div
+                          key={`invite-${id}`}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                        >
+                          <div className="min-w-[200px]">
+                            <div className="font-semibold text-slate-900">
+                              {singer.name}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {singer.email}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                            <span>{singer.city}</span>
+                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                              {experienceLabels[singer.experience]}
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                              />
+                              {getVoiceLabel(singer.voice)}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedSinger(id)}
+                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                            >
+                              Entfernen
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {directEntries.map((entry) => (
                       <div
-                        key={`invite-${id}`}
+                        key={`invite-${entry.id}`}
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                       >
                         <div className="min-w-[200px]">
                           <div className="font-semibold text-slate-900">
-                            {singer.name}
+                            {`${entry.first} ${entry.last}`.trim() || "—"}
                           </div>
                           <div className="text-xs text-slate-500">
-                            {singer.email}
+                            {entry.email || "—"}
                           </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span>{singer.city}</span>
-                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                            {experienceLabels[singer.experience]}
+                          <span>—</span>
+                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
+                            —
                           </span>
                           <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
                             <span
                               className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                              style={{
+                                backgroundColor:
+                                  entry.voice === "Sopran"
+                                    ? voiceBorderColors.Soprano
+                                    : entry.voice === "Alt"
+                                      ? voiceBorderColors.Alto
+                                      : entry.voice === "Tenor"
+                                        ? voiceBorderColors.Tenor
+                                        : entry.voice === "Bass"
+                                          ? voiceBorderColors.Bass
+                                          : "#E2E8F0"
+                              }}
                             />
-                            {getVoiceLabel(singer.voice)}
+                            {entry.voice || strings.ensembleOnboarding.singersVoice}
                           </span>
                           <button
                             type="button"
-                            onClick={() => removeSelectedSinger(id)}
+                            onClick={() => removeDirectEntry(entry.id)}
                             className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
                           >
                             Entfernen
                           </button>
                         </div>
                       </div>
-                    );
-                  })}
-                  {directEntries.map((entry) => (
-                    <div
-                      key={`invite-${entry.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                    >
-                      <div className="min-w-[200px]">
-                        <div className="font-semibold text-slate-900">
-                          {`${entry.first} ${entry.last}`.trim() || "—"}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {entry.email || "—"}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span>—</span>
-                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
-                          —
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              backgroundColor:
-                                entry.voice === "Sopran"
-                                  ? voiceBorderColors.Soprano
-                                  : entry.voice === "Alt"
-                                    ? voiceBorderColors.Alto
-                                    : entry.voice === "Tenor"
-                                      ? voiceBorderColors.Tenor
-                                      : entry.voice === "Bass"
-                                        ? voiceBorderColors.Bass
-                                        : "#E2E8F0"
-                            }}
-                          />
-                          {entry.voice || strings.ensembleOnboarding.singersVoice}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeDirectEntry(entry.id)}
-                          className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
-                        >
-                          Entfernen
-                        </button>
-                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">
+                      {strings.ensembleOnboarding.invitesEmailLabel}
                     </div>
-                  ))}
-                </div>
-                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">
-                    {strings.ensembleOnboarding.invitesEmailLabel}
+                    <div className="mt-3 grid gap-3">
+                      <input
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                        placeholder={strings.ensembleOnboarding.invitesSubject}
+                      />
+                      <textarea
+                        rows={4}
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                        placeholder={strings.ensembleOnboarding.invitesMessage}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-3 grid gap-3">
-                    <input
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                      placeholder={strings.ensembleOnboarding.invitesSubject}
-                    />
-                    <textarea
-                      rows={4}
-                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                      placeholder={strings.ensembleOnboarding.invitesMessage}
-                    />
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              )
             ) : null}
 
             {step === integrationsStepIndex ? (
@@ -1210,14 +1301,30 @@ const resultsByVoice = useMemo(() => {
               )}
               <button
                 type="button"
-                onClick={step === steps.length - 1 ? onClose : handleNext}
+                onClick={() => {
+                  if (inviteSent) {
+                    onClose();
+                    return;
+                  }
+                  if (isSingerOnly && step === steps.length - 1) {
+                    setInviteSent(true);
+                    return;
+                  }
+                  if (step === steps.length - 1) {
+                    onClose();
+                    return;
+                  }
+                  handleNext();
+                }}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm text-white transition hover:bg-slate-800"
               >
-                {isSingerOnly && step === steps.length - 1
-                  ? strings.ensembleOnboarding.invitesAction
-                  : step === steps.length - 1
-                    ? strings.ensembleOnboarding.finishAction
-                    : strings.ensembleOnboarding.next}
+                {inviteSent
+                  ? "Schliessen"
+                  : isSingerOnly && step === steps.length - 1
+                    ? strings.ensembleOnboarding.invitesAction
+                    : step === steps.length - 1
+                      ? strings.ensembleOnboarding.finishAction
+                      : strings.ensembleOnboarding.next}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>
