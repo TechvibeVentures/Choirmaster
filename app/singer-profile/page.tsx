@@ -108,8 +108,6 @@ export default function SingerViewPage() {
   const [paymentStatus, setPaymentStatus] = useState<
     "unpaid" | "pending" | "confirmed"
   >("unpaid");
-  const participationLabel =
-    strings.singer.participationLabels[participationStatus];
   const [attendanceState, setAttendanceState] = useState<Record<string, boolean>>(
     () =>
       sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
@@ -394,14 +392,6 @@ export default function SingerViewPage() {
                       : ""}
                   </p>
                 </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    {strings.singer.sections.participation}
-                  </p>
-                  <p className="mt-2 text-base font-semibold text-slate-900">
-                    {participationLabel}
-                  </p>
-                </div>
                 <div className="sm:col-span-2">
                   <p className="text-xs uppercase tracking-wide text-slate-400">
                     {strings.singer.sections.projectInfo}
@@ -509,13 +499,15 @@ export default function SingerViewPage() {
             </Card>
 
             <Card>
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold text-slate-900">
-                  {strings.singer.sections.program}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {choir?.name} · {project?.name}
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {strings.singer.sections.program}
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {choir?.name} · {project?.name}
+                  </p>
+                </div>
                 <span className="text-xs text-slate-400">
                   {program?.season ?? ""}
                 </span>
