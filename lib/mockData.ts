@@ -27,6 +27,30 @@ export type Person = {
   roles: string[];
 };
 
+export type AdminProfile = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  city: string;
+  role: "chair" | "conductor" | "manager";
+  language: string;
+  timezone: string;
+  notification_prefs: {
+    digest: boolean;
+    reminders: boolean;
+    product_updates: boolean;
+  };
+  session_days: number;
+  mfa_enabled: boolean;
+  choir_roles: {
+    choir_id: string;
+    role: "Chair" | "Conductor" | "Manager";
+    access: "admin" | "editor" | "viewer";
+  }[];
+};
+
 export type ChoirMembership = {
   person_id: string;
   choir_id: string;
@@ -447,6 +471,32 @@ export const people: Person[] = [
     roles: ["singer"]
   }
 ];
+
+export const adminProfile: AdminProfile = {
+  id: "lisa-may-appenzeller",
+  first_name: "Lisa May",
+  last_name: "Appenzeller",
+  email: "lisa.appenzeller@example.com",
+  phone: "+41 79 555 12 12",
+  city: "Zürich",
+  role: "conductor",
+  language: "Deutsch (CH)",
+  timezone: "Europe/Zurich",
+  notification_prefs: {
+    digest: true,
+    reminders: true,
+    product_updates: false
+  },
+  session_days: 90,
+  mfa_enabled: false,
+  choir_roles: [
+    {
+      choir_id: "luzia-chor",
+      role: "Conductor",
+      access: "admin"
+    }
+  ]
+};
 
 export const memberships: ChoirMembership[] = [
   { person_id: "lisa-may-appenzeller", choir_id: "luzia-chor", singer_status: "active", voice: "Soprano" },

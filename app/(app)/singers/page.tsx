@@ -294,7 +294,7 @@ export default function PeoplePage() {
               </button>
             </div>
             <Link
-              href="/people/onboarding"
+              href="/singers/onboarding"
               className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:hidden"
             >
               {strings.people.findSingers}
@@ -302,7 +302,7 @@ export default function PeoplePage() {
           </div>
         </div>
         <Link
-          href="/people/onboarding"
+          href="/singers/onboarding"
           className="hidden whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:inline-flex"
         >
           {strings.people.findSingers}
@@ -371,7 +371,7 @@ export default function PeoplePage() {
               {conductors.map((person) => {
                 const attendance = attendanceByPerson.get(person.id) ?? null;
                 return (
-                  <Link key={person.id} href={`/people/${person.id}`} className="block">
+                  <Link key={person.id} href={`/singers/${person.id}`} className="block">
                     <Card
                       className="w-full border-l-4 transition hover:border-slate-300"
                       style={{
@@ -464,7 +464,7 @@ export default function PeoplePage() {
                         const experienceTag = experienceLabels[person.experience_level];
                         const attendance = attendanceByPerson.get(person.id) ?? null;
                         return (
-                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                          <Link key={person.id} href={`/singers/${person.id}`} className="block">
                             <Card
                               className="w-full border-l-4 transition hover:border-slate-300"
                               style={{ borderLeftColor: voiceBorderColors[voice] }}
@@ -590,7 +590,7 @@ export default function PeoplePage() {
                       {group.map((person) => {
                         const experienceTag = experienceLabels[person.experience_level];
                         return (
-                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                          <Link key={person.id} href={`/singers/${person.id}`} className="block">
                             <Card
                               className="w-full border-l-4 transition hover:border-slate-300"
                               style={{ borderLeftColor: voiceBorderColors[voice] }}
@@ -663,7 +663,7 @@ export default function PeoplePage() {
                       ) : null}
                       {group.map((person) => {
                         return (
-                          <Link key={person.id} href={`/people/${person.id}`} className="block">
+                          <Link key={person.id} href={`/singers/${person.id}`} className="block">
                             <Card
                               className="w-full border-l-4 transition hover:border-slate-300"
                               style={{ borderLeftColor: voiceBorderColors[voice] }}
@@ -767,7 +767,7 @@ export default function PeoplePage() {
                 {conductors.map((person) => (
                   <Link
                     key={person.id}
-                    href={`/people/${person.id}`}
+                    href={`/singers/${person.id}`}
                     className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-semibold text-slate-700 shadow-sm"
                     style={{
                       borderColor:
@@ -831,7 +831,7 @@ export default function PeoplePage() {
                                 {slice.map((person) => (
                                   <Link
                                     key={person.id}
-                                    href={`/people/${person.id}`}
+                                    href={`/singers/${person.id}`}
                                     className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-700 shadow-sm"
                                     style={{ borderColor: voiceBorderColors[voice] }}
                                   >
@@ -883,7 +883,7 @@ export default function PeoplePage() {
                       {orderedMembers.map((person) => (
                         <Link
                           key={person.id}
-                          href={`/people/${person.id}`}
+                          href={`/singers/${person.id}`}
                           className="group relative flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-600 shadow-sm"
                           style={{ borderColor: voiceBorderColors[voice] }}
                         >
@@ -908,7 +908,7 @@ export default function PeoplePage() {
               {formerSingers.map((person) => (
                 <Link
                   key={person.id}
-                  href={`/people/${person.id}`}
+                  href={`/singers/${person.id}`}
                   className="group relative flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-[10px] font-medium text-slate-500 shadow-sm"
                 >
                   {getInitials(getPersonName(person))}

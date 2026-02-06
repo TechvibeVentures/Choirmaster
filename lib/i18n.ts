@@ -3,8 +3,40 @@ export const strings = {
     dashboard: "Übersicht",
     projects: "Projekte",
     repertoire: "Noten",
-    people: "Sänger",
-    communication: "Nachrichten"
+    singers: "Sänger",
+    messages: "Nachrichten"
+  },
+  profile: {
+    title: "Profil",
+    subtitle: "Persönliche Einstellungen für Leitung und Ensemble.",
+    basicsTitle: "Profil",
+    basicsSubtitle: "Kontaktdaten und Rollen pflegen.",
+    settingsTitle: "Profil-Einstellungen",
+    settingsSubtitle: "Sprache, Zeitzone und Benachrichtigungen.",
+    choirTitle: "Deine Ensembles",
+    choirSubtitle: "Zugriff und Rollen je Ensemble verwalten.",
+    securityTitle: "Sicherheit",
+    securitySubtitle: "Anmeldung und Sitzungseinstellungen.",
+    fields: {
+      firstName: "Vorname",
+      lastName: "Nachname",
+      email: "E-Mail",
+      phone: "Telefon",
+      city: "Stadt",
+      role: "Rolle",
+      language: "Sprache",
+      timezone: "Zeitzone",
+      digest: "Wöchentliche Übersicht",
+      reminders: "Proben-Erinnerungen",
+      updates: "Produkt-Updates",
+      session: "Sitzungsdauer",
+      mfa: "Zwei-Faktor-Option"
+    },
+    actions: {
+      save: "Profil speichern",
+      addChoir: "Ensemble hinzufügen",
+      manageRoles: "Rollen verwalten"
+    }
   },
   communication: {
     title: "Nachrichten",

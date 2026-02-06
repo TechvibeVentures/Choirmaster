@@ -237,7 +237,7 @@ export default function PeopleOnboardingPage() {
               Schritt {step + 1} von {stepLabels.length}
             </span>
             <Link
-              href="/people"
+              href="/singers"
               className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
             >
               Zur Übersicht
@@ -755,7 +755,7 @@ export default function PeopleOnboardingPage() {
                     Onboarding starten
                   </button>
                   <Link
-                    href="/people"
+                    href="/singers"
                     className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600"
                   >
                     Zur Personenübersicht

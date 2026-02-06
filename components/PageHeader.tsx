@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
-import { choirs } from "@/lib/mockData";
+import { adminProfile, choirs } from "@/lib/mockData";
 import { strings } from "@/lib/i18n";
 
 export default function PageHeader({
@@ -42,9 +42,11 @@ export default function PageHeader({
     setOpen(false);
   };
 
-  const handleComingSoon = () => {
-    window.alert("Diese Funktion kommt in einer späteren Version der App.");
-  };
+  const initials = `${adminProfile.first_name[0] ?? ""}${
+    adminProfile.last_name[0] ?? ""
+  }`
+    .toUpperCase()
+    .trim();
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -107,14 +109,14 @@ export default function PageHeader({
               </div>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={handleComingSoon}
+          <Link
+            href="/profile"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:border-slate-300"
             aria-label="Profil"
+            title="Profil öffnen"
           >
-            LM
-          </button>
+            {initials || "PR"}
+          </Link>
         </div>
       </div>
     </header>

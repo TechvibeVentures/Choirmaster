@@ -712,7 +712,7 @@ const resultsByVoice = useMemo(() => {
                                 {group.map((singer) => (
                                   <Link
                                     key={singer.id}
-                                    href={`/people/${singer.id}`}
+                                    href={`/singers/${singer.id}`}
                                     className="block"
                                   >
                                     <Card

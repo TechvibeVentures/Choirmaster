@@ -256,7 +256,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                   return (
                     <Link
                       key={person.id}
-                      href={`/people/${person.id}`}
+                      href={`/singers/${person.id}`}
                       className="block"
                     >
                       <div
@@ -530,7 +530,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                   <td className="py-3 pr-4 font-medium text-slate-800">
                     {row.person ? (
                       <Link
-                        href={`/people/${row.person.id}`}
+                        href={`/singers/${row.person.id}`}
                         className="transition hover:text-slate-900"
                       >
                         {getPersonName(row.person)}
