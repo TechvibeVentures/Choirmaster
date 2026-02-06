@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Check,
@@ -243,12 +243,24 @@ export default function EnsembleOnboardingFlow({
   ]);
   const [inviteSent, setInviteSent] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const projectMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) {
       setStep(0);
     }
   }, [open]);
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!projectMenuRef.current?.contains(event.target as Node)) {
+        setProjectMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const isSingerOnly = mode === "singers";
   const steps = isSingerOnly
@@ -297,9 +309,9 @@ export default function EnsembleOnboardingFlow({
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
-  const inviteLink = selectedProject
-    ? `choirmaster.app/projekt/${selectedProject.id}/einladung`
-    : "choirmaster.app/projekt";
+  const inviteLink = selectedProject && currentChoir
+    ? `https://choirmaster.techvibe.ch/${currentChoir.id}/${selectedProject.id}`
+    : "https://choirmaster.techvibe.ch";
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -446,25 +458,51 @@ const resultsByVoice = useMemo(() => {
                   {currentChoir?.city ?? "—"}
                 </div>
               </div>
-              <div className="min-w-[220px]">
+              <div className="relative min-w-[220px]" ref={projectMenuRef}>
                 <div className="text-xs uppercase tracking-wide text-slate-400">
                   Projekt
                 </div>
-                <select
-                  value={selectedProject?.id ?? ""}
-                  onChange={(event) => setSelectedProjectId(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                <button
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={projectMenuOpen}
+                  onClick={() => setProjectMenuOpen((prev) => !prev)}
+                  className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/60"
                 >
-                  {choirProjects.length ? (
-                    choirProjects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">Kein Projekt verfügbar</option>
-                  )}
-                </select>
+                  <span className="truncate">
+                    {selectedProject?.name ?? "Kein Projekt verfügbar"}
+                  </span>
+                  <ChevronRight className="h-4 w-4 rotate-90 text-slate-400" />
+                </button>
+                {projectMenuOpen ? (
+                  <div className="absolute mt-2 w-64 rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <div className="px-3 py-2 text-xs uppercase tracking-wide text-slate-400">
+                      Projekt wählen
+                    </div>
+                    <ul className="pb-2">
+                      {choirProjects.length ? (
+                        choirProjects.map((project) => (
+                          <li key={project.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedProjectId(project.id);
+                                setProjectMenuOpen(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                            >
+                              {project.name}
+                            </button>
+                          </li>
+                        ))
+                      ) : (
+                        <li className="px-3 py-2 text-sm text-slate-500">
+                          Kein Projekt verfügbar
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             </div>
           </Card>
