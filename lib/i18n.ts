@@ -66,6 +66,41 @@ export const strings = {
     participantsStatus: "Teilnahme-Status",
     projectStatusLabel: "Projektstatus"
   },
+  singer: {
+    title: "Sängerzugang",
+    subtitle: "Dein persönlicher Überblick zum aktuellen Projekt.",
+    profileTitle: "Profil",
+    profileSubtitle: "Passe deine Kontaktdaten und Präferenzen an.",
+    projectTitle: "Aktuelles Projekt",
+    projectSubtitle: "Informationen aus deinem Chorprojekt.",
+    save: "Profil speichern",
+    fields: {
+      firstName: "Vorname",
+      lastName: "Nachname",
+      email: "E-Mail (erforderlich)",
+      phone: "Telefon",
+      city: "Stadt",
+      experience: "Erfahrungsniveau",
+      tags: "Tags",
+      voice: "Stimmgruppe",
+      status: "Status",
+      choir: "Ensemble",
+      role: "Rolle"
+    },
+    sections: {
+      projectInfo: "Projektinfo",
+      schedule: "Plan & Termine",
+      rehearsals: "Nächste Proben",
+      concerts: "Konzerte",
+      program: "Programm",
+      participation: "Teilnahme"
+    },
+    participationLabels: {
+      invited: "Eingeladen",
+      confirmed: "Bestätigt",
+      declined: "Abgesagt"
+    }
+  },
   people: {
     roles: "Rollen",
     singerStatus: "Sängerstatus",
