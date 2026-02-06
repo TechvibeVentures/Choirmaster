@@ -253,7 +253,7 @@ export default function SingerViewPage() {
                           key={voiceOption}
                           type="button"
                           onClick={() => setSelectedVoice(voiceOption)}
-                          className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-medium transition ${
+                          className={`shrink-0 rounded-full border px-1 py-0.5 text-[8px] font-medium transition ${
                             isSelected
                               ? "border-slate-900 bg-slate-900 text-white"
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -262,7 +262,7 @@ export default function SingerViewPage() {
                         >
                           <Badge
                             dotColor={voiceColors[voiceOption]}
-                            className={`border-0 px-0 py-0 text-[9px] ${
+                            className={`border-0 px-0 py-0 text-[8px] ${
                               isSelected ? "text-white" : "text-slate-700"
                             }`}
                           >
