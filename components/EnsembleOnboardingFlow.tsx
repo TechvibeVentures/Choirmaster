@@ -157,6 +157,9 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
+  const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
+    "search"
+  );
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([
     "regular"
@@ -530,9 +533,30 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       {strings.ensembleOnboarding.singersSubtitle}
                     </p>
                   </div>
+                  <div className="flex w-full flex-1 min-w-[200px] rounded-full border border-slate-200 bg-white p-0.5 sm:w-auto sm:flex-none">
+                    {[
+                      { id: "search", label: strings.ensembleOnboarding.singersSearch },
+                      { id: "upload", label: strings.ensembleOnboarding.singersUpload },
+                      { id: "direct", label: strings.ensembleOnboarding.singersDirect }
+                    ].map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => setSingerMode(mode.id as "search" | "upload" | "direct")}
+                        className={`flex-1 rounded-full px-3 py-1 text-xs transition ${
+                          singerMode === mode.id
+                            ? "bg-slate-900 text-white"
+                            : "text-slate-500 hover:text-slate-700"
+                        }`}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                {singerMode === "search" ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersSearch}
                     </div>
@@ -659,8 +683,10 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </div>
                     )}
                   </div>
+                ) : null}
 
-                <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                {singerMode === "upload" ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersUpload}
                     </div>
@@ -678,8 +704,10 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </span>
                     </button>
                   </div>
+                ) : null}
 
-                <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                {singerMode === "direct" ? (
+                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersDirect}
                     </div>
@@ -742,6 +770,7 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </button>
                     </div>
                   </div>
+                ) : null}
               </Card>
             ) : null}
 
@@ -787,33 +816,57 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       <li>
                         {strings.ensembleOnboarding.singersSummary}: {selectedSingerIds.length + directEntries.length || strings.ensembleOnboarding.singersSummaryEmpty}
                       </li>
-                      <li>
-                        {strings.ensembleOnboarding.voiceSummary}: {voiceSplitDefaults.map((split) => split.count).join(" / ")}
-                      </li>
                     </ul>
                   </div>
-                  <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">
-                      {strings.ensembleOnboarding.integrationsTitle}
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">
+                        {strings.ensembleOnboarding.voiceSummary}
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {voiceOrder.map((voice) => (
+                          <div
+                            key={`summary-${voice}`}
+                            className="flex items-center justify-between text-sm text-slate-600"
+                          >
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: voiceBorderColors[voice] }}
+                              />
+                              {getVoiceLabel(voice)}
+                            </span>
+                            <span className="font-medium text-slate-900">
+                              {voiceSplitDefaults.reduce((sum, split) => sum + split.count, 0)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="mt-1 text-sm text-slate-500">
-                      {strings.ensembleOnboarding.integrationsSubtitle}
-                    </div>
-                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      {[
-                        { label: strings.ensembleOnboarding.integrationEmail, icon: Mail },
-                        { label: strings.ensembleOnboarding.integrationWhatsapp, icon: MessageCircle },
-                        { label: strings.ensembleOnboarding.integrationGdrive, icon: Cloud },
-                        { label: strings.ensembleOnboarding.integrationDropbox, icon: Cloud }
-                      ].map((item) => (
-                        <div
-                          key={item.label}
-                          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600"
-                        >
-                          <item.icon className="h-4 w-4 text-slate-400" />
-                          <span>{item.label}</span>
-                        </div>
-                      ))}
+
+                    <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">
+                        {strings.ensembleOnboarding.integrationsTitle}
+                      </div>
+                      <div className="mt-1 text-sm text-slate-500">
+                        {strings.ensembleOnboarding.integrationsSubtitle}
+                      </div>
+                      <div className="mt-3 space-y-3">
+                        {[
+                          { label: strings.ensembleOnboarding.integrationEmail, icon: Mail },
+                          { label: strings.ensembleOnboarding.integrationWhatsapp, icon: MessageCircle },
+                          { label: strings.ensembleOnboarding.integrationGdrive, icon: Cloud },
+                          { label: strings.ensembleOnboarding.integrationDropbox, icon: Cloud }
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600"
+                          >
+                            <item.icon className="h-4 w-4 text-slate-400" />
+                            <span>{item.label}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
