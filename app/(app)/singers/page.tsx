@@ -7,6 +7,7 @@ import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import {
   availability,
+  choirs,
   defaultChoirId,
   getMembership,
   getPersonName,
