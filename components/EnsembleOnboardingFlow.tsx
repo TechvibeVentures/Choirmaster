@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   CalendarDays,
@@ -82,33 +82,63 @@ const voiceSplitDefaults = [
   { label: "3", count: 0 }
 ];
 
-const singerFilters = [
-  "Zürich",
-  "Winterthur",
-  "Erfahren",
-  "Fortgeschritten",
-  "Sopran",
-  "Alt",
-  "Tenor",
-  "Bass"
-];
-
-const cityLibrary = ["Zürich", "Winterthur", "Baden", "Uster", "St. Gallen"];
-
 const voiceOptions = ["Sopran", "Alt", "Tenor", "Bass"];
 
 const experienceOptions = [
-  "Einsteiger",
-  "Erfahren",
-  "Fortgeschritten",
-  "Professionell"
+  { id: "junior", label: "Einsteiger" },
+  { id: "regular", label: "Erfahren" },
+  { id: "advanced", label: "Fortgeschritten" },
+  { id: "professional", label: "Professionell" }
 ];
 
-const mockSingerResults = [
-  { id: "s-1", name: "Mara König", email: "mara.koenig@example.com", voice: "Sopran" },
-  { id: "s-2", name: "Noah Keller", email: "noah.keller@example.com", voice: "Tenor" },
-  { id: "s-3", name: "Lina Frei", email: "lina.frei@example.com", voice: "Alt" },
-  { id: "s-4", name: "Jonas Graf", email: "jonas.graf@example.com", voice: "Bass" }
+const experienceLabels = experienceOptions.reduce<Record<string, string>>(
+  (acc, item) => {
+    acc[item.id] = item.label;
+    return acc;
+  },
+  {}
+);
+
+const mockSingerResults: {
+  id: string;
+  name: string;
+  email: string;
+  voice: Voice;
+  city: string;
+  experience: keyof typeof experienceLabels;
+}[] = [
+  {
+    id: "s-1",
+    name: "Mara König",
+    email: "mara.koenig@example.com",
+    voice: "Soprano",
+    city: "Zürich",
+    experience: "advanced"
+  },
+  {
+    id: "s-2",
+    name: "Noah Keller",
+    email: "noah.keller@example.com",
+    voice: "Tenor",
+    city: "Winterthur",
+    experience: "regular"
+  },
+  {
+    id: "s-3",
+    name: "Lina Frei",
+    email: "lina.frei@example.com",
+    voice: "Alto",
+    city: "Baden",
+    experience: "junior"
+  },
+  {
+    id: "s-4",
+    name: "Jonas Graf",
+    email: "jonas.graf@example.com",
+    voice: "Bass",
+    city: "Uster",
+    experience: "professional"
+  }
 ];
 
 export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
@@ -132,13 +162,9 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
-  const [locationQuery, setLocationQuery] = useState("Zürich");
-  const [selectedCity, setSelectedCity] = useState("Zürich");
-  const [selectedVoice, setSelectedVoice] = useState("Sopran");
-  const [selectedExperience, setSelectedExperience] = useState("Erfahren");
-  const [activeSingerFilters, setActiveSingerFilters] = useState<string[]>([
-    "Zürich",
-    "Sopran"
+  const [locationQuery, setLocationQuery] = useState("");
+  const [selectedExperiences, setSelectedExperiences] = useState<string[]>([
+    "regular"
   ]);
   const [selectedSingerIds, setSelectedSingerIds] = useState<string[]>([]);
   const [directEntries, setDirectEntries] = useState([
@@ -149,6 +175,15 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     if (!open) {
       setStep(0);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
   }, [open]);
 
   if (!open) return null;
@@ -171,12 +206,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
-  const toggleSingerFilter = (value: string) => {
-    setActiveSingerFilters((prev) =>
-      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
-    );
-  };
-
   const toggleSingerSelection = (id: string) => {
     setSelectedSingerIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -195,6 +224,34 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
       prev.map((entry) => (entry.id === id ? { ...entry, [key]: value } : entry))
     );
   };
+
+  const toggleExperience = (id: string) => {
+    setSelectedExperiences((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const filteredResults = useMemo(() => {
+    const query = locationQuery.trim().toLowerCase();
+    return mockSingerResults.filter((singer) => {
+      const matchesLocation = query
+        ? singer.city.toLowerCase().includes(query)
+        : true;
+      const matchesExperience = selectedExperiences.length
+        ? selectedExperiences.includes(singer.experience)
+        : true;
+      return matchesLocation && matchesExperience;
+    });
+  }, [locationQuery, selectedExperiences]);
+
+  const resultsByVoice = useMemo(() => {
+    const map = new Map<Voice, typeof mockSingerResults>();
+    voiceOrder.forEach((voice) => map.set(voice, []));
+    filteredResults.forEach((singer) => {
+      map.get(singer.voice)?.push(singer);
+    });
+    return map;
+  }, [filteredResults]);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -226,7 +283,7 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-1 flex-col gap-4">
+        <div className="mt-4 flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
           <Card>
             <div className="flex flex-wrap items-center gap-2">
               {steps.map((label, index) => (
@@ -515,7 +572,7 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                     <p className="mt-1 text-xs text-slate-500">
                       {strings.ensembleOnboarding.singersSearchHint}
                     </p>
-                    <div className="mt-4 grid gap-4 md:grid-cols-3">
+                    <div className="mt-4 grid gap-4 md:grid-cols-[1.4fr_1fr]">
                       <label className="text-xs text-slate-500">
                         {strings.ensembleOnboarding.singersLocation}
                         <input
@@ -524,60 +581,22 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                           placeholder={strings.ensembleOnboarding.singersLocationPlaceholder}
                           className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
                         />
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {cityLibrary.map((city) => (
-                            <button
-                              key={city}
-                              type="button"
-                              onClick={() => {
-                                setSelectedCity(city);
-                                setLocationQuery(city);
-                              }}
-                              className={`rounded-full border px-3 py-1 text-xs transition ${
-                                selectedCity === city
-                                  ? "border-slate-900 bg-slate-900 text-white"
-                                  : "border-slate-200 text-slate-500 hover:border-slate-300"
-                              }`}
-                            >
-                              {city}
-                            </button>
-                          ))}
-                        </div>
-                      </label>
-                      <label className="text-xs text-slate-500">
-                        {strings.ensembleOnboarding.singersVoice}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {voiceOptions.map((voice) => (
-                            <button
-                              key={voice}
-                              type="button"
-                              onClick={() => setSelectedVoice(voice)}
-                              className={`rounded-full border px-3 py-1 text-xs transition ${
-                                selectedVoice === voice
-                                  ? "border-slate-900 bg-slate-900 text-white"
-                                  : "border-slate-200 text-slate-500 hover:border-slate-300"
-                              }`}
-                            >
-                              {voice}
-                            </button>
-                          ))}
-                        </div>
                       </label>
                       <label className="text-xs text-slate-500">
                         {strings.ensembleOnboarding.singersExperience}
                         <div className="mt-2 flex flex-wrap gap-2">
                           {experienceOptions.map((level) => (
                             <button
-                              key={level}
+                              key={level.id}
                               type="button"
-                              onClick={() => setSelectedExperience(level)}
+                              onClick={() => toggleExperience(level.id)}
                               className={`rounded-full border px-3 py-1 text-xs transition ${
-                                selectedExperience === level
+                                selectedExperiences.includes(level.id)
                                   ? "border-slate-900 bg-slate-900 text-white"
                                   : "border-slate-200 text-slate-500 hover:border-slate-300"
                               }`}
                             >
-                              {level}
+                              {level.label}
                             </button>
                           ))}
                         </div>
@@ -586,36 +605,75 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                     <div className="mt-4 text-xs uppercase tracking-wide text-slate-400">
                       {strings.ensembleOnboarding.singersResults}
                     </div>
-                    <div className="mt-2 space-y-2">
-                      {mockSingerResults.map((singer) => (
-                        <div
-                          key={singer.id}
-                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
-                        >
-                          <div>
-                            <div className="font-semibold text-slate-800">
-                              {singer.name}
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              {singer.email} · {singer.voice}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleSingerSelection(singer.id)}
-                            className={`rounded-full border px-2 py-1 text-[11px] transition ${
-                              selectedSingerIds.includes(singer.id)
-                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                : "border-slate-200 text-slate-500 hover:border-slate-300"
-                            }`}
-                          >
-                            {selectedSingerIds.includes(singer.id)
-                              ? strings.ensembleOnboarding.singersAdded
-                              : strings.ensembleOnboarding.singersAdd}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                    {filteredResults.length === 0 ? (
+                      <div className="mt-3 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-xs text-slate-400">
+                        {strings.ensembleOnboarding.singersEmpty}
+                      </div>
+                    ) : (
+                      <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        {voiceOrder.map((voice) => {
+                          const group = resultsByVoice.get(voice) ?? [];
+                          return (
+                            <section key={`search-${voice}`} className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: voiceBorderColors[voice] }}
+                                  />
+                                  <span>{getVoiceLabel(voice)}</span>
+                                </span>
+                                <span className="text-xs text-slate-400">
+                                  {group.length}
+                                </span>
+                              </div>
+                              <div className="flex flex-col gap-3">
+                                {group.length === 0 ? (
+                                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
+                                    {strings.ensembleOnboarding.singersEmpty}
+                                  </div>
+                                ) : null}
+                                {group.map((singer) => (
+                                  <Card
+                                    key={singer.id}
+                                    className="w-full border-l-4"
+                                    style={{ borderLeftColor: voiceBorderColors[voice] }}
+                                  >
+                                    <div className="space-y-2">
+                                      <div className="text-base font-semibold text-slate-900">
+                                        {singer.name}
+                                      </div>
+                                      <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
+                                        <span>{singer.city}</span>
+                                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                          {experienceLabels[singer.experience]}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+                                        <span>{singer.email}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleSingerSelection(singer.id)}
+                                          className={`rounded-full border px-2 py-1 text-[11px] transition ${
+                                            selectedSingerIds.includes(singer.id)
+                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {selectedSingerIds.includes(singer.id)
+                                            ? strings.ensembleOnboarding.singersAdded
+                                            : strings.ensembleOnboarding.singersAdd}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            </section>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ) : null}
 
