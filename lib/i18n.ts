@@ -8,34 +8,27 @@ export const strings = {
   },
   profile: {
     title: "Profil",
-    subtitle: "Persönliche Einstellungen für Leitung und Ensemble.",
     basicsTitle: "Profil",
-    basicsSubtitle: "Kontaktdaten und Rollen pflegen.",
+    basicsSubtitle: "Kontaktdaten und Passwort verwalten.",
     settingsTitle: "Profil-Einstellungen",
-    settingsSubtitle: "Sprache, Zeitzone und Benachrichtigungen.",
+    settingsSubtitle: "Sprache und Zeitzone festlegen.",
     choirTitle: "Deine Ensembles",
-    choirSubtitle: "Zugriff und Rollen je Ensemble verwalten.",
-    securityTitle: "Sicherheit",
-    securitySubtitle: "Anmeldung und Sitzungseinstellungen.",
+    choirSubtitle: "Rolle und Details pro Ensemble anpassen.",
     fields: {
       firstName: "Vorname",
       lastName: "Nachname",
       email: "E-Mail",
       phone: "Telefon",
       city: "Stadt",
-      role: "Rolle",
       language: "Sprache",
       timezone: "Zeitzone",
-      digest: "Wöchentliche Übersicht",
-      reminders: "Proben-Erinnerungen",
-      updates: "Produkt-Updates",
-      session: "Sitzungsdauer",
-      mfa: "Zwei-Faktor-Option"
+      password: "Passwort"
     },
     actions: {
       save: "Profil speichern",
       addChoir: "Ensemble hinzufügen",
-      manageRoles: "Rollen verwalten"
+      editChoir: "Bearbeiten",
+      changePassword: "Passwort ändern"
     }
   },
   communication: {
