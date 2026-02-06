@@ -718,46 +718,54 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       {directEntries.map((entry) => (
                         <div
                           key={entry.id}
-                          className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 sm:grid-cols-2"
+                          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600"
                         >
                           <input
                             value={entry.first}
                             onChange={(event) => updateDirectEntry(entry.id, "first", event.target.value)}
                             placeholder="Vorname"
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
                           />
                           <input
                             value={entry.last}
                             onChange={(event) => updateDirectEntry(entry.id, "last", event.target.value)}
                             placeholder="Nachname"
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
                           />
                           <input
                             value={entry.email}
                             onChange={(event) => updateDirectEntry(entry.id, "email", event.target.value)}
                             placeholder="E-Mail"
-                            className="w-full rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700 sm:col-span-2"
+                            className="min-w-[220px] flex-[2] rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-700"
                           />
-                          <div className="sm:col-span-2">
-                            <div className="mb-2 text-xs text-slate-500">
-                              {strings.ensembleOnboarding.singersVoice}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {voiceOptions.map((voice) => (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {voiceOptions.map((voice) => {
+                              const voiceKey = voice === "Sopran"
+                                ? "Soprano"
+                                : voice === "Alt"
+                                  ? "Alto"
+                                  : voice === "Tenor"
+                                    ? "Tenor"
+                                    : "Bass";
+                              return (
                                 <button
                                   key={voice}
                                   type="button"
                                   onClick={() => updateDirectEntry(entry.id, "voice", voice)}
-                                  className={`rounded-full border px-3 py-1 text-xs transition ${
+                                  className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition ${
                                     entry.voice === voice
                                       ? "border-slate-900 bg-slate-900 text-white"
                                       : "border-slate-200 text-slate-500 hover:border-slate-300"
                                   }`}
                                 >
+                                  <span
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: voiceBorderColors[voiceKey as Voice] }}
+                                  />
                                   {voice}
                                 </button>
-                              ))}
-                            </div>
+                              );
+                            })}
                           </div>
                         </div>
                       ))}
