@@ -500,6 +500,14 @@ export default function SingerViewPage() {
                     </li>
                   )}
                 </ul>
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Anwesenheiten speichern
+                  </button>
+                </div>
               </div>
             </Card>
 
