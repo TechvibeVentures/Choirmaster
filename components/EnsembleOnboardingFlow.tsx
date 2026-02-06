@@ -1063,8 +1063,16 @@ const resultsByVoice = useMemo(() => {
                       return (
                       <div
                         key={`invite-${id}`}
-                        className="grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm md:grid-cols-[1fr_1.4fr]"
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                       >
+                        <div className="min-w-[200px]">
+                          <div className="font-semibold text-slate-900">
+                            {singer.name}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {singer.email}
+                          </div>
+                        </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                           <span>{singer.city}</span>
                           <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
@@ -1077,16 +1085,6 @@ const resultsByVoice = useMemo(() => {
                             />
                             {getVoiceLabel(singer.voice)}
                           </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="font-semibold text-slate-900">
-                              {singer.name}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {singer.email}
-                            </div>
-                          </div>
                           <button
                             type="button"
                             onClick={() => removeSelectedSinger(id)}
@@ -1101,8 +1099,16 @@ const resultsByVoice = useMemo(() => {
                   {directEntries.map((entry) => (
                     <div
                       key={`invite-${entry.id}`}
-                      className="grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm md:grid-cols-[1fr_1.4fr]"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                     >
+                      <div className="min-w-[200px]">
+                        <div className="font-semibold text-slate-900">
+                          {`${entry.first} ${entry.last}`.trim() || "—"}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {entry.email || "—"}
+                        </div>
+                      </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>—</span>
                         <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
@@ -1126,16 +1132,6 @@ const resultsByVoice = useMemo(() => {
                           />
                           {entry.voice || strings.ensembleOnboarding.singersVoice}
                         </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="font-semibold text-slate-900">
-                            {`${entry.first} ${entry.last}`.trim() || "—"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {entry.email || "—"}
-                          </div>
-                        </div>
                         <button
                           type="button"
                           onClick={() => removeDirectEntry(entry.id)}
