@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   ChevronLeft,
@@ -597,44 +598,59 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                                   </div>
                                 ) : null}
                                 {group.map((singer) => (
-                                  <Card
+                                  <Link
                                     key={singer.id}
-                                    className="w-full border-l-4"
-                                    style={{ borderLeftColor: voiceBorderColors[voice] }}
+                                    href={`/people/${singer.id}`}
+                                    className="block"
                                   >
-                                    <div className="space-y-2">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="text-base font-semibold text-slate-900">
-                                          {singer.name}
+                                    <Card
+                                      className="w-full border-l-4 transition hover:border-slate-300"
+                                      style={{ borderLeftColor: voiceBorderColors[voice] }}
+                                    >
+                                      <div className="space-y-2">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div>
+                                            <div className="text-base font-semibold text-slate-900">
+                                              {singer.name}
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                              {singer.email}
+                                            </div>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={(event) => {
+                                              event.preventDefault();
+                                              event.stopPropagation();
+                                              toggleSingerSelection(singer.id);
+                                            }}
+                                            aria-label={
+                                              selectedSingerIds.includes(singer.id)
+                                                ? strings.ensembleOnboarding.singersAdded
+                                                : strings.ensembleOnboarding.singersAdd
+                                            }
+                                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
+                                              selectedSingerIds.includes(singer.id)
+                                                ? "border-emerald-600 bg-emerald-600 text-white"
+                                                : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                            }`}
+                                          >
+                                            {selectedSingerIds.includes(singer.id) ? (
+                                              <Check className="h-3.5 w-3.5" />
+                                            ) : (
+                                              <Plus className="h-3 w-3" />
+                                            )}
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleSingerSelection(singer.id)}
-                                          aria-label={
-                                            selectedSingerIds.includes(singer.id)
-                                              ? strings.ensembleOnboarding.singersAdded
-                                              : strings.ensembleOnboarding.singersAdd
-                                          }
-                                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
-                                            selectedSingerIds.includes(singer.id)
-                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
-                                          }`}
-                                        >
-                                          <Plus className="h-3 w-3" />
-                                        </button>
+                                        <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
+                                          <span>{singer.city}</span>
+                                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                            {experienceLabels[singer.experience]}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
-                                        <span>{singer.city}</span>
-                                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                                          {experienceLabels[singer.experience]}
-                                        </span>
-                                      </div>
-                                      <div className="text-xs text-slate-500">
-                                        {singer.email}
-                                      </div>
-                                    </div>
-                                  </Card>
+                                    </Card>
+                                  </Link>
                                 ))}
                               </div>
                             </section>
