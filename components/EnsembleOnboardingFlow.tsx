@@ -156,9 +156,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
-  const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
-    "search"
-  );
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([
     "regular"
@@ -532,35 +529,9 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       {strings.ensembleOnboarding.singersSubtitle}
                     </p>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
-                    <div className="text-[11px] uppercase tracking-wide text-slate-400">
-                      {strings.ensembleOnboarding.singersModeLabel}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {[
-                        { id: "search", label: strings.ensembleOnboarding.singersSearch },
-                        { id: "upload", label: strings.ensembleOnboarding.singersUpload },
-                        { id: "direct", label: strings.ensembleOnboarding.singersDirect }
-                      ].map((mode) => (
-                        <button
-                          key={mode.id}
-                          type="button"
-                          onClick={() => setSingerMode(mode.id as "search" | "upload" | "direct")}
-                          className={`rounded-full border px-3 py-1 text-xs transition ${
-                            singerMode === mode.id
-                              ? "border-slate-900 bg-slate-900 text-white"
-                              : "border-slate-200 text-slate-500 hover:border-slate-300"
-                          }`}
-                        >
-                          {mode.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
-                {singerMode === "search" ? (
-                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersSearch}
                     </div>
@@ -675,10 +646,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </div>
                     )}
                   </div>
-                ) : null}
 
-                {singerMode === "upload" ? (
-                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersUpload}
                     </div>
@@ -696,10 +665,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </span>
                     </button>
                   </div>
-                ) : null}
 
-                {singerMode === "direct" ? (
-                  <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <div className="mt-4 rounded-xl border border-slate-200 p-4">
                     <div className="text-sm font-semibold text-slate-800">
                       {strings.ensembleOnboarding.singersDirect}
                     </div>
@@ -762,7 +729,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       </button>
                     </div>
                   </div>
-                ) : null}
               </Card>
             ) : null}
 
