@@ -343,10 +343,10 @@ export default function SingerViewPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">
-                      {strings.singer.projectTitle} · {choir?.name}
+                      {strings.singer.projectTitle}
                     </h2>
                     <p className="text-sm text-slate-500">
-                      {strings.singer.projectSubtitle}
+                      {choir?.name} · {project?.name}
                     </p>
                   </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -440,15 +440,10 @@ export default function SingerViewPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
-                    Proben · {choir?.name}
+                    Anwesenheit Proben
                   </h3>
                   <p className="text-sm text-slate-500">
-                    {project
-                      ? `${formatWeekdays(project.rehearsal_facts.weekdays)} · ${formatTimeRange(
-                          project.rehearsal_facts.start_time,
-                          project.rehearsal_facts.end_time
-                        )}`
-                      : ""}
+                    {choir?.name} · {project?.name}
                   </p>
                 </div>
                 <div className="text-xs text-slate-400">
@@ -516,8 +511,11 @@ export default function SingerViewPage() {
             <Card>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-slate-900">
-                  {strings.singer.sections.program} · {choir?.name}
+                  {strings.singer.sections.program}
                 </h3>
+                <p className="text-sm text-slate-500">
+                  {choir?.name} · {project?.name}
+                </p>
                 <span className="text-xs text-slate-400">
                   {program?.season ?? ""}
                 </span>
