@@ -254,7 +254,7 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-white/75 backdrop-blur-sm" />
-      <div className="relative mx-auto flex h-full max-w-5xl flex-col px-4 py-6 sm:px-6 md:py-10">
+      <div className="relative mx-auto flex h-full max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-10">
         <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-lg sm:px-6">
           <div>
             <div className="text-xs uppercase tracking-wide text-slate-400">
