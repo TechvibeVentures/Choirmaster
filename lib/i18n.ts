@@ -144,7 +144,7 @@ export const strings = {
   },
   ensembleOnboarding: {
     title: "Neues Ensemble hinzufügen",
-    subtitle: "Ensemble-Setup",
+    subtitle: "Sänger:innen finden",
     lede: "Lege die Basis für ein neues Ensemble, bevor du Projekte und Personen zuordnest.",
     close: "Schließen",
     stepBasics: "Grunddaten",

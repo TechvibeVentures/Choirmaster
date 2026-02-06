@@ -357,31 +357,33 @@ const resultsByVoice = useMemo(() => {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-white/75 backdrop-blur-sm" />
       <div className="relative mx-auto flex h-full max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-10">
-        <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-lg sm:px-6">
-          <div>
-            <div className="text-xs uppercase tracking-wide text-slate-400">
-              {strings.ensembleOnboarding.subtitle}
+        {isSingerOnly ? null : (
+          <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-lg sm:px-6">
+            <div>
+              <div className="text-xs uppercase tracking-wide text-slate-400">
+                {strings.ensembleOnboarding.subtitle}
+              </div>
+              <h2 className="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">
+                {strings.ensembleOnboarding.title}
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {strings.ensembleOnboarding.lede}
+              </p>
             </div>
-            <h2 className="mt-2 text-lg font-semibold text-slate-900 sm:text-xl">
-              {strings.ensembleOnboarding.title}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {strings.ensembleOnboarding.lede}
-            </p>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
+                Schritt {step + 1} von {steps.length}
+              </span>
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              >
+                {strings.ensembleOnboarding.close}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
-              Schritt {step + 1} von {steps.length}
-            </span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-            >
-              {strings.ensembleOnboarding.close}
-            </button>
-          </div>
-        </div>
+        )}
 
         <div className="mt-4 flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
           {isSingerOnly ? null : (
