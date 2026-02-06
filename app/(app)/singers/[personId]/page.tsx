@@ -128,8 +128,8 @@ export default function PersonDetailPage({
             </div>
           </Card>
 
-          <Card>
-            <h3 className="text-base font-semibold">Ensembles & Projekte</h3>
+          <Card className="w-full max-w-[520px]">
+            <h3 className="text-base font-semibold">Ensembles</h3>
             <div className="mt-4 grid gap-3">
               {personMemberships.map((entry) => {
                 const choir = choirs.find((item) => item.id === entry.choir_id);

@@ -68,6 +68,7 @@ export const strings = {
     overviewButton: "Übersicht Projekte",
     edit: "Bearbeiten",
     attendanceButton: "Anwesenheiten",
+    newProject: "Neues Projekt anlegen",
     active: "Aktiv",
     upcoming: "Demnächst",
     archived: "Archiv",
@@ -131,7 +132,7 @@ export const strings = {
     singerStatus: "Sängerstatus",
     participations: "Projektbeteiligungen",
     availability: "Anwesenheit",
-    findSingers: "Sänger finden"
+    findSingers: "Sänger hinzufügen"
   },
   onboarding: {
     title: "Sänger finden",

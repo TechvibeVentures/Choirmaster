@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, ChevronRight, X } from "lucide-react";
+import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
+import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
 import {
   availability,
   choirs,
@@ -58,78 +59,6 @@ const voiceSplitDefaults = [
   { label: "3", count: 0 }
 ];
 
-type FinderChannel = "link" | "email" | "import";
-
-type FinderCandidate = {
-  id: string;
-  name: string;
-  email: string;
-  channel: FinderChannel;
-  voice?: Voice | "";
-};
-
-const finderChannels: Record<
-  FinderChannel,
-  { label: string; description: string }
-> = {
-  link: {
-    label: "Einladungslink",
-    description: "Sänger melden sich selbst an."
-  },
-  email: {
-    label: "Direkte Einladungen",
-    description: "Gezielte Sänger:innen per E-Mail."
-  },
-  import: {
-    label: "CSV-Import",
-    description: "Liste wurde aus Excel importiert."
-  }
-};
-
-const finderCandidates: FinderCandidate[] = [
-  {
-    id: "link-anna",
-    name: "Anna Berger",
-    email: "anna.berger@example.com",
-    channel: "link",
-    voice: "Soprano"
-  },
-  {
-    id: "link-luca",
-    name: "Luca Steiner",
-    email: "luca.steiner@example.com",
-    channel: "link",
-    voice: "Tenor"
-  },
-  {
-    id: "email-jonas",
-    name: "Jonas Frei",
-    email: "jonas.frei@example.com",
-    channel: "email",
-    voice: "Bass"
-  },
-  {
-    id: "email-mara",
-    name: "Mara Hug",
-    email: "mara.hug@example.com",
-    channel: "email",
-    voice: "Alto"
-  },
-  {
-    id: "import-lea",
-    name: "Lea Bucher",
-    email: "lea.bucher@example.com",
-    channel: "import",
-    voice: ""
-  },
-  {
-    id: "import-noah",
-    name: "Noah Schmid",
-    email: "noah.schmid@example.com",
-    channel: "import",
-    voice: ""
-  }
-];
 
 const getCurrentProjectId = () => {
   const today = new Date();
@@ -190,16 +119,6 @@ export default function PeoplePage() {
   const [view, setView] = useState<"list" | "seating">("list");
   const [voiceSplitOpen, setVoiceSplitOpen] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
-  const [finderStep, setFinderStep] = useState<0 | 1>(0);
-  const [selectedFinderIds, setSelectedFinderIds] = useState<string[]>(
-    finderCandidates.map((candidate) => candidate.id)
-  );
-  const [bulkSubject, setBulkSubject] = useState(
-    "Einladung zum nächsten Projekt"
-  );
-  const [bulkMessage, setBulkMessage] = useState(
-    "Hallo! Wir freuen uns über dein Interesse. Hier findest du die wichtigsten Infos zum Projekt."
-  );
   const currentProjectId = useMemo(() => getCurrentProjectId(), []);
   const handleComingSoon = () => {
     alert("Diese Funktion kommt in einer späteren Version der App.");
@@ -211,8 +130,6 @@ export default function PeoplePage() {
   };
 
   const openFinder = () => {
-    setFinderStep(0);
-    setSelectedFinderIds(finderCandidates.map((candidate) => candidate.id));
     setFinderOpen(true);
   };
 
@@ -220,16 +137,6 @@ export default function PeoplePage() {
     setFinderOpen(false);
   };
 
-  const toggleFinderSelection = (id: string) => {
-    setSelectedFinderIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
-  const selectedCount = selectedFinderIds.length;
-  const finderChannelList = (Object.keys(finderChannels) as FinderChannel[]).map(
-    (key) => finderChannels[key]
-  );
   const currentChoir = choirs[0];
   const currentProject = projects.find((project) => project.id === currentProjectId);
   const adminUser = people.find((person) => person.roles.includes("conductor"));
@@ -1035,218 +942,7 @@ export default function PeoplePage() {
         </div>
       )}
 
-      {finderOpen ? (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-slate-900/30"
-            onClick={closeFinder}
-            aria-hidden="true"
-          />
-          <div className="relative mx-auto flex min-h-screen items-end justify-center p-4 sm:items-center">
-            <div className="w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-slate-400">
-                    Sänger finden
-                  </div>
-                  <h2 className="mt-1 text-lg font-semibold text-slate-900">
-                    Auswahl vorbereiten
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Überblick zu Ensemble, Projekt und vorbereiteten Kanälen.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeFinder}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-                  aria-label="Schließen"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="px-5 py-5">
-                {finderStep === 0 ? (
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <div className="text-xs uppercase text-slate-400">
-                          Überblick
-                        </div>
-                        <div className="mt-3 space-y-3 text-sm text-slate-600">
-                          <div className="flex items-center justify-between">
-                            <span>Ensemble</span>
-                            <span className="font-medium text-slate-900">
-                              {currentChoir?.name ?? "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Projekt</span>
-                            <span className="font-medium text-slate-900">
-                              {currentProject?.name ?? "—"}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span>Einladungen</span>
-                            <span className="font-medium text-slate-900">
-                              {finderCandidates.length}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl border border-slate-200 bg-white p-4">
-                        <div className="text-xs uppercase text-slate-400">
-                          Kanäle
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {finderChannelList.map((channel) => (
-                            <Badge key={channel.label}>{channel.label}</Badge>
-                          ))}
-                        </div>
-                        <p className="mt-3 text-xs text-slate-500">
-                          Sänger:innen werden kanalübergreifend gesammelt und
-                          danach ausgewählt.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-                      <div className="text-xs uppercase text-slate-400">
-                        Nächste Schritte
-                      </div>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-slate-400" />
-                          Sänger:innen prüfen und auswählen
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-slate-400" />
-                          Sammel-E-Mail vorbereiten
-                        </li>
-                        <li className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-slate-400" />
-                          Einladungsvorgang starten
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="text-xs uppercase text-slate-400">
-                          Ausgewählte Sänger:innen
-                        </div>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {selectedCount} von {finderCandidates.length} gewählt
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 bg-white">
-                      {finderCandidates.map((candidate) => (
-                        <label
-                          key={candidate.id}
-                          className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 text-sm text-slate-700 last:border-b-0"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedFinderIds.includes(candidate.id)}
-                            onChange={() => toggleFinderSelection(candidate.id)}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                          />
-                          <div className="flex-1">
-                            <div className="font-medium text-slate-900">
-                              {candidate.name}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {candidate.email}
-                            </div>
-                          </div>
-                          <Badge className="text-slate-500">
-                            {finderChannels[candidate.channel].label}
-                          </Badge>
-                        </label>
-                      ))}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 bg-white p-4">
-                      <div className="text-xs uppercase text-slate-400">
-                        Sammel-E-Mail
-                      </div>
-                      <div className="mt-2 text-sm text-slate-500">
-                        Von: {adminName}
-                      </div>
-                      <div className="mt-3 grid gap-3">
-                        <input
-                          value={bulkSubject}
-                          onChange={(event) => setBulkSubject(event.target.value)}
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                          placeholder="Betreff"
-                        />
-                        <textarea
-                          value={bulkMessage}
-                          onChange={(event) => setBulkMessage(event.target.value)}
-                          rows={4}
-                          className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                          placeholder="Nachricht an die ausgewählten Sänger:innen"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleComingSoon}
-                          className="inline-flex items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
-                        >
-                          E-Mail an {selectedCount} Sänger:innen senden
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-4">
-                {finderStep === 0 ? (
-                  <button
-                    type="button"
-                    onClick={closeFinder}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600"
-                  >
-                    Abbrechen
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setFinderStep(0)}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600"
-                  >
-                    Zurück
-                  </button>
-                )}
-                {finderStep === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setFinderStep(1)}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
-                  >
-                    Weiter
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={closeFinder}
-                    className="rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
-                  >
-                    Fertig
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <EnsembleOnboardingFlow open={finderOpen} onClose={closeFinder} />
     </div>
   );
 }
