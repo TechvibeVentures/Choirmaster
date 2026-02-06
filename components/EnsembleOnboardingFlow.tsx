@@ -186,8 +186,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     };
   }, [open]);
 
-  if (!open) return null;
-
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
       prev.includes(genre) ? prev.filter((item) => item !== genre) : [...prev, genre]
@@ -252,6 +250,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     });
     return map;
   }, [filteredResults]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50">
