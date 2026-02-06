@@ -146,7 +146,7 @@ export default function SingerViewPage() {
     <div className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="flex items-start justify-between gap-4 md:block">
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
               {strings.singer.title}
             </p>
@@ -154,7 +154,14 @@ export default function SingerViewPage() {
               {singer?.first_name} {singer?.last_name}
             </h1>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600">
+          <div className="flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 md:hidden">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: voiceColor }}
+            />
+            <span>{voiceLabel}</span>
+          </div>
+          <div className="hidden items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600 md:flex">
             <span
               className="h-2.5 w-2.5 rounded-full"
               style={{ backgroundColor: voiceColor }}
@@ -220,13 +227,13 @@ export default function SingerViewPage() {
                   <p className="text-sm text-slate-600">
                     {strings.singer.fields.experience}
                   </p>
-                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
+                  <div className="mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
                     {experienceKeys.map((key) => (
                       <button
                         key={key}
                         type="button"
                         onClick={() => setSelectedExperience(key)}
-                        className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
                           selectedExperience === key
                             ? "border-slate-400 bg-slate-900 text-white"
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -250,7 +257,7 @@ export default function SingerViewPage() {
                   <p className="text-sm text-slate-600">
                     {strings.singer.fields.voice}
                   </p>
-                  <div className="mt-2 flex flex-nowrap gap-2 overflow-x-auto">
+                  <div className="mt-2 flex flex-nowrap gap-1.5 overflow-x-auto">
                     {voiceOptions.map((voiceOption) => {
                       const isSelected = selectedVoice === voiceOption;
                       return (
@@ -258,7 +265,7 @@ export default function SingerViewPage() {
                           key={voiceOption}
                           type="button"
                           onClick={() => setSelectedVoice(voiceOption)}
-                          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
                             isSelected
                               ? "border-slate-900 bg-slate-900 text-white"
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -267,7 +274,7 @@ export default function SingerViewPage() {
                         >
                           <Badge
                             dotColor={voiceColors[voiceOption]}
-                            className={`border-0 px-0 py-0 text-xs ${
+                            className={`border-0 px-0 py-0 text-[11px] ${
                               isSelected ? "text-white" : "text-slate-700"
                             }`}
                           >
@@ -479,7 +486,8 @@ export default function SingerViewPage() {
                                 [rehearsal.id]: !prev[rehearsal.id]
                               }))
                             }
-                            className="flex items-center gap-2 text-xs text-slate-500"
+                            className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                            aria-pressed={isPresent}
                           >
                             <span className="hidden text-xs text-slate-500 sm:inline">
                               {isPresent ? "anwesend" : "abwesend"}
