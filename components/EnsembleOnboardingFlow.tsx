@@ -1051,112 +1051,114 @@ const resultsByVoice = useMemo(() => {
                     </div>
                     <Check className="h-5 w-5 text-emerald-400" />
                   </div>
-                  <div className="mt-4 space-y-3">
-                    {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
-                        {strings.ensembleOnboarding.singersSummaryEmpty}
-                      </div>
-                    ) : null}
-                    {selectedSingerIds.map((id) => {
-                      const singer = mockSingerResults.find((entry) => entry.id === id);
-                      if (!singer) return null;
-                      return (
-                      <div
-                        key={`invite-${id}`}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                      >
-                        <div className="min-w-[200px]">
-                          <div className="font-semibold text-slate-900">
-                            {singer.name}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {singer.email}
-                          </div>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+                    <div className="space-y-3">
+                      {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                          {strings.ensembleOnboarding.singersSummaryEmpty}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span>{singer.city}</span>
-                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                            {experienceLabels[singer.experience]}
-                          </span>
-                          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{ backgroundColor: voiceBorderColors[singer.voice] }}
-                            />
-                            {getVoiceLabel(singer.voice)}
-                          </span>
+                      ) : null}
+                      {selectedSingerIds.map((id) => {
+                        const singer = mockSingerResults.find((entry) => entry.id === id);
+                        if (!singer) return null;
+                        return (
+                          <div
+                            key={`invite-${id}`}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                          >
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                              <div className="min-w-[180px]">
+                                <div className="text-sm font-semibold text-slate-900">
+                                  {singer.name}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {singer.email}
+                                </div>
+                              </div>
+                              <span>{singer.city}</span>
+                              <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                {experienceLabels[singer.experience]}
+                              </span>
+                              <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                                />
+                                {getVoiceLabel(singer.voice)}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeSelectedSinger(id)}
+                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                            >
+                              Entfernen
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {directEntries.map((entry) => (
+                        <div
+                          key={`invite-${entry.id}`}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                            <div className="min-w-[180px]">
+                              <div className="text-sm font-semibold text-slate-900">
+                                {`${entry.first} ${entry.last}`.trim() || "—"}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {entry.email || "—"}
+                              </div>
+                            </div>
+                            <span>—</span>
+                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
+                              —
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    entry.voice === "Sopran"
+                                      ? voiceBorderColors.Soprano
+                                      : entry.voice === "Alt"
+                                        ? voiceBorderColors.Alto
+                                        : entry.voice === "Tenor"
+                                          ? voiceBorderColors.Tenor
+                                          : entry.voice === "Bass"
+                                            ? voiceBorderColors.Bass
+                                            : "#E2E8F0"
+                                }}
+                              />
+                              {entry.voice || strings.ensembleOnboarding.singersVoice}
+                            </span>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => removeSelectedSinger(id)}
+                            onClick={() => removeDirectEntry(entry.id)}
                             className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
                           >
                             Entfernen
                           </button>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {directEntries.map((entry) => (
-                    <div
-                      key={`invite-${entry.id}`}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                    >
-                      <div className="min-w-[200px]">
-                        <div className="font-semibold text-slate-900">
-                          {`${entry.first} ${entry.last}`.trim() || "—"}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {entry.email || "—"}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span>—</span>
-                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
-                          —
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              backgroundColor:
-                                entry.voice === "Sopran"
-                                  ? voiceBorderColors.Soprano
-                                  : entry.voice === "Alt"
-                                    ? voiceBorderColors.Alto
-                                    : entry.voice === "Tenor"
-                                      ? voiceBorderColors.Tenor
-                                      : entry.voice === "Bass"
-                                        ? voiceBorderColors.Bass
-                                        : "#E2E8F0"
-                            }}
-                          />
-                          {entry.voice || strings.ensembleOnboarding.singersVoice}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeDirectEntry(entry.id)}
-                          className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
-                        >
-                          Entfernen
-                        </button>
-                      </div>
+                      ))}
                     </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
-                    <div className="text-xs uppercase tracking-wide text-slate-400">
-                      {strings.ensembleOnboarding.invitesEmailLabel}
-                    </div>
-                    <div className="mt-3 grid gap-3">
-                      <input
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                        placeholder={strings.ensembleOnboarding.invitesSubject}
-                      />
-                      <textarea
-                        rows={4}
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                        placeholder={strings.ensembleOnboarding.invitesMessage}
-                      />
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="text-xs uppercase tracking-wide text-slate-400">
+                        {strings.ensembleOnboarding.invitesEmailLabel}
+                      </div>
+                      <div className="mt-3 grid gap-3">
+                        <input
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                          placeholder={strings.ensembleOnboarding.invitesSubject}
+                        />
+                        <textarea
+                          rows={6}
+                          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                          placeholder={strings.ensembleOnboarding.invitesMessage}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Card>
