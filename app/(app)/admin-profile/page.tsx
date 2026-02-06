@@ -80,6 +80,14 @@ export default function ProfilePage() {
                 />
               </label>
               <label className="text-sm text-slate-600 sm:col-span-2">
+                {strings.profile.fields.language}
+                <select className={inputStyles} defaultValue={adminProfile.language}>
+                  <option value="Deutsch (CH)">Deutsch (CH)</option>
+                  <option value="Deutsch (DE)">Deutsch (DE)</option>
+                  <option value="English">English</option>
+                </select>
+              </label>
+              <label className="text-sm text-slate-600 sm:col-span-2">
                 {strings.profile.fields.password}
                 <input
                   className={`${inputStyles} bg-slate-50 text-slate-500`}
@@ -104,7 +112,9 @@ export default function ProfilePage() {
               </div>
             </form>
           </Card>
+        </div>
 
+        <div className="flex flex-col gap-6">
           <Card>
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -164,37 +174,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <Card>
-            <div className="flex flex-col gap-1">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {strings.profile.settingsTitle}
-              </h3>
-              <p className="text-sm text-slate-500">
-                {strings.profile.settingsSubtitle}
-              </p>
-            </div>
-            <div className="mt-6 grid gap-4">
-              <label className="text-sm text-slate-600">
-                {strings.profile.fields.language}
-                <input
-                  className={inputStyles}
-                  defaultValue={adminProfile.language}
-                  type="text"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.profile.fields.timezone}
-                <input
-                  className={inputStyles}
-                  defaultValue={adminProfile.timezone}
-                  type="text"
-                />
-              </label>
             </div>
           </Card>
         </div>
