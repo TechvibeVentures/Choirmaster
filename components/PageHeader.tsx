@@ -110,7 +110,7 @@ export default function PageHeader({
             ) : null}
           </div>
           <Link
-            href="/profile"
+            href="/admin-profile"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:border-slate-300"
             aria-label="Profil"
             title="Profil öffnen"

@@ -13,7 +13,7 @@ type NavItem = {
 export const navItems: NavItem[] = [
   { label: strings.nav.dashboard, href: "/dashboard", icon: Home },
   { label: strings.nav.projects, href: "/projects", icon: FolderKanban },
-  { label: strings.nav.repertoire, href: "/repertoire", icon: Music2 },
+  { label: strings.nav.repertoire, href: "/sheets", icon: Music2 },
   { label: strings.nav.singers, href: "/singers", icon: Users },
   {
     label: strings.nav.messages,
@@ -43,7 +43,7 @@ export const getPageTitle = (pathname: string) => {
     const person = people.find((item) => item.id === personId);
     return person ? getPersonName(person) : strings.nav.singers;
   }
-  if (pathname === "/profile") {
+  if (pathname === "/admin-profile") {
     return strings.profile.title;
   }
   const match = navItems.find((item) => item.href === pathname);

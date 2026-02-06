@@ -124,7 +124,7 @@ export default function RepertoirePage() {
               otherPrograms.map((program) => (
                 <a
                   key={program.id}
-                  href="/repertoire"
+                  href="/sheets"
                   className="block"
                   onClick={(event) => {
                     event.preventDefault();

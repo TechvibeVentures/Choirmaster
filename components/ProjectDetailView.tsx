@@ -350,7 +350,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <Link href="/repertoire" className="block h-full">
+        <Link href="/sheets" className="block h-full">
           <Card className="flex h-full min-h-[320px] flex-col transition hover:border-slate-300">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-semibold">Konzertprogramm</h3>
