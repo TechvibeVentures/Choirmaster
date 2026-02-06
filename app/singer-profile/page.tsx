@@ -256,6 +256,7 @@ export default function SingerViewPage() {
                               ? "border-slate-900 bg-slate-900 text-white"
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                           }`}
+                          aria-pressed={isSelected}
                         >
                           <Badge
                             dotColor={voiceColors[voiceOption]}
@@ -348,46 +349,37 @@ export default function SingerViewPage() {
                       {strings.singer.projectSubtitle}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {paymentStatus === "confirmed" ? (
-                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                        Beitrag bestätigt
-                      </span>
-                    ) : (
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => setPaymentStatus("pending")}
-                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                        onClick={() => setParticipationStatus("confirmed")}
+                        disabled={participationStatus === "confirmed"}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                          participationStatus === "confirmed"
+                            ? "border-emerald-600 bg-emerald-600 text-white"
+                            : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                        }`}
                       >
-                        Mitgliedschaftsbeitrag bezahlen
+                        {participationStatus === "confirmed"
+                          ? "Teilnahme bestätigt"
+                          : "Teilnahme bestätigen"}
                       </button>
-                    )}
-                    {paymentStatus !== "confirmed" ? (
-                      <button
-                        type="button"
-                        onClick={() => setPaymentStatus("confirmed")}
-                        className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-medium text-emerald-700 transition hover:border-emerald-300"
-                      >
-                        Admin bestätigt
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={() => setParticipationStatus("confirmed")}
-                      disabled={participationStatus === "confirmed"}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                        participationStatus === "confirmed"
-                          ? "border-emerald-600 bg-emerald-600 text-white"
-                          : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                      }`}
-                    >
-                      {participationStatus === "confirmed"
-                        ? "Teilnahme bestätigt"
-                        : "Teilnahme bestätigen"}
-                    </button>
+                      {paymentStatus === "confirmed" ? (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                          Mitgliedschaftsbeitrag bezahlt
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPaymentStatus("pending")}
+                          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                        >
+                          Mitgliedschaftsbeitrag bezahlen
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
@@ -408,14 +400,6 @@ export default function SingerViewPage() {
                   </p>
                   <p className="mt-2 text-base font-semibold text-slate-900">
                     {participationLabel}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {choir?.rehearsal_pattern.weekdays
-                      ? `${formatWeekdays(choir.rehearsal_pattern.weekdays)} · ${formatTimeRange(
-                          choir.rehearsal_pattern.start_time,
-                          choir.rehearsal_pattern.end_time
-                        )}`
-                      : ""}
                   </p>
                 </div>
                 <div className="sm:col-span-2">
