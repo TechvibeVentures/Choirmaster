@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import Card from "@/components/Card";
 import { adminProfile, choirs, type AdminProfile } from "@/lib/mockData";
 import { strings } from "@/lib/i18n";
@@ -15,6 +19,24 @@ const choirRoleLabels: Record<
 };
 
 export default function ProfilePage() {
+  const languageOptions = ["Deutsch", "Französisch", "Italienisch", "Englisch"];
+  const defaultLanguage = languageOptions.includes(adminProfile.language)
+    ? adminProfile.language
+    : "Deutsch";
+  const [languageOpen, setLanguageOpen] = useState(false);
+  const [language, setLanguage] = useState(defaultLanguage);
+  const languageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!languageRef.current?.contains(event.target as Node)) {
+        setLanguageOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   const choirCards = adminProfile.choir_roles.map((entry) => {
     const choir = choirs.find((item) => item.id === entry.choir_id);
     return {
@@ -55,7 +77,7 @@ export default function ProfilePage() {
                   type="text"
                 />
               </label>
-              <label className="text-sm text-slate-600 sm:col-span-2">
+              <label className="text-sm text-slate-600">
                 {strings.profile.fields.email}
                 <input
                   className={inputStyles}
@@ -79,36 +101,63 @@ export default function ProfilePage() {
                   type="text"
                 />
               </label>
-              <label className="text-sm text-slate-600 sm:col-span-2">
+              <div className="text-sm text-slate-600 relative" ref={languageRef}>
                 {strings.profile.fields.language}
-                <select className={inputStyles} defaultValue={adminProfile.language}>
-                  <option value="Deutsch (CH)">Deutsch (CH)</option>
-                  <option value="Deutsch (DE)">Deutsch (DE)</option>
-                  <option value="English">English</option>
-                </select>
-              </label>
-              <label className="text-sm text-slate-600 sm:col-span-2">
-                {strings.profile.fields.password}
-                <input
-                  className={`${inputStyles} bg-slate-50 text-slate-500`}
-                  defaultValue="********"
-                  type="password"
-                  readOnly
-                />
-              </label>
-              <div className="sm:col-span-2 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                  onClick={() => setLanguageOpen((prev) => !prev)}
+                  className="mt-2 flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 shadow-sm transition hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/60"
+                  aria-haspopup="listbox"
+                  aria-expanded={languageOpen}
                 >
-                  {strings.profile.actions.save}
+                  <span className="truncate">{language}</span>
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
                 </button>
-                <button
-                  type="button"
-                  className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
-                >
-                  {strings.profile.actions.changePassword}
-                </button>
+                {languageOpen ? (
+                  <div className="absolute right-0 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg">
+                    <ul className="py-2">
+                      {languageOptions.map((option) => (
+                        <li key={option}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLanguage(option);
+                              setLanguageOpen(false);
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                          >
+                            {option}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+              <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-4">
+                <label className="text-sm text-slate-600">
+                  {strings.profile.fields.password}
+                  <input
+                    className={`${inputStyles} bg-slate-50 text-slate-500`}
+                    defaultValue="********"
+                    type="password"
+                    readOnly
+                  />
+                </label>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                  >
+                    {strings.profile.actions.save}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
+                  >
+                    {strings.profile.actions.changePassword}
+                  </button>
+                </div>
               </div>
             </form>
           </Card>

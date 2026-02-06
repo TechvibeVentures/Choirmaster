@@ -480,7 +480,7 @@ export const adminProfile: AdminProfile = {
   phone: "+41 79 555 12 12",
   city: "Zürich",
   role: "conductor",
-  language: "Deutsch (CH)",
+  language: "Deutsch",
   timezone: "Europe/Zurich",
   notification_prefs: {
     digest: true,
