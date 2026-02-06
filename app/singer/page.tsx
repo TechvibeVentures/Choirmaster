@@ -51,6 +51,12 @@ const experienceLabels: Record<string, string> = {
   professional: "Professionell"
 };
 
+const singerStatusLabels: Record<string, string> = {
+  active: "Aktiv",
+  inactive: "Inaktiv",
+  project_only: "Projektbezogen"
+};
+
 const inputStyles =
   "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none";
 
@@ -99,9 +105,6 @@ export default function SingerViewPage() {
   const voiceOptions = useMemo(() => ["Soprano", "Alto", "Tenor", "Bass"] as Voice[], []);
   const voiceLabel = selectedVoice ? getVoiceLabel(selectedVoice) : "Stimme offen";
   const voiceColor = selectedVoice ? voiceColors[selectedVoice] : "#E2E8F0";
-  const singerStatusLabel = membership?.singer_status
-    ? singerStatusLabels[membership.singer_status]
-    : singerStatusLabels.active;
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
