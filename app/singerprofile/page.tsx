@@ -105,6 +105,9 @@ export default function SingerViewPage() {
   const [participationStatus, setParticipationStatus] = useState<
     "invited" | "confirmed" | "declined"
   >(participation?.invite_status ?? "invited");
+  const [paymentStatus, setPaymentStatus] = useState<
+    "unpaid" | "pending" | "confirmed"
+  >("unpaid");
   const participationLabel =
     strings.singer.participationLabels[participationStatus];
   const [attendanceState, setAttendanceState] = useState<Record<string, boolean>>(
@@ -122,13 +125,24 @@ export default function SingerViewPage() {
   useEffect(() => {
     setSelectedVoice(selectedMembership?.voice ?? voice ?? null);
     setParticipationStatus(participation?.invite_status ?? "invited");
+    setPaymentStatus("unpaid");
     setAttendanceState(
       sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
         acc[rehearsal.id] = true;
         return acc;
       }, {})
     );
-  }, [selectedChoirId, selectedMembership?.voice, participation?.invite_status, sortedRehearsals, voice]);
+  }, [
+    selectedChoirId,
+    selectedMembership?.voice,
+    participation?.invite_status,
+    sortedRehearsals,
+    voice
+  ]);
+
+  const roleLabels = (singer?.roles ?? []).map((role) =>
+    role === "chairman" ? "Vorstand" : role === "conductor" ? "Leitung" : "Sänger"
+  );
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -300,26 +314,17 @@ export default function SingerViewPage() {
                         <div className="text-xs text-slate-500">
                           {choirEntry?.city} · {getVoiceLabel(item.voice)}
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
-                          {singer?.roles.map((role) => (
-                            <span
-                              key={`${item.choir_id}-${role}`}
-                              className="rounded-full border border-slate-200 px-2 py-0.5"
-                            >
-                              {role === "chairman"
-                                ? "Vorstand"
-                                : role === "conductor"
-                                  ? "Leitung"
-                                  : "Sänger"}
-                            </span>
-                          ))}
-                        </div>
                       </div>
-                      {isSelected ? (
-                        <span className="text-xs font-medium text-slate-700">
-                          Ausgewählt
-                        </span>
-                      ) : null}
+                      <div className="flex flex-wrap justify-end gap-2 text-[11px] text-slate-500">
+                        {roleLabels.map((label) => (
+                          <span
+                            key={`${item.choir_id}-${label}`}
+                            className="rounded-full border border-slate-200 px-2 py-0.5"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
                     </button>
                   );
                 })}
@@ -343,20 +348,44 @@ export default function SingerViewPage() {
                       {strings.singer.projectSubtitle}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setParticipationStatus("confirmed")}
-                    disabled={participationStatus === "confirmed"}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                      participationStatus === "confirmed"
-                        ? "border-emerald-600 bg-emerald-600 text-white"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
-                    }`}
-                  >
-                    {participationStatus === "confirmed"
-                      ? "Teilnahme bestätigt"
-                      : "Teilnahme bestätigen"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {paymentStatus === "confirmed" ? (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                        Beitrag bestätigt
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentStatus("pending")}
+                        className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                      >
+                        Mitgliedschaftsbeitrag bezahlen
+                      </button>
+                    )}
+                    {paymentStatus !== "confirmed" ? (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentStatus("confirmed")}
+                        className="rounded-full border border-emerald-200 px-3 py-1 text-[11px] font-medium text-emerald-700 transition hover:border-emerald-300"
+                      >
+                        Admin bestätigt
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setParticipationStatus("confirmed")}
+                      disabled={participationStatus === "confirmed"}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        participationStatus === "confirmed"
+                          ? "border-emerald-600 bg-emerald-600 text-white"
+                          : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                      }`}
+                    >
+                      {participationStatus === "confirmed"
+                        ? "Teilnahme bestätigt"
+                        : "Teilnahme bestätigen"}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
