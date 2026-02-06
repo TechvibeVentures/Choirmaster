@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Check,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
+  Cloud,
+  Mail,
   MapPin,
+  MessageCircle,
   Plus,
   Sparkles
 } from "lucide-react";
@@ -27,7 +29,6 @@ const steps = [
   strings.ensembleOnboarding.stepRehearsal,
   strings.ensembleOnboarding.stepVoices,
   strings.ensembleOnboarding.stepSingers,
-  strings.ensembleOnboarding.stepProject,
   strings.ensembleOnboarding.stepFinish
 ];
 
@@ -155,11 +156,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
-  const [projectName, setProjectName] = useState("Frühlingskonzert 2026");
-  const [projectStart, setProjectStart] = useState("2026-04-10");
-  const [projectEnd, setProjectEnd] = useState("2026-06-12");
-  const [projectLocation, setProjectLocation] = useState("");
-  const [projectSkipped, setProjectSkipped] = useState(false);
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
@@ -775,84 +771,6 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">
-                      {strings.ensembleOnboarding.projectTitle}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {strings.ensembleOnboarding.projectSubtitle}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProjectSkipped(true);
-                        handleNext();
-                      }}
-                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-                    >
-                      {strings.ensembleOnboarding.projectSkip}
-                    </button>
-                    <CalendarDays className="h-5 w-5 text-slate-300" />
-                  </div>
-                </div>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <label className="text-sm text-slate-600 sm:col-span-2">
-                    {strings.ensembleOnboarding.projectName}
-                    <input
-                      value={projectName}
-                      onChange={(event) => {
-                        setProjectName(event.target.value);
-                        setProjectSkipped(false);
-                      }}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
-                  </label>
-                  <label className="text-sm text-slate-600">
-                    {strings.ensembleOnboarding.projectStart}
-                    <input
-                      value={projectStart}
-                      onChange={(event) => {
-                        setProjectStart(event.target.value);
-                        setProjectSkipped(false);
-                      }}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
-                  </label>
-                  <label className="text-sm text-slate-600">
-                    {strings.ensembleOnboarding.projectEnd}
-                    <input
-                      value={projectEnd}
-                      onChange={(event) => {
-                        setProjectEnd(event.target.value);
-                        setProjectSkipped(false);
-                      }}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
-                  </label>
-                  <label className="text-sm text-slate-600 sm:col-span-2">
-                    {strings.ensembleOnboarding.projectLocation}
-                    <input
-                      value={projectLocation}
-                      onChange={(event) => {
-                        setProjectLocation(event.target.value);
-                        setProjectSkipped(false);
-                      }}
-                      placeholder={location}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
-                  </label>
-                </div>
-                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  {strings.ensembleOnboarding.projectHint}
-                </div>
-              </Card>
-            ) : null}
-
-            {step === 5 ? (
-              <Card>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-semibold text-slate-900">
                       {strings.ensembleOnboarding.finishTitle}
                     </h3>
                     <p className="mt-1 text-sm text-slate-500">
@@ -890,52 +808,34 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       <li>
                         {strings.ensembleOnboarding.singersSummary}: {selectedSingerIds.length + directEntries.length || strings.ensembleOnboarding.singersSummaryEmpty}
                       </li>
+                      <li>
+                        {strings.ensembleOnboarding.voiceSummary}: {voiceSplitDefaults.map((split) => split.count).join(" / ")}
+                      </li>
                     </ul>
                   </div>
                   <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
                     <div className="text-xs uppercase tracking-wide text-slate-400">
-                      {strings.ensembleOnboarding.projectSummary}
+                      {strings.ensembleOnboarding.integrationsTitle}
                     </div>
-                    {projectSkipped ? (
-                      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                        {strings.ensembleOnboarding.projectSkipped}
-                      </div>
-                    ) : (
-                      <div className="mt-3 space-y-2 text-sm text-slate-600">
-                        <div className="font-semibold text-slate-800">
-                          {projectName || strings.ensembleOnboarding.projectNamePlaceholder}
+                    <div className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.integrationsSubtitle}
+                    </div>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { label: strings.ensembleOnboarding.integrationEmail, icon: Mail },
+                        { label: strings.ensembleOnboarding.integrationWhatsapp, icon: MessageCircle },
+                        { label: strings.ensembleOnboarding.integrationGdrive, icon: Cloud },
+                        { label: strings.ensembleOnboarding.integrationDropbox, icon: Cloud }
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600"
+                        >
+                          <item.icon className="h-4 w-4 text-slate-400" />
+                          <span>{item.label}</span>
                         </div>
-                        <div>
-                          {strings.ensembleOnboarding.projectDates}: {projectStart} – {projectEnd}
-                        </div>
-                        <div>
-                          {strings.ensembleOnboarding.projectLocation}: {projectLocation || location}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-4 rounded-xl border border-slate-200 px-4 py-4 text-sm">
-                  <div className="text-xs uppercase tracking-wide text-slate-400">
-                    {strings.ensembleOnboarding.integrationsTitle}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-500">
-                    {strings.ensembleOnboarding.integrationsSubtitle}
-                  </div>
-                  <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    {[
-                      strings.ensembleOnboarding.integrationEmail,
-                      strings.ensembleOnboarding.integrationWhatsapp,
-                      strings.ensembleOnboarding.integrationGdrive,
-                      strings.ensembleOnboarding.integrationDropbox
-                    ].map((label) => (
-                      <div
-                        key={label}
-                        className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600"
-                      >
-                        {label}
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </Card>
