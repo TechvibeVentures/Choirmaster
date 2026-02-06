@@ -1010,19 +1010,19 @@ const resultsByVoice = useMemo(() => {
 
             {step === invitesStepIndex ? (
               inviteSent ? (
-                <Card>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">
-                        Einladungen verschickt
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Der Link zur Projektseite kann direkt geteilt werden.
-                      </p>
-                    </div>
-                    <Check className="h-5 w-5 text-emerald-400" />
+                <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 px-6 py-10 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white">
+                    <Check className="h-6 w-6" />
                   </div>
-                  <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      Einladungen verschickt
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Der Link zur Projektseite kann direkt geteilt werden.
+                    </p>
+                  </div>
+                  <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
                     <div className="text-xs uppercase tracking-wide text-slate-400">
                       Projektlink
                     </div>
@@ -1037,7 +1037,7 @@ const resultsByVoice = useMemo(() => {
                       </button>
                     </div>
                   </div>
-                </Card>
+                </div>
               ) : (
                 <Card>
                   <div className="flex items-center justify-between gap-3">
