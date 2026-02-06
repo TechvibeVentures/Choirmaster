@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   MapPin,
+  Plus,
   Sparkles
 } from "lucide-react";
 import Card from "@/components/Card";
@@ -86,8 +87,8 @@ const voiceOptions = ["Sopran", "Alt", "Tenor", "Bass"];
 
 const experienceOptions = [
   { id: "junior", label: "Einsteiger" },
-  { id: "regular", label: "Erfahren" },
   { id: "advanced", label: "Fortgeschritten" },
+  { id: "regular", label: "Erfahren" },
   { id: "professional", label: "Professionell" }
 ];
 
@@ -570,19 +571,19 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                     <p className="mt-1 text-xs text-slate-500">
                       {strings.ensembleOnboarding.singersSearchHint}
                     </p>
-                    <div className="mt-4 grid gap-4 md:grid-cols-[1.4fr_1fr]">
+                    <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto]">
                       <label className="text-xs text-slate-500">
                         {strings.ensembleOnboarding.singersLocation}
                         <input
                           value={locationQuery}
                           onChange={(event) => setLocationQuery(event.target.value)}
                           placeholder={strings.ensembleOnboarding.singersLocationPlaceholder}
-                          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-2 w-full max-w-sm rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
                         />
                       </label>
                       <label className="text-xs text-slate-500">
                         {strings.ensembleOnboarding.singersExperience}
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="mt-2 flex flex-nowrap gap-2">
                           {experienceOptions.map((level) => (
                             <button
                               key={level.id}
@@ -638,8 +639,26 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                                     style={{ borderLeftColor: voiceBorderColors[voice] }}
                                   >
                                     <div className="space-y-2">
-                                      <div className="text-base font-semibold text-slate-900">
-                                        {singer.name}
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="text-base font-semibold text-slate-900">
+                                          {singer.name}
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleSingerSelection(singer.id)}
+                                          aria-label={
+                                            selectedSingerIds.includes(singer.id)
+                                              ? strings.ensembleOnboarding.singersAdded
+                                              : strings.ensembleOnboarding.singersAdd
+                                          }
+                                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
+                                            selectedSingerIds.includes(singer.id)
+                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                          }`}
+                                        >
+                                          <Plus className="h-3 w-3" />
+                                        </button>
                                       </div>
                                       <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
                                         <span>{singer.city}</span>
@@ -647,21 +666,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                                           {experienceLabels[singer.experience]}
                                         </span>
                                       </div>
-                                      <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
-                                        <span>{singer.email}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleSingerSelection(singer.id)}
-                                          className={`rounded-full border px-2 py-1 text-[11px] transition ${
-                                            selectedSingerIds.includes(singer.id)
-                                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
-                                          }`}
-                                        >
-                                          {selectedSingerIds.includes(singer.id)
-                                            ? strings.ensembleOnboarding.singersAdded
-                                            : strings.ensembleOnboarding.singersAdd}
-                                        </button>
+                                      <div className="text-xs text-slate-500">
+                                        {singer.email}
                                       </div>
                                     </div>
                                   </Card>

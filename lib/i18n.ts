@@ -129,7 +129,7 @@ export const strings = {
     singersLocation: "Ort",
     singersLocationPlaceholder: "Stadt suchen",
     singersVoice: "Stimme",
-    singersExperience: "Erfahrung",
+    singersExperience: "Erfahrungsniveau",
     singersResults: "Gefundene Sänger",
     singersEmpty: "Keine Treffer mit den aktuellen Filtern.",
     singersUploadDrop: "Datei hier ablegen oder auswählen",
