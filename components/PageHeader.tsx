@@ -21,6 +21,7 @@ export default function PageHeader({
   const showOverviewLink =
     currentPath.startsWith("/projects") &&
     currentPath !== "/projects/overview";
+  const showNewProjectButton = currentPath === "/projects";
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -40,6 +41,10 @@ export default function PageHeader({
     }
     setSelected(label);
     setOpen(false);
+  };
+
+  const handleComingSoon = () => {
+    window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
   const initials = `${adminProfile.first_name[0] ?? ""}${
@@ -65,6 +70,15 @@ export default function PageHeader({
           ) : null}
         </div>
         <div className="flex items-center gap-3">
+          {showNewProjectButton ? (
+            <button
+              type="button"
+              onClick={handleComingSoon}
+              className="hidden rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:border-slate-800 hover:bg-slate-800 sm:inline-flex"
+            >
+              {strings.projects.newProject}
+            </button>
+          ) : null}
           <div className="relative" ref={menuRef}>
             <button
               type="button"
