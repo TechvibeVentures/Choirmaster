@@ -1041,7 +1041,7 @@ const resultsByVoice = useMemo(() => {
                     href="/dashboard"
                     className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm text-emerald-700 shadow-sm transition hover:border-emerald-300"
                   >
-                    Go to Dashboard
+                    Zur Übersicht
                   </Link>
                 </div>
               ) : (
