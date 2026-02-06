@@ -30,6 +30,7 @@ const steps = [
   strings.ensembleOnboarding.stepRehearsal,
   strings.ensembleOnboarding.stepVoices,
   strings.ensembleOnboarding.stepSingers,
+  strings.ensembleOnboarding.stepIntegrations,
   strings.ensembleOnboarding.stepFinish
 ];
 
@@ -141,6 +142,70 @@ const mockSingerResults: {
     voice: "Bass",
     city: "Uster",
     experience: "professional"
+  },
+  {
+    id: "s-5",
+    name: "Selina Roth",
+    email: "selina.roth@example.com",
+    voice: "Soprano",
+    city: "Zürich",
+    experience: "regular"
+  },
+  {
+    id: "s-6",
+    name: "Nico Meier",
+    email: "nico.meier@example.com",
+    voice: "Tenor",
+    city: "Baden",
+    experience: "advanced"
+  },
+  {
+    id: "s-7",
+    name: "Luisa Kern",
+    email: "luisa.kern@example.com",
+    voice: "Alto",
+    city: "Winterthur",
+    experience: "professional"
+  },
+  {
+    id: "s-8",
+    name: "David Frei",
+    email: "david.frei@example.com",
+    voice: "Bass",
+    city: "Zürich",
+    experience: "regular"
+  },
+  {
+    id: "s-9",
+    name: "Eva Keller",
+    email: "eva.keller@example.com",
+    voice: "Soprano",
+    city: "Uster",
+    experience: "junior"
+  },
+  {
+    id: "s-10",
+    name: "Mira Vogt",
+    email: "mira.vogt@example.com",
+    voice: "Alto",
+    city: "St. Gallen",
+    experience: "advanced"
+  },
+  {
+    id: "s-11",
+    name: "Lars Müller",
+    email: "lars.mueller@example.com",
+    voice: "Tenor",
+    city: "Zürich",
+    experience: "professional"
+  },
+  {
+    id: "s-12",
+    name: "Simon Bucher",
+    email: "simon.bucher@example.com",
+    voice: "Bass",
+    city: "Winterthur",
+    experience: "junior"
   }
 ];
 
@@ -240,14 +305,37 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     });
   }, [locationQuery, selectedExperiences]);
 
-  const resultsByVoice = useMemo(() => {
-    const map = new Map<Voice, typeof mockSingerResults>();
-    voiceOrder.forEach((voice) => map.set(voice, []));
-    filteredResults.forEach((singer) => {
-      map.get(singer.voice)?.push(singer);
+const resultsByVoice = useMemo(() => {
+  const map = new Map<Voice, typeof mockSingerResults>();
+  voiceOrder.forEach((voice) => map.set(voice, []));
+  filteredResults.forEach((singer) => {
+    map.get(singer.voice)?.push(singer);
+  });
+  return map;
+}, [filteredResults]);
+
+  const selectedCountsByVoice = useMemo(() => {
+    const counts = new Map<Voice, number>();
+    voiceOrder.forEach((voice) => counts.set(voice, 0));
+    const selectedSet = new Set(selectedSingerIds);
+    mockSingerResults.forEach((singer) => {
+      if (!selectedSet.has(singer.id)) return;
+      counts.set(singer.voice, (counts.get(singer.voice) ?? 0) + 1);
     });
-    return map;
-  }, [filteredResults]);
+    const mapDirectVoice = (value: string): Voice | null => {
+      if (value === "Sopran") return "Soprano";
+      if (value === "Alt") return "Alto";
+      if (value === "Tenor") return "Tenor";
+      if (value === "Bass") return "Bass";
+      return null;
+    };
+    directEntries.forEach((entry) => {
+      const voice = mapDirectVoice(entry.voice);
+      if (!voice) return;
+      counts.set(voice, (counts.get(voice) ?? 0) + 1);
+    });
+    return counts;
+  }, [directEntries, selectedSingerIds]);
 
   if (!open) return null;
 
@@ -787,6 +875,82 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <h3 className="text-base font-semibold text-slate-900">
+                      {strings.ensembleOnboarding.integrationsTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.integrationsSubtitle}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">
+                      Bereits verfügbar
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {[
+                        { label: strings.ensembleOnboarding.integrationEmail, icon: Mail },
+                        { label: strings.ensembleOnboarding.integrationWhatsapp, icon: MessageCircle }
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+                        >
+                          <div className="flex items-center gap-2">
+                            <item.icon className="h-4 w-4 text-slate-400" />
+                            <span>{item.label}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleComingSoon}
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-slate-300"
+                          >
+                            Verbinden
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <div className="text-xs uppercase tracking-wide text-slate-400">
+                      Dateiablage
+                    </div>
+                    <div className="mt-3 space-y-3">
+                      {[
+                        { label: strings.ensembleOnboarding.integrationGdrive, icon: Cloud },
+                        { label: strings.ensembleOnboarding.integrationDropbox, icon: Cloud }
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-600"
+                        >
+                          <div className="flex items-center gap-2">
+                            <item.icon className="h-4 w-4 text-slate-400" />
+                            <span>{item.label}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleComingSoon}
+                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 hover:border-slate-300"
+                          >
+                            Verbinden
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                      {strings.ensembleOnboarding.integrationsHint}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
+            {step === 5 ? (
+              <Card>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
                       {strings.ensembleOnboarding.finishTitle}
                     </h3>
                     <p className="mt-1 text-sm text-slate-500">
@@ -821,15 +985,12 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                       <li>
                         {strings.ensembleOnboarding.summaryGenres}: {genres.length ? genres.join(", ") : strings.ensembleOnboarding.summaryGenresEmpty}
                       </li>
-                      <li>
-                        {strings.ensembleOnboarding.singersSummary}: {selectedSingerIds.length + directEntries.length || strings.ensembleOnboarding.singersSummaryEmpty}
-                      </li>
                     </ul>
                   </div>
                   <div className="space-y-4">
                     <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
                       <div className="text-xs uppercase tracking-wide text-slate-400">
-                        {strings.ensembleOnboarding.voiceSummary}
+                        {strings.ensembleOnboarding.singersByVoiceTitle}
                       </div>
                       <div className="mt-3 space-y-2">
                         {voiceOrder.map((voice) => (
@@ -845,33 +1006,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
                               {getVoiceLabel(voice)}
                             </span>
                             <span className="font-medium text-slate-900">
-                              {voiceSplitDefaults.reduce((sum, split) => sum + split.count, 0)}
+                              {selectedCountsByVoice.get(voice) ?? 0}
                             </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 px-4 py-4 text-sm">
-                      <div className="text-xs uppercase tracking-wide text-slate-400">
-                        {strings.ensembleOnboarding.integrationsTitle}
-                      </div>
-                      <div className="mt-1 text-sm text-slate-500">
-                        {strings.ensembleOnboarding.integrationsSubtitle}
-                      </div>
-                      <div className="mt-3 space-y-3">
-                        {[
-                          { label: strings.ensembleOnboarding.integrationEmail, icon: Mail },
-                          { label: strings.ensembleOnboarding.integrationWhatsapp, icon: MessageCircle },
-                          { label: strings.ensembleOnboarding.integrationGdrive, icon: Cloud },
-                          { label: strings.ensembleOnboarding.integrationDropbox, icon: Cloud }
-                        ].map((item) => (
-                          <div
-                            key={item.label}
-                            className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-600"
-                          >
-                            <item.icon className="h-4 w-4 text-slate-400" />
-                            <span>{item.label}</span>
                           </div>
                         ))}
                       </div>
