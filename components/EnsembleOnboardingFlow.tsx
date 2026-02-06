@@ -1023,11 +1023,25 @@ const resultsByVoice = useMemo(() => {
                       const singer = mockSingerResults.find((entry) => entry.id === id);
                       if (!singer) return null;
                       return (
-                        <div
-                          key={`invite-${id}`}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                        >
-                          <div className="min-w-[200px]">
+                      <div
+                        key={`invite-${id}`}
+                        className="grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm md:grid-cols-[1fr_1.4fr]"
+                      >
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span>{singer.city}</span>
+                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                            {experienceLabels[singer.experience]}
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                            />
+                            {getVoiceLabel(singer.voice)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
                             <div className="font-semibold text-slate-900">
                               {singer.name}
                             </div>
@@ -1035,35 +1049,48 @@ const resultsByVoice = useMemo(() => {
                               {singer.email}
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                            <span>{singer.city}</span>
-                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                              {experienceLabels[singer.experience]}
-                            </span>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                              <span
-                                className="h-2 w-2 rounded-full"
-                                style={{ backgroundColor: voiceBorderColors[singer.voice] }}
-                              />
-                              {getVoiceLabel(singer.voice)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => removeSelectedSinger(id)}
-                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
-                            >
-                              Entfernen
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeSelectedSinger(id)}
+                            className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                          >
+                            Entfernen
+                          </button>
                         </div>
-                      );
-                    })}
-                    {directEntries.map((entry) => (
-                      <div
-                        key={`invite-${entry.id}`}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
-                      >
-                        <div className="min-w-[200px]">
+                      </div>
+                    );
+                  })}
+                  {directEntries.map((entry) => (
+                    <div
+                      key={`invite-${entry.id}`}
+                      className="grid gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm md:grid-cols-[1fr_1.4fr]"
+                    >
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span>—</span>
+                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
+                          —
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              backgroundColor:
+                                entry.voice === "Sopran"
+                                  ? voiceBorderColors.Soprano
+                                  : entry.voice === "Alt"
+                                    ? voiceBorderColors.Alto
+                                    : entry.voice === "Tenor"
+                                      ? voiceBorderColors.Tenor
+                                      : entry.voice === "Bass"
+                                        ? voiceBorderColors.Bass
+                                        : "#E2E8F0"
+                            }}
+                          />
+                          {entry.voice || strings.ensembleOnboarding.singersVoice}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
                           <div className="font-semibold text-slate-900">
                             {`${entry.first} ${entry.last}`.trim() || "—"}
                           </div>
@@ -1071,38 +1098,15 @@ const resultsByVoice = useMemo(() => {
                             {entry.email || "—"}
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                          <span>—</span>
-                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
-                            —
-                          </span>
-                          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                            <span
-                              className="h-2 w-2 rounded-full"
-                              style={{
-                                backgroundColor:
-                                  entry.voice === "Sopran"
-                                    ? voiceBorderColors.Soprano
-                                    : entry.voice === "Alt"
-                                      ? voiceBorderColors.Alto
-                                      : entry.voice === "Tenor"
-                                        ? voiceBorderColors.Tenor
-                                        : entry.voice === "Bass"
-                                          ? voiceBorderColors.Bass
-                                          : "#E2E8F0"
-                              }}
-                            />
-                            {entry.voice || strings.ensembleOnboarding.singersVoice}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => removeDirectEntry(entry.id)}
-                            className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
-                          >
-                            Entfernen
-                          </button>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeDirectEntry(entry.id)}
+                          className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                        >
+                          Entfernen
+                        </button>
                       </div>
+                    </div>
                     ))}
                   </div>
                   <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
