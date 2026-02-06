@@ -103,9 +103,6 @@ export default function SingerViewPage() {
             <h1 className="mt-2 text-2xl font-semibold text-slate-900 sm:text-3xl">
               {singer?.first_name} {singer?.last_name}
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              {choir?.name} · {choir?.city}
-            </p>
           </div>
           <div className="flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600">
             <span
@@ -119,111 +116,176 @@ export default function SingerViewPage() {
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
-          <Card className="h-fit">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold text-slate-900">
-                {strings.singer.profileTitle}
-              </h2>
-              <p className="text-sm text-slate-500">
-                {strings.singer.profileSubtitle}
-              </p>
-            </div>
-            <form className="mt-6 grid gap-4 sm:grid-cols-2">
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.firstName}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.first_name}
-                  type="text"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.lastName}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.last_name}
-                  type="text"
-                />
-              </label>
-              <label className="text-sm text-slate-600 sm:col-span-2">
-                {strings.singer.fields.email}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.email}
-                  type="email"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.phone}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.phone ?? ""}
-                  type="tel"
-                  placeholder="+41 79 000 00 00"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.city}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.city}
-                  type="text"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.experience}
-                <select className={inputStyles} defaultValue={singer?.experience_level}>
-                  {Object.entries(experienceLabels).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm text-slate-600">
-                {strings.singer.fields.tags}
-                <input
-                  className={inputStyles}
-                  defaultValue={singer?.tags.join(", ")}
-                  type="text"
-                  placeholder="z.B. Intonation, Teamplay"
-                />
-              </label>
-              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500 sm:col-span-2">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span>
-                    {strings.singer.fields.voice}: {voiceLabel}
-                  </span>
-                  <span className="text-slate-300">•</span>
-                  <span>
-                    {strings.singer.fields.status}: {singerStatusLabel}
-                  </span>
-                  <span className="text-slate-300">•</span>
-                  <span>
-                    {strings.singer.fields.choir}: {choir?.name}
-                  </span>
+          <div className="flex flex-col gap-6">
+            <Card className="h-fit">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {strings.singer.profileTitle}
+                </h2>
+                <p className="text-sm text-slate-500">
+                  {strings.singer.profileSubtitle}
+                </p>
+              </div>
+              <form className="mt-6 grid gap-4 sm:grid-cols-2">
+                <label className="text-sm text-slate-600">
+                  {strings.singer.fields.firstName}
+                  <input
+                    className={inputStyles}
+                    defaultValue={singer?.first_name}
+                    type="text"
+                  />
+                </label>
+                <label className="text-sm text-slate-600">
+                  {strings.singer.fields.lastName}
+                  <input
+                    className={inputStyles}
+                    defaultValue={singer?.last_name}
+                    type="text"
+                  />
+                </label>
+                <label className="text-sm text-slate-600 sm:col-span-2">
+                  {strings.singer.fields.email}
+                  <input
+                    className={inputStyles}
+                    defaultValue={singer?.email}
+                    type="email"
+                  />
+                </label>
+                <label className="text-sm text-slate-600">
+                  {strings.singer.fields.phone}
+                  <input
+                    className={inputStyles}
+                    defaultValue={singer?.phone ?? ""}
+                    type="tel"
+                    placeholder="+41 79 000 00 00"
+                  />
+                </label>
+                <label className="text-sm text-slate-600">
+                  {strings.singer.fields.city}
+                  <input
+                    className={inputStyles}
+                    defaultValue={singer?.city}
+                    type="text"
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <p className="text-sm text-slate-600">
+                    {strings.singer.fields.experience}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Object.entries(experienceLabels).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                          singer?.experience_level === key
+                            ? "border-slate-400 bg-slate-900 text-white"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+                <div className="sm:col-span-2">
+                  <p className="text-sm text-slate-600">
+                    {strings.singer.fields.voice}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(["Soprano", "Alto", "Tenor", "Bass"] as Voice[]).map(
+                      (voiceOption) => (
+                        <button
+                          key={voiceOption}
+                          type="button"
+                          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                            voice === voiceOption
+                              ? "border-slate-400 bg-slate-900 text-white"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {getVoiceLabel(voiceOption)}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+                <div className="sm:col-span-2">
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    {strings.singer.save}
+                  </button>
+                </div>
+              </form>
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Ensemble & Status
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Übersicht über deine Chöre und Rollen.
+                  </p>
+                </div>
+                <span className="text-xs text-slate-400">
+                  {strings.singer.fields.status}: {singerStatusLabel}
+                </span>
               </div>
-              <div className="sm:col-span-2">
-                <button
-                  type="button"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
-                >
-                  {strings.singer.save}
-                </button>
+              <div className="mt-4 space-y-3">
+                {memberships
+                  .filter((item) => item.person_id === singer?.id)
+                  .map((item) => {
+                    const choirEntry = choirs.find((entry) => entry.id === item.choir_id);
+                    return (
+                      <div
+                        key={`${item.choir_id}-${item.voice}`}
+                        className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-3 text-sm"
+                      >
+                        <div>
+                          <div className="font-medium text-slate-800">
+                            {choirEntry?.name}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {choirEntry?.city} · {getVoiceLabel(item.voice)}
+                          </div>
+                        </div>
+                        <span className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500">
+                          {singerStatusLabels[item.singer_status]}
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
-            </form>
-          </Card>
+              <p className="mt-4 text-xs text-slate-500">
+                Neue Chöre können von der Leitung oder dem Vorstand für dich
+                freigeschaltet werden.
+              </p>
+            </Card>
+          </div>
 
           <div className="flex flex-col gap-6">
             <Card>
               <div className="flex flex-col gap-1">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {strings.singer.projectTitle}
-                </h2>
-                <p className="text-sm text-slate-500">
-                  {strings.singer.projectSubtitle}
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      {strings.singer.projectTitle}
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      {strings.singer.projectSubtitle}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                  >
+                    Teilnahme bestätigen
+                  </button>
+                </div>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -239,7 +301,7 @@ export default function SingerViewPage() {
                       : ""}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+                <div>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
                     {strings.singer.sections.participation}
                   </p>
@@ -263,53 +325,7 @@ export default function SingerViewPage() {
                     {project?.description}
                   </p>
                 </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-base font-semibold text-slate-900">
-                    {strings.singer.sections.schedule}
-                  </h3>
-                  <p className="text-sm text-slate-500">
-                    {project
-                      ? `${formatWeekdays(project.rehearsal_facts.weekdays)} · ${formatTimeRange(
-                          project.rehearsal_facts.start_time,
-                          project.rehearsal_facts.end_time
-                        )}`
-                      : ""}
-                  </p>
-                </div>
-                <div className="text-xs text-slate-400">
-                  {project?.rehearsal_facts.location}
-                </div>
-              </div>
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">
-                    {strings.singer.sections.rehearsals}
-                  </p>
-                  <ul className="mt-3 space-y-3 text-sm text-slate-600">
-                    {upcomingRehearsals.length ? (
-                      upcomingRehearsals.map((rehearsal) => (
-                        <li key={rehearsal.id} className="rounded-xl border border-slate-100 p-3">
-                          <p className="text-sm font-semibold text-slate-900">
-                            {formatDate(rehearsal.date)}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {formatTimeRange(rehearsal.start_time, rehearsal.end_time)} · {rehearsal.location}
-                          </p>
-                        </li>
-                      ))
-                    ) : (
-                      <li className="rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-500">
-                        Noch keine nächsten Proben geplant.
-                      </li>
-                    )}
-                  </ul>
-                </div>
-                <div>
+                <div className="sm:col-span-2">
                   <p className="text-xs uppercase tracking-wide text-slate-400">
                     {strings.singer.sections.concerts}
                   </p>
@@ -337,6 +353,65 @@ export default function SingerViewPage() {
 
             <Card>
               <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Proben
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {project
+                      ? `${formatWeekdays(project.rehearsal_facts.weekdays)} · ${formatTimeRange(
+                          project.rehearsal_facts.start_time,
+                          project.rehearsal_facts.end_time
+                        )}`
+                      : ""}
+                  </p>
+                </div>
+                <div className="text-xs text-slate-400">
+                  {project?.rehearsal_facts.location}
+                </div>
+              </div>
+              <div className="mt-6">
+                <p className="text-xs uppercase tracking-wide text-slate-400">
+                  {strings.singer.sections.rehearsals}
+                </p>
+                <ul className="mt-3 space-y-3 text-sm text-slate-600">
+                  {upcomingRehearsals.length ? (
+                    upcomingRehearsals.map((rehearsal) => (
+                      <li
+                        key={rehearsal.id}
+                        className="rounded-xl border border-slate-100 p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">
+                              {formatDate(rehearsal.date)}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {formatTimeRange(rehearsal.start_time, rehearsal.end_time)} · {rehearsal.location}
+                            </p>
+                          </div>
+                          <label className="flex items-center gap-2 text-xs text-slate-500">
+                            <input
+                              type="checkbox"
+                              defaultChecked
+                              className="h-4 w-4 rounded border-slate-300 text-slate-900"
+                            />
+                            Anwesend
+                          </label>
+                        </div>
+                      </li>
+                    ))
+                  ) : (
+                    <li className="rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-500">
+                      Noch keine nächsten Proben geplant.
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-slate-900">
                   {strings.singer.sections.program}
                 </h3>
@@ -344,17 +419,35 @@ export default function SingerViewPage() {
                   {program?.season ?? ""}
                 </span>
               </div>
-              <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                {(program?.pieces ?? []).slice(0, 6).map((piece) => (
-                  <li key={piece.id} className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{piece.title}</p>
-                      <p className="text-xs text-slate-500">{piece.composer}</p>
+              <ol className="mt-4 space-y-3 text-sm text-slate-600">
+                {(program?.pieces ?? []).slice(0, 6).map((piece, index) => (
+                  <li
+                    key={piece.id}
+                    className="rounded-xl border border-slate-100 bg-slate-50/70 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-slate-400">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm font-medium text-slate-800">
+                            {piece.title}
+                          </span>
+                          {piece.duration ? (
+                            <span className="text-xs text-slate-400">
+                              {piece.duration}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {piece.composer}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs text-slate-400">{piece.duration}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
               {program && program.pieces.length > 6 ? (
                 <p className="mt-4 text-xs text-slate-500">
                   +{program.pieces.length - 6} weitere Stücke im Programm
