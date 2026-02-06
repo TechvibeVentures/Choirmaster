@@ -236,16 +236,7 @@ export default function SingerViewPage() {
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
                       >
-                        <span className="sm:hidden">
-                          {key === "advanced"
-                            ? "Fortgeschr."
-                            : key === "professional"
-                              ? "Prof."
-                              : experienceLabels[key]}
-                        </span>
-                        <span className="hidden sm:inline">
-                          {experienceLabels[key]}
-                        </span>
+                        {experienceLabels[key]}
                       </button>
                     ))}
                   </div>
@@ -262,7 +253,7 @@ export default function SingerViewPage() {
                           key={voiceOption}
                           type="button"
                           onClick={() => setSelectedVoice(voiceOption)}
-                          className={`shrink-0 rounded-full border px-2 py-1 text-[10px] font-medium transition ${
+                          className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-medium transition ${
                             isSelected
                               ? "border-slate-900 bg-slate-900 text-white"
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
@@ -271,7 +262,7 @@ export default function SingerViewPage() {
                         >
                           <Badge
                             dotColor={voiceColors[voiceOption]}
-                            className={`border-0 px-0 py-0 text-[10px] ${
+                            className={`border-0 px-0 py-0 text-[9px] ${
                               isSelected ? "text-white" : "text-slate-700"
                             }`}
                           >
