@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Link from "next/link";
 import {
   Check,
   ChevronLeft,
@@ -1037,6 +1038,12 @@ const resultsByVoice = useMemo(() => {
                       </button>
                     </div>
                   </div>
+                  <Link
+                    href="/dashboard"
+                    className="rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm text-emerald-700 shadow-sm transition hover:border-emerald-300"
+                  >
+                    Go to Dashboard
+                  </Link>
                 </div>
               ) : (
                 <Card>
@@ -1315,7 +1322,8 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            <div className="flex items-center justify-between">
+            {inviteSent && isSingerOnly && step === invitesStepIndex ? null : (
+              <div className="flex items-center justify-between">
               {isSingerOnly ? (
                 step > 0 ? (
                   <button
@@ -1367,7 +1375,8 @@ const resultsByVoice = useMemo(() => {
                       : strings.ensembleOnboarding.next}
                 <ChevronRight className="h-4 w-4" />
               </button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
