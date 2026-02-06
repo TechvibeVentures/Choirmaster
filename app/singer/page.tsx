@@ -1,3 +1,8 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { Check } from "lucide-react";
+import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import { formatDate, formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 import { strings } from "@/lib/i18n";
@@ -46,12 +51,6 @@ const experienceLabels: Record<string, string> = {
   professional: "Professionell"
 };
 
-const singerStatusLabels: Record<string, string> = {
-  active: "aktiv",
-  inactive: "inaktiv",
-  project_only: "projektbezogen"
-};
-
 const inputStyles =
   "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none";
 
@@ -64,14 +63,11 @@ export default function SingerViewPage() {
   const project = getCurrentProject(choirId);
   const rehearsals = project ? rehearsalsByProject[project.id] ?? [] : [];
   const concerts = project ? concertsByProject[project.id] ?? [] : [];
-  const upcomingRehearsals = rehearsals
-    .filter((rehearsal) => new Date(`${rehearsal.date}T00:00:00`) >= new Date())
-    .sort(
-      (a, b) =>
-        new Date(`${a.date}T00:00:00`).getTime() -
-        new Date(`${b.date}T00:00:00`).getTime()
-    )
-    .slice(0, 3);
+  const sortedRehearsals = [...rehearsals].sort(
+    (a, b) =>
+      new Date(`${a.date}T00:00:00`).getTime() -
+      new Date(`${b.date}T00:00:00`).getTime()
+  );
   const participation = project
     ? projectParticipations.find(
         (item) => item.project_id === project.id && item.person_id === singer?.id
@@ -83,11 +79,26 @@ export default function SingerViewPage() {
       )
     : undefined;
   const voice = membership?.voice;
-  const voiceLabel = voice ? getVoiceLabel(voice) : "Stimme offen";
-  const voiceColor = voice ? voiceColors[voice] : "#E2E8F0";
-  const participationLabel = participation
-    ? strings.singer.participationLabels[participation.invite_status]
-    : strings.singer.participationLabels.invited;
+  const [selectedExperience, setSelectedExperience] = useState(
+    singer?.experience_level ?? "regular"
+  );
+  const [selectedVoice, setSelectedVoice] = useState<Voice | null>(voice ?? null);
+  const [participationStatus, setParticipationStatus] = useState<
+    "invited" | "confirmed" | "declined"
+  >(participation?.invite_status ?? "invited");
+  const participationLabel =
+    strings.singer.participationLabels[participationStatus];
+  const [attendanceState, setAttendanceState] = useState<Record<string, boolean>>(
+    () =>
+      sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
+        acc[rehearsal.id] = true;
+        return acc;
+      }, {})
+  );
+
+  const voiceOptions = useMemo(() => ["Soprano", "Alto", "Tenor", "Bass"] as Voice[], []);
+  const voiceLabel = selectedVoice ? getVoiceLabel(selectedVoice) : "Stimme offen";
+  const voiceColor = selectedVoice ? voiceColors[selectedVoice] : "#E2E8F0";
   const singerStatusLabel = membership?.singer_status
     ? singerStatusLabels[membership.singer_status]
     : singerStatusLabels.active;
@@ -177,8 +188,9 @@ export default function SingerViewPage() {
                       <button
                         key={key}
                         type="button"
+                        onClick={() => setSelectedExperience(key)}
                         className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                          singer?.experience_level === key
+                          selectedExperience === key
                             ? "border-slate-400 bg-slate-900 text-white"
                             : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                         }`}
@@ -193,21 +205,30 @@ export default function SingerViewPage() {
                     {strings.singer.fields.voice}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(["Soprano", "Alto", "Tenor", "Bass"] as Voice[]).map(
-                      (voiceOption) => (
+                    {voiceOptions.map((voiceOption) => {
+                      const isSelected = selectedVoice === voiceOption;
+                      return (
                         <button
                           key={voiceOption}
                           type="button"
+                          onClick={() => setSelectedVoice(voiceOption)}
                           className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-                            voice === voiceOption
-                              ? "border-slate-400 bg-slate-900 text-white"
+                            isSelected
+                              ? "border-slate-900 bg-slate-900 text-white"
                               : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                           }`}
                         >
-                          {getVoiceLabel(voiceOption)}
+                          <Badge
+                            dotColor={voiceColors[voiceOption]}
+                            className={`border-0 px-0 py-0 text-xs ${
+                              isSelected ? "text-white" : "text-slate-700"
+                            }`}
+                          >
+                            {getVoiceLabel(voiceOption)}
+                          </Badge>
                         </button>
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="sm:col-span-2">
@@ -231,9 +252,6 @@ export default function SingerViewPage() {
                     Übersicht über deine Chöre und Rollen.
                   </p>
                 </div>
-                <span className="text-xs text-slate-400">
-                  {strings.singer.fields.status}: {singerStatusLabel}
-                </span>
               </div>
               <div className="mt-4 space-y-3">
                 {memberships
@@ -253,9 +271,6 @@ export default function SingerViewPage() {
                             {choirEntry?.city} · {getVoiceLabel(item.voice)}
                           </div>
                         </div>
-                        <span className="rounded-full border border-slate-200 px-2.5 py-1 text-xs text-slate-500">
-                          {singerStatusLabels[item.singer_status]}
-                        </span>
                       </div>
                     );
                   })}
@@ -281,9 +296,17 @@ export default function SingerViewPage() {
                   </div>
                   <button
                     type="button"
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                    onClick={() => setParticipationStatus("confirmed")}
+                    disabled={participationStatus === "confirmed"}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                      participationStatus === "confirmed"
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                    }`}
                   >
-                    Teilnahme bestätigen
+                    {participationStatus === "confirmed"
+                      ? "Teilnahme bestätigt"
+                      : "Teilnahme bestätigen"}
                   </button>
                 </div>
               </div>
@@ -375,8 +398,10 @@ export default function SingerViewPage() {
                   {strings.singer.sections.rehearsals}
                 </p>
                 <ul className="mt-3 space-y-3 text-sm text-slate-600">
-                  {upcomingRehearsals.length ? (
-                    upcomingRehearsals.map((rehearsal) => (
+                  {sortedRehearsals.length ? (
+                    sortedRehearsals.map((rehearsal) => {
+                      const isPresent = attendanceState[rehearsal.id];
+                      return (
                       <li
                         key={rehearsal.id}
                         className="rounded-xl border border-slate-100 p-3"
@@ -390,17 +415,33 @@ export default function SingerViewPage() {
                               {formatTimeRange(rehearsal.start_time, rehearsal.end_time)} · {rehearsal.location}
                             </p>
                           </div>
-                          <label className="flex items-center gap-2 text-xs text-slate-500">
-                            <input
-                              type="checkbox"
-                              defaultChecked
-                              className="h-4 w-4 rounded border-slate-300 text-slate-900"
-                            />
-                            Anwesend
-                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setAttendanceState((prev) => ({
+                                ...prev,
+                                [rehearsal.id]: !prev[rehearsal.id]
+                              }))
+                            }
+                            className="flex items-center gap-2 text-xs text-slate-500"
+                          >
+                            <span className="text-xs text-slate-500">
+                              {isPresent ? "anwesend" : "abwesend"}
+                            </span>
+                            <span
+                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
+                                isPresent
+                                  ? "border-emerald-600 bg-emerald-600 text-white"
+                                  : "border-slate-200 text-slate-400"
+                              }`}
+                            >
+                              {isPresent ? <Check className="h-3.5 w-3.5" /> : null}
+                            </span>
+                          </button>
                         </div>
                       </li>
-                    ))
+                      );
+                    })
                   ) : (
                     <li className="rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-500">
                       Noch keine nächsten Proben geplant.
@@ -442,6 +483,22 @@ export default function SingerViewPage() {
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
                           {piece.composer}
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                          <a
+                            href={piece.pdf_url}
+                            onClick={(event) => event.preventDefault()}
+                            className="text-slate-500 underline decoration-dashed underline-offset-4 transition hover:text-slate-700"
+                          >
+                            {strings.repertoire.pdfLink}
+                          </a>
+                          <a
+                            href={piece.recording_url}
+                            onClick={(event) => event.preventDefault()}
+                            className="text-slate-500 underline decoration-dashed underline-offset-4 transition hover:text-slate-700"
+                          >
+                            {strings.repertoire.recordingLink}
+                          </a>
                         </div>
                       </div>
                     </div>
