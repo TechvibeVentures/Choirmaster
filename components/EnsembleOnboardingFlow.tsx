@@ -21,11 +21,12 @@ import { getVoiceLabel } from "@/lib/labels";
 type Props = {
   open: boolean;
   onClose: () => void;
+  mode?: "ensemble" | "singers";
 };
 
 type ChoirType = "mixed" | "chamber" | "project";
 
-const steps = [
+const ensembleSteps = [
   strings.ensembleOnboarding.stepBasics,
   strings.ensembleOnboarding.stepRehearsal,
   strings.ensembleOnboarding.stepVoices,
@@ -209,7 +210,11 @@ const mockSingerResults: {
   }
 ];
 
-export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
+export default function EnsembleOnboardingFlow({
+  open,
+  onClose,
+  mode = "ensemble"
+}: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Luzia Chor");
   const [city, setCity] = useState("Zürich");
@@ -240,6 +245,14 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     }
   }, [open]);
 
+  const isSingerOnly = mode === "singers";
+  const steps = isSingerOnly
+    ? [strings.ensembleOnboarding.stepSingers]
+    : ensembleSteps;
+  const singerStepIndex = isSingerOnly ? 0 : 3;
+  const integrationsStepIndex = isSingerOnly ? -1 : 4;
+  const finishStepIndex = isSingerOnly ? -1 : 5;
+
   useEffect(() => {
     if (!open) return;
     const originalOverflow = document.body.style.overflow;
@@ -261,7 +274,8 @@ export default function EnsembleOnboardingFlow({ open, onClose }: Props) {
     );
   };
 
-  const handleNext = () => setStep((prev) => Math.min(prev + 1, steps.length - 1));
+  const handleNext = () =>
+    setStep((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
@@ -370,36 +384,38 @@ const resultsByVoice = useMemo(() => {
         </div>
 
         <div className="mt-4 flex flex-1 flex-col gap-4 overflow-y-auto pb-6">
-          <Card>
-            <div className="flex flex-wrap items-center gap-2">
-              {steps.map((label, index) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setStep(index)}
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-left text-xs font-medium transition sm:text-sm ${
-                    step === index
-                      ? "bg-slate-900 text-white"
-                      : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
-                  }`}
-                >
-                  <span
-                    className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+          {isSingerOnly ? null : (
+            <Card>
+              <div className="flex flex-wrap items-center gap-2">
+                {steps.map((label, index) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setStep(index)}
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-left text-xs font-medium transition sm:text-sm ${
                       step === index
-                        ? "bg-white text-slate-900"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-slate-900 text-white"
+                        : "border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800"
                     }`}
                   >
-                    {index + 1}
-                  </span>
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                        step === index
+                          ? "bg-white text-slate-900"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="space-y-4">
-            {step === 0 ? (
+            {step === 0 && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -478,7 +494,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 1 ? (
+            {step === 1 && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -544,7 +560,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 2 ? (
+            {step === 2 && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -610,7 +626,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 3 ? (
+            {step === singerStepIndex ? (
               <Card>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -870,7 +886,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 4 ? (
+            {step === integrationsStepIndex ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -946,7 +962,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 5 ? (
+            {step === finishStepIndex ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>

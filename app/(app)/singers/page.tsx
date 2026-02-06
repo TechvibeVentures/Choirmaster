@@ -942,7 +942,11 @@ export default function PeoplePage() {
         </div>
       )}
 
-      <EnsembleOnboardingFlow open={finderOpen} onClose={closeFinder} />
+      <EnsembleOnboardingFlow
+        open={finderOpen}
+        onClose={closeFinder}
+        mode="singers"
+      />
     </div>
   );
 }
