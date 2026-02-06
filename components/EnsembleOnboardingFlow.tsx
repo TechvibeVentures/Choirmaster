@@ -304,6 +304,14 @@ export default function EnsembleOnboardingFlow({
     );
   };
 
+  const removeDirectEntry = (id: string) => {
+    setDirectEntries((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
+  const removeSelectedSinger = (id: string) => {
+    setSelectedSingerIds((prev) => prev.filter((item) => item !== id));
+  };
+
   const toggleExperience = (id: string) => {
     setSelectedExperiences((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -927,9 +935,9 @@ const resultsByVoice = useMemo(() => {
                     return (
                       <div
                         key={`invite-${id}`}
-                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                       >
-                        <div>
+                        <div className="min-w-[200px]">
                           <div className="font-semibold text-slate-900">
                             {singer.name}
                           </div>
@@ -937,18 +945,35 @@ const resultsByVoice = useMemo(() => {
                             {singer.email}
                           </div>
                         </div>
-                        <span className="text-xs text-slate-400">
-                          {getVoiceLabel(singer.voice)}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span>{singer.city}</span>
+                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                            {experienceLabels[singer.experience]}
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                            <span
+                              className="h-2 w-2 rounded-full"
+                              style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                            />
+                            {getVoiceLabel(singer.voice)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeSelectedSinger(id)}
+                            className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
                   {directEntries.map((entry) => (
                     <div
                       key={`invite-${entry.id}`}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
                     >
-                      <div>
+                      <div className="min-w-[200px]">
                         <div className="font-semibold text-slate-900">
                           {`${entry.first} ${entry.last}`.trim() || "—"}
                         </div>
@@ -956,11 +981,55 @@ const resultsByVoice = useMemo(() => {
                           {entry.email || "—"}
                         </div>
                       </div>
-                      <span className="text-xs text-slate-400">
-                        {entry.voice || strings.ensembleOnboarding.singersVoice}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span>—</span>
+                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
+                          —
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              backgroundColor:
+                                entry.voice === "Sopran"
+                                  ? voiceBorderColors.Soprano
+                                  : entry.voice === "Alt"
+                                    ? voiceBorderColors.Alto
+                                    : entry.voice === "Tenor"
+                                      ? voiceBorderColors.Tenor
+                                      : entry.voice === "Bass"
+                                        ? voiceBorderColors.Bass
+                                        : "#E2E8F0"
+                            }}
+                          />
+                          {entry.voice || strings.ensembleOnboarding.singersVoice}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeDirectEntry(entry.id)}
+                          className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                        >
+                          Entfernen
+                        </button>
+                      </div>
                     </div>
                   ))}
+                </div>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                  <div className="text-xs uppercase tracking-wide text-slate-400">
+                    {strings.ensembleOnboarding.invitesEmailLabel}
+                  </div>
+                  <div className="mt-3 grid gap-3">
+                    <input
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                      placeholder={strings.ensembleOnboarding.invitesSubject}
+                    />
+                    <textarea
+                      rows={4}
+                      className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                      placeholder={strings.ensembleOnboarding.invitesMessage}
+                    />
+                  </div>
                 </div>
               </Card>
             ) : null}
@@ -1117,7 +1186,18 @@ const resultsByVoice = useMemo(() => {
 
             <div className="flex items-center justify-between">
               {isSingerOnly ? (
-                <div />
+                step > 0 ? (
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    {strings.ensembleOnboarding.prev}
+                  </button>
+                ) : (
+                  <div />
+                )
               ) : (
                 <button
                   type="button"
