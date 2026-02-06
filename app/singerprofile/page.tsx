@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
@@ -71,9 +71,14 @@ export default function SingerViewPage() {
   const mockSingerId = "nadia-frei";
   const singer = people.find((person) => person.id === mockSingerId) ?? people[0];
   const membership = memberships.find((item) => item.person_id === singer?.id);
-  const choirId = membership?.choir_id ?? defaultChoirId;
-  const choir = choirs.find((entry) => entry.id === choirId) ?? choirs[0];
-  const project = getCurrentProject(choirId);
+  const membershipChoirs = memberships.filter((item) => item.person_id === singer?.id);
+  const initialChoirId = membershipChoirs[0]?.choir_id ?? defaultChoirId;
+  const [selectedChoirId, setSelectedChoirId] = useState(initialChoirId);
+  const choir = choirs.find((entry) => entry.id === selectedChoirId) ?? choirs[0];
+  const selectedMembership = membershipChoirs.find(
+    (item) => item.choir_id === selectedChoirId
+  );
+  const project = getCurrentProject(selectedChoirId);
   const rehearsals = project ? rehearsalsByProject[project.id] ?? [] : [];
   const concerts = project ? concertsByProject[project.id] ?? [] : [];
   const sortedRehearsals = [...rehearsals].sort(
@@ -88,10 +93,11 @@ export default function SingerViewPage() {
     : undefined;
   const program = project
     ? concertPrograms.find(
-        (item) => item.project_id === project.id && item.choir_id === choirId
+        (item) =>
+          item.project_id === project.id && item.choir_id === selectedChoirId
       )
     : undefined;
-  const voice = membership?.voice;
+  const voice = selectedMembership?.voice ?? membership?.voice;
   const [selectedExperience, setSelectedExperience] = useState(
     singer?.experience_level ?? "regular"
   );
@@ -113,6 +119,17 @@ export default function SingerViewPage() {
   const voiceLabel = selectedVoice ? getVoiceLabel(selectedVoice) : "Stimme offen";
   const voiceColor = selectedVoice ? voiceColors[selectedVoice] : "#E2E8F0";
 
+  useEffect(() => {
+    setSelectedVoice(selectedMembership?.voice ?? voice ?? null);
+    setParticipationStatus(participation?.invite_status ?? "invited");
+    setAttendanceState(
+      sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
+        acc[rehearsal.id] = true;
+        return acc;
+      }, {})
+    );
+  }, [selectedChoirId, selectedMembership?.voice, participation?.invite_status, sortedRehearsals, voice]);
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -131,8 +148,6 @@ export default function SingerViewPage() {
               style={{ backgroundColor: voiceColor }}
             />
             <span>{voiceLabel}</span>
-            <span className="text-slate-300">•</span>
-            <span>{participationLabel}</span>
           </div>
         </header>
 
@@ -182,12 +197,12 @@ export default function SingerViewPage() {
                   />
                 </label>
                 <label className="text-sm text-slate-600">
-                  {strings.singer.fields.city}
-                  <input
-                    className={inputStyles}
-                    defaultValue={singer?.city}
-                    type="text"
-                  />
+                Ort
+                <input
+                  className={inputStyles}
+                  defaultValue={singer?.city}
+                  type="text"
+                />
                 </label>
                 <div className="sm:col-span-2">
                   <p className="text-sm text-slate-600">
@@ -256,7 +271,7 @@ export default function SingerViewPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
-                    Ensemble & Status
+                    Mitgliedschaften
                   </h3>
                   <p className="text-sm text-slate-500">
                     Übersicht über deine Chöre und Rollen.
@@ -264,26 +279,50 @@ export default function SingerViewPage() {
                 </div>
               </div>
               <div className="mt-4 space-y-3">
-                {memberships
-                  .filter((item) => item.person_id === singer?.id)
-                  .map((item) => {
-                    const choirEntry = choirs.find((entry) => entry.id === item.choir_id);
-                    return (
-                      <div
-                        key={`${item.choir_id}-${item.voice}`}
-                        className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-3 text-sm"
-                      >
-                        <div>
-                          <div className="font-medium text-slate-800">
-                            {choirEntry?.name}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {choirEntry?.city} · {getVoiceLabel(item.voice)}
-                          </div>
+                {membershipChoirs.map((item) => {
+                  const choirEntry = choirs.find((entry) => entry.id === item.choir_id);
+                  const isSelected = item.choir_id === selectedChoirId;
+                  return (
+                    <button
+                      key={`${item.choir_id}-${item.voice}`}
+                      type="button"
+                      onClick={() => setSelectedChoirId(item.choir_id)}
+                      className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm transition ${
+                        isSelected
+                          ? "border-slate-900 bg-slate-50"
+                          : "border-slate-100 hover:border-slate-300"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-medium text-slate-800">
+                          {choirEntry?.name}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {choirEntry?.city} · {getVoiceLabel(item.voice)}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-slate-500">
+                          {singer?.roles.map((role) => (
+                            <span
+                              key={`${item.choir_id}-${role}`}
+                              className="rounded-full border border-slate-200 px-2 py-0.5"
+                            >
+                              {role === "chairman"
+                                ? "Vorstand"
+                                : role === "conductor"
+                                  ? "Leitung"
+                                  : "Sänger"}
+                            </span>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
+                      {isSelected ? (
+                        <span className="text-xs font-medium text-slate-700">
+                          Ausgewählt
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
               <p className="mt-4 text-xs text-slate-500">
                 Neue Chöre können von der Leitung oder dem Vorstand für dich
@@ -298,7 +337,7 @@ export default function SingerViewPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">
-                      {strings.singer.projectTitle}
+                      {strings.singer.projectTitle} · {choir?.name}
                     </h2>
                     <p className="text-sm text-slate-500">
                       {strings.singer.projectSubtitle}
@@ -388,7 +427,7 @@ export default function SingerViewPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-slate-900">
-                    Proben
+                    Proben · {choir?.name}
                   </h3>
                   <p className="text-sm text-slate-500">
                     {project
@@ -464,7 +503,7 @@ export default function SingerViewPage() {
             <Card>
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold text-slate-900">
-                  {strings.singer.sections.program}
+                  {strings.singer.sections.program} · {choir?.name}
                 </h3>
                 <span className="text-xs text-slate-400">
                   {program?.season ?? ""}
