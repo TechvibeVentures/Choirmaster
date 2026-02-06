@@ -247,11 +247,15 @@ export default function EnsembleOnboardingFlow({
 
   const isSingerOnly = mode === "singers";
   const steps = isSingerOnly
-    ? [strings.ensembleOnboarding.stepSingers]
+    ? [
+        strings.ensembleOnboarding.stepSingers,
+        strings.ensembleOnboarding.invitesTitle
+      ]
     : ensembleSteps;
   const singerStepIndex = isSingerOnly ? 0 : 3;
   const integrationsStepIndex = isSingerOnly ? -1 : 4;
   const finishStepIndex = isSingerOnly ? -1 : 5;
+  const invitesStepIndex = isSingerOnly ? 1 : -1;
 
   useEffect(() => {
     if (!open) return;
@@ -357,7 +361,17 @@ const resultsByVoice = useMemo(() => {
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-white/75 backdrop-blur-sm" />
       <div className="relative mx-auto flex h-full max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-10">
-        {isSingerOnly ? null : (
+        {isSingerOnly ? (
+          <div className="flex items-center justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+            >
+              Schliessen
+            </button>
+          </div>
+        ) : (
           <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-lg sm:px-6">
             <div>
               <div className="text-xs uppercase tracking-wide text-slate-400">
@@ -888,6 +902,69 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
+            {step === invitesStepIndex ? (
+              <Card>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {strings.ensembleOnboarding.invitesTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.invitesSubtitle}
+                    </p>
+                  </div>
+                  <Check className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div className="mt-4 space-y-3">
+                  {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.singersSummaryEmpty}
+                    </div>
+                  ) : null}
+                  {selectedSingerIds.map((id) => {
+                    const singer = mockSingerResults.find((entry) => entry.id === id);
+                    if (!singer) return null;
+                    return (
+                      <div
+                        key={`invite-${id}`}
+                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                      >
+                        <div>
+                          <div className="font-semibold text-slate-900">
+                            {singer.name}
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {singer.email}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          {getVoiceLabel(singer.voice)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {directEntries.map((entry) => (
+                    <div
+                      key={`invite-${entry.id}`}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                    >
+                      <div>
+                        <div className="font-semibold text-slate-900">
+                          {`${entry.first} ${entry.last}`.trim() || "—"}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {entry.email || "—"}
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-400">
+                        {entry.voice || strings.ensembleOnboarding.singersVoice}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
+
             {step === integrationsStepIndex ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
@@ -1039,22 +1116,28 @@ const resultsByVoice = useMemo(() => {
             ) : null}
 
             <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                {strings.ensembleOnboarding.prev}
-              </button>
+              {isSingerOnly ? (
+                <div />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 transition hover:border-slate-300"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {strings.ensembleOnboarding.prev}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={step === steps.length - 1 ? onClose : handleNext}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm text-white transition hover:bg-slate-800"
               >
-                {step === steps.length - 1
-                  ? strings.ensembleOnboarding.finishAction
-                  : strings.ensembleOnboarding.next}
+                {isSingerOnly && step === steps.length - 1
+                  ? strings.ensembleOnboarding.invitesAction
+                  : step === steps.length - 1
+                    ? strings.ensembleOnboarding.finishAction
+                    : strings.ensembleOnboarding.next}
                 <ChevronRight className="h-4 w-4" />
               </button>
             </div>

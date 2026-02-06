@@ -212,6 +212,9 @@ export const strings = {
     integrationsHint:
       "Diese Verbindungen lassen sich später jederzeit unter Einstellungen ergänzen.",
     singersByVoiceTitle: "Sänger",
+    invitesTitle: "Einladungen vorbereiten",
+    invitesSubtitle: "Überprüfe die Auswahl und verschicke die Einladungen.",
+    invitesAction: "Einladungen verschicken",
     prev: "Zurück",
     next: "Weiter",
     finishAction: "Ensemble anlegen"
