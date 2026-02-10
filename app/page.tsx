@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -9,6 +10,13 @@ import {
 } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
 import { strings } from "@/lib/i18n";
+import {
+  choirs,
+  concertsByProject,
+  projects,
+  rehearsalsByProject
+} from "@/lib/mockData";
+import { formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 
 const display = Playfair_Display({
   subsets: ["latin"],
@@ -56,23 +64,24 @@ const steps = [
   }
 ];
 
-const previewItems = [
-  {
-    label: "Nächste Probe",
-    value: "Di, 19:30 – 21:30",
-    accent: "var(--voice-tenor)"
-  },
-  {
-    label: "Projektstatus",
-    value: "Herbstkonzert aktiv",
-    accent: "var(--voice-soprano)"
-  },
-  {
-    label: "Offene Rückmeldungen",
-    value: "8 Stimmen",
-    accent: "var(--voice-bass)"
-  }
-];
+const previewChoir = {
+  name: "Stadtchor Aurora",
+  city: "Basel"
+};
+const previewProjectName = "Frühlingsprogramm";
+const previewProject = projects[0];
+const previewRehearsals = previewProject
+  ? rehearsalsByProject[previewProject.id] ?? []
+  : [];
+const previewConcerts = previewProject
+  ? concertsByProject[previewProject.id] ?? []
+  : [];
+const previewRehearsalLine = previewProject
+  ? `${formatWeekdays(previewProject.rehearsal_facts.weekdays)} · ${formatTimeRange(
+      previewProject.rehearsal_facts.start_time,
+      previewProject.rehearsal_facts.end_time
+    )}`
+  : "Probe nach Absprache";
 
 export default function Home() {
   return (
@@ -94,32 +103,22 @@ export default function Home() {
         />
 
         <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 pb-8 pt-8 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-900">
-              CM
-            </div>
-            <div>
-              <div className={`${display.className} text-lg font-semibold`}>
-                Choirmaster
-              </div>
-              <div className="text-xs uppercase tracking-[0.22em] text-slate-400">
-                Choir OS
-              </div>
-            </div>
+          <div className="flex items-center">
+            <Image
+              src="/Choirmaster Logo Transparent.svg"
+              alt="Choirmaster"
+              width={180}
+              height={44}
+              className="h-10 w-auto"
+              priority
+            />
           </div>
           <nav className="flex items-center gap-3">
             <Link
               href="/login"
-              className="hidden rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 sm:inline-flex"
+              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
             >
               {strings.marketing.heroSecondary}
-            </Link>
-            <Link
-              href="/onboarding"
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
-            >
-              {strings.marketing.heroPrimary}
-              <ArrowRight className="h-4 w-4" />
             </Link>
           </nav>
         </header>
@@ -140,35 +139,12 @@ export default function Home() {
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
-                  href="/onboarding"
+                  href="/signup"
                   className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
                   {strings.marketing.heroPrimary}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link
-                  href="/login"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-slate-300"
-                >
-                  {strings.marketing.heroSecondary}
-                </Link>
-              </div>
-              <div className="mt-8 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-                {previewItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: item.accent }}
-                    />
-                    <span className="font-semibold text-slate-700">
-                      {item.label}:
-                    </span>
-                    <span>{item.value}</span>
-                  </div>
-                ))}
               </div>
             </div>
 
@@ -181,14 +157,14 @@ export default function Home() {
                       Aktueller Überblick
                     </div>
                     <div className={`${display.className} mt-2 text-xl font-semibold`}>
-                      Luzia Chor · Zürich
+                      {previewChoir.name} · {previewChoir.city}
                     </div>
                     <div className="mt-1 text-sm text-slate-500">
-                      Proben Dienstag · 19:30 – 21:30
+                      {previewRehearsalLine}
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                    1 Ensemble
+                    {choirs.length} Ensembles
                   </div>
                 </div>
                 <div className="mt-6 grid gap-4">
@@ -196,19 +172,24 @@ export default function Home() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm font-semibold text-slate-800">
-                          Herbstkonzert 2026
+                          {previewProjectName}
                         </div>
                         <div className="mt-1 text-xs text-slate-500">
-                          3 Konzerte · 12 Proben
+                          {previewConcerts.length} Konzerte · {previewRehearsals.length} Proben
                         </div>
                       </div>
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600">
-                        Aktiv
+                        {previewProject
+                          ? formatDateRange(
+                              previewProject.date_range.start,
+                              previewProject.date_range.end
+                            )
+                          : "Planung"}
                       </span>
                     </div>
                     <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                      24/32 Zusagen für nächste Probe
+                      Rückmeldungen laufen · Status wird aktualisiert
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -296,7 +277,7 @@ export default function Home() {
                 </h2>
               </div>
               <Link
-                href="/onboarding"
+                href="/signup"
                 className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white"
               >
                 {strings.marketing.heroPrimary}
@@ -406,23 +387,36 @@ export default function Home() {
             </h2>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
-                href="/onboarding"
+                href="/signup"
                 className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white"
               >
                 {strings.marketing.heroPrimary}
                 <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600"
-              >
-                {strings.marketing.heroSecondary}
               </Link>
             </div>
             <p className="mt-4 text-xs text-slate-500">
               {strings.marketing.footerNote}
             </p>
           </section>
+          <footer className="border-t border-slate-200 py-8 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/Choirmaster Logo Transparent.svg"
+                  alt="Choirmaster"
+                  width={140}
+                  height={34}
+                  className="h-8 w-auto"
+                />
+                <span>© 2026 Choirmaster</span>
+              </div>
+              <div className="flex flex-wrap gap-4 text-xs uppercase tracking-[0.2em] text-slate-400">
+                <span>Chorverwaltung</span>
+                <span>Mehrere Ensembles</span>
+                <span>Geteilte Links</span>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

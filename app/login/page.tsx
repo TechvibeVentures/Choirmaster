@@ -83,7 +83,7 @@ export default function LoginPage() {
                 Du hast noch kein Ensemble? Dann starte mit dem Onboarding und lade dein Team ein.
               </div>
               <Link
-                href="/onboarding"
+                href="/signup"
                 className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600"
               >
                 Neues Ensemble erstellen
