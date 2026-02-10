@@ -22,9 +22,12 @@ type Props = {
   open: boolean;
   onClose: () => void;
   mode?: "ensemble" | "singers";
+  variant?: "modal" | "page";
+  includeProfileStep?: boolean;
 };
 
 type ChoirType = "mixed" | "chamber" | "project";
+type ProfileRole = "chair" | "conductor" | "manager";
 
 const ensembleSteps = [
   strings.ensembleOnboarding.stepBasics,
@@ -103,6 +106,28 @@ const experienceLabels = experienceOptions.reduce<Record<string, string>>(
   },
   {}
 );
+
+const profileRoleOptions: {
+  id: ProfileRole;
+  label: string;
+  description: string;
+}[] = [
+  {
+    id: "chair",
+    label: strings.ensembleOnboarding.profileRoleChair,
+    description: "Mitglieder, Finanzen und Vereinsstruktur im Blick"
+  },
+  {
+    id: "conductor",
+    label: strings.ensembleOnboarding.profileRoleConductor,
+    description: "Künstlerische Leitung und Probenplanung koordinieren"
+  },
+  {
+    id: "manager",
+    label: strings.ensembleOnboarding.profileRoleManager,
+    description: "Organisation, Kommunikation und Abläufe steuern"
+  }
+];
 
 const mockSingerResults: {
   id: string;
@@ -213,7 +238,9 @@ const mockSingerResults: {
 export default function EnsembleOnboardingFlow({
   open,
   onClose,
-  mode = "ensemble"
+  mode = "ensemble",
+  variant = "modal",
+  includeProfileStep = false
 }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Luzia Chor");
@@ -227,6 +254,12 @@ export default function EnsembleOnboardingFlow({
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
+  const [profileFirstName, setProfileFirstName] = useState("Julia");
+  const [profileLastName, setProfileLastName] = useState("Steiner");
+  const [profileEmail, setProfileEmail] = useState("julia.steiner@example.com");
+  const [profileCity, setProfileCity] = useState("Zürich");
+  const [profileRole, setProfileRole] = useState<ProfileRole>("conductor");
+  const [profileTimezone, setProfileTimezone] = useState("Europa/Zurich");
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
@@ -245,12 +278,16 @@ export default function EnsembleOnboardingFlow({
   const [copied, setCopied] = useState(false);
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
+  const isSingerOnly = mode === "singers";
+  const shouldIncludeProfile = includeProfileStep && !isSingerOnly;
+  const isPage = variant === "page";
+  const isOpen = isPage || open;
 
   useEffect(() => {
-    if (!open) {
+    if (!isOpen) {
       setStep(0);
     }
-  }, [open]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -262,16 +299,22 @@ export default function EnsembleOnboardingFlow({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const isSingerOnly = mode === "singers";
   const steps = isSingerOnly
     ? [
         strings.ensembleOnboarding.stepSingers,
         strings.ensembleOnboarding.invitesTitle
       ]
-    : ensembleSteps;
-  const singerStepIndex = isSingerOnly ? 0 : 3;
-  const integrationsStepIndex = isSingerOnly ? -1 : 4;
-  const finishStepIndex = isSingerOnly ? -1 : 5;
+    : shouldIncludeProfile
+      ? [strings.ensembleOnboarding.stepProfile, ...ensembleSteps]
+      : ensembleSteps;
+  const baseIndex = shouldIncludeProfile ? 1 : 0;
+  const profileStepIndex = shouldIncludeProfile ? 0 : -1;
+  const basicsStepIndex = 0 + baseIndex;
+  const rehearsalStepIndex = 1 + baseIndex;
+  const voiceStepIndex = 2 + baseIndex;
+  const singerStepIndex = isSingerOnly ? 0 : 3 + baseIndex;
+  const integrationsStepIndex = isSingerOnly ? -1 : 4 + baseIndex;
+  const finishStepIndex = isSingerOnly ? -1 : 5 + baseIndex;
   const invitesStepIndex = isSingerOnly ? 1 : -1;
   const currentChoir = choirs[0];
   const choirProjects = projects.filter(
@@ -283,13 +326,13 @@ export default function EnsembleOnboardingFlow({
     null;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || isPage) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [open]);
+  }, [open, isPage]);
 
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
@@ -400,21 +443,29 @@ const resultsByVoice = useMemo(() => {
     return counts;
   }, [directEntries, selectedSingerIds]);
 
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-white/75 backdrop-blur-sm" />
-      <div className="relative mx-auto flex h-full max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-10">
+    <div className={isPage ? "relative" : "fixed inset-0 z-50"}>
+      {isPage ? null : (
+        <div className="absolute inset-0 bg-white/75 backdrop-blur-sm" />
+      )}
+      <div
+        className={`relative mx-auto flex max-w-6xl flex-col px-4 py-6 sm:px-6 md:py-10 ${
+          isPage ? "min-h-screen" : "h-full"
+        }`}
+      >
         {isSingerOnly ? (
           <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-            >
-              Schliessen
-            </button>
+            {isPage ? null : (
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              >
+                Schliessen
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-lg sm:px-6">
@@ -433,13 +484,15 @@ const resultsByVoice = useMemo(() => {
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-500">
                 Schritt {step + 1} von {steps.length}
               </span>
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-              >
-                {strings.ensembleOnboarding.close}
-              </button>
+              {isPage ? null : (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                >
+                  {strings.ensembleOnboarding.close}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -537,7 +590,94 @@ const resultsByVoice = useMemo(() => {
           )}
 
           <div className="space-y-4">
-            {step === 0 && !isSingerOnly ? (
+            {step === profileStepIndex && !isSingerOnly ? (
+              <Card>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {strings.ensembleOnboarding.profileTitle}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {strings.ensembleOnboarding.profileSubtitle}
+                    </p>
+                  </div>
+                  <Sparkles className="h-5 w-5 text-slate-300" />
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileFirstName}
+                    <input
+                      value={profileFirstName}
+                      onChange={(event) => setProfileFirstName(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileLastName}
+                    <input
+                      value={profileLastName}
+                      onChange={(event) => setProfileLastName(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileEmail}
+                    <input
+                      value={profileEmail}
+                      onChange={(event) => setProfileEmail(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileCity}
+                    <input
+                      value={profileCity}
+                      onChange={(event) => setProfileCity(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                </div>
+                <div className="mt-4">
+                  <div className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileRole}
+                  </div>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-3">
+                    {profileRoleOptions.map((role) => (
+                      <button
+                        key={role.id}
+                        type="button"
+                        onClick={() => setProfileRole(role.id)}
+                        className={`rounded-xl border px-3 py-3 text-left text-sm transition ${
+                          profileRole === role.id
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 text-slate-600 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="font-semibold">{role.label}</div>
+                        <div className="mt-1 text-xs opacity-80">
+                          {role.description}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-[1.2fr_0.8fr]">
+                  <label className="text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileTimezone}
+                    <input
+                      value={profileTimezone}
+                      onChange={(event) => setProfileTimezone(event.target.value)}
+                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                    />
+                  </label>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {strings.ensembleOnboarding.profileHint}
+                  </div>
+                </div>
+              </Card>
+            ) : null}
+
+            {step === basicsStepIndex && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -616,7 +756,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 1 && !isSingerOnly ? (
+            {step === rehearsalStepIndex && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -682,7 +822,7 @@ const resultsByVoice = useMemo(() => {
               </Card>
             ) : null}
 
-            {step === 2 && !isSingerOnly ? (
+            {step === voiceStepIndex && !isSingerOnly ? (
               <Card>
                 <div className="flex items-center justify-between gap-3">
                   <div>

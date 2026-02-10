@@ -147,12 +147,25 @@ export const strings = {
     subtitle: "Sänger:innen finden",
     lede: "Lege die Basis für ein neues Ensemble, bevor du Projekte und Personen zuordnest.",
     close: "Schließen",
+    stepProfile: "Profil",
     stepBasics: "Grunddaten",
     stepRehearsal: "Probenrhythmus",
     stepVoices: "Stimmverteilung",
     stepSingers: "Sänger hinzufügen",
     stepIntegrations: "Integrationen",
     stepFinish: "Abschluss",
+    profileTitle: "Profil anlegen",
+    profileSubtitle: "Diese Daten werden für die Ensembleverwaltung verwendet.",
+    profileFirstName: "Vorname",
+    profileLastName: "Nachname",
+    profileEmail: "E-Mail",
+    profileCity: "Stadt",
+    profileRole: "Rolle im Ensemble",
+    profileRoleChair: "Vorstand",
+    profileRoleConductor: "Leitung",
+    profileRoleManager: "Organisation",
+    profileTimezone: "Zeitzone",
+    profileHint: "Wir verwenden Magic Links. Dein Profil bleibt für 90 Tage angemeldet.",
     basicsTitle: "Ensembleprofil anlegen",
     basicsSubtitle: "Name, Ort und Ausrichtung definieren.",
     name: "Ensemblename",
@@ -221,6 +234,35 @@ export const strings = {
     prev: "Zurück",
     next: "Weiter",
     finishAction: "Ensemble anlegen"
+  },
+  marketing: {
+    heroEyebrow: "Minimal-invasive Chorverwaltung",
+    heroTitle: "Choirmaster bündelt Proben, Projekte und Stimmen ohne Extraaufwand.",
+    heroSubtitle:
+      "Für Leitung, Vorstand und Organisation. Sänger:innen interagieren nur dort, wo es nötig ist – der Rest läuft über klare Abläufe und geteilte Links.",
+    heroPrimary: "Neues Ensemble erstellen",
+    heroSecondary: "Einloggen",
+    trustTitle: "Aufgeräumt für alle Rollen",
+    trustSubtitle:
+      "Ein einziger Arbeitsraum für Planung, Kommunikation und Projektstatus – auch bei mehreren Ensembles.",
+    featureTitle: "Was Choirmaster besonders macht",
+    featureSubtitle:
+      "Minimal, schnell und dennoch vollständig genug für echte Probenarbeit.",
+    stepsTitle: "So startet ihr in wenigen Minuten",
+    stepsSubtitle: "Profil erstellen, Ensemble anlegen, Sänger:innen einladen.",
+    ctaTitle: "Bereit für strukturierte Probenarbeit?",
+    ctaSubtitle:
+      "Starte mit deinem Ensembleprofil und bringe alle Stimmen auf denselben Stand.",
+    footerNote: "Keine Installation, keine App-Pflicht für Sänger:innen."
+  },
+  auth: {
+    loginTitle: "Einloggen",
+    loginSubtitle:
+      "Gib deine E-Mail-Adresse ein und erhalte einen Magic Link zum Zugriff.",
+    loginEmailLabel: "E-Mail",
+    loginAction: "Magic Link senden",
+    loginHint: "Der Link bleibt 90 Tage aktiv, damit du ohne Passwort arbeiten kannst.",
+    loginBack: "Zurück zur Startseite"
   },
   repertoire: {
     title: "Noten",
