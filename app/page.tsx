@@ -107,9 +107,9 @@ export default function Home() {
             <Image
               src="/Choirmaster Logo Transparent.svg"
               alt="Choirmaster"
-              width={180}
-              height={44}
-              className="h-10 w-auto"
+              width={220}
+              height={56}
+              className="h-12 w-auto"
               priority
             />
           </div>
@@ -404,9 +404,9 @@ export default function Home() {
                 <Image
                   src="/Choirmaster Logo Transparent.svg"
                   alt="Choirmaster"
-                  width={140}
-                  height={34}
-                  className="h-8 w-auto"
+                  width={170}
+                  height={42}
+                  className="h-10 w-auto"
                 />
                 <span>© 2026 Choirmaster</span>
               </div>
