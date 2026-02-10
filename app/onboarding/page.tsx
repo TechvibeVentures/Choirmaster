@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
 
+export const dynamic = "force-dynamic";
+
 const display = Playfair_Display({
   subsets: ["latin"],
   weight: ["500", "600", "700"]
