@@ -31,9 +31,9 @@ type ProjectTrack = {
 };
 
 const dayColumnsStyle = {
-  gridTemplateColumns: "repeat(31, minmax(24px, 1fr))"
+  gridTemplateColumns: "repeat(31, minmax(0, 1fr))"
 };
-const gridColsClass = "grid-cols-[140px_repeat(31,minmax(24px,1fr))]";
+const gridColsClass = "grid-cols-[140px_repeat(31,minmax(0,1fr))]";
 
 const getSeasonStartYear = (today: Date) =>
   today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
@@ -181,25 +181,26 @@ export default function CalendarPage({
         </div>
 
         <div className="mt-5 w-full">
-            <div className={`grid ${gridColsClass} items-center gap-y-2 text-xs text-slate-400`}>
-              <div />
-              <div className="grid" style={dayColumnsStyle}>
-                {Array.from({ length: 31 }, (_, day) => (
-                  <div key={day} className="text-center">
-                    {day + 1}
-                  </div>
-                ))}
-              </div>
+          <div className={`grid ${gridColsClass} items-center gap-y-2 text-xs text-slate-400`}>
+            <div />
+            <div className="grid w-full" style={dayColumnsStyle}>
+              {Array.from({ length: 31 }, (_, day) => (
+                <div key={day} className="text-center">
+                  {day + 1}
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="mt-4 space-y-6">
-              {months.map((month) => (
-                <div key={`${month.year}-${month.monthIndex}`}>
-                  <div className={`grid ${gridColsClass} items-center`}>
-                    <div className="text-sm font-semibold text-slate-900 capitalize">
-                      {month.label}
-                    </div>
-                    <div className="grid" style={dayColumnsStyle}>
+          <div className="mt-4 space-y-6">
+            {months.map((month) => (
+              <div key={`${month.year}-${month.monthIndex}`}>
+                <div className={`grid ${gridColsClass} items-center`}>
+                  <div className="text-sm font-semibold text-slate-900 capitalize">
+                    {month.label}
+                  </div>
+                  <div className="relative">
+                    <div className="grid w-full" style={dayColumnsStyle}>
                       {Array.from({ length: 31 }, (_, index) => (
                         <div
                           key={index}
@@ -211,96 +212,92 @@ export default function CalendarPage({
                         />
                       ))}
                     </div>
-                  </div>
 
-                  <div className="mt-2 space-y-2">
-                    {tracks.map((track) => {
-                      const bar = getBarSegment(track.start, track.end, month);
-                      const events = track.events.filter((event) =>
-                        isDateInMonth(event.date, month)
-                      );
-                      return (
-                        <div
-                          key={`${month.year}-${month.monthIndex}-${track.id}`}
-                          className={`grid ${gridColsClass} items-center`}
-                        >
-                          <div />
-                          <div className="grid" style={dayColumnsStyle}>
-                            {bar ? (
-                              track.href ? (
-                                <Link
-                                  href={track.href}
-                                  className={`relative h-5 rounded-full ${
-                                    track.tone === "project"
-                                      ? "bg-slate-900/10"
-                                      : "bg-amber-100"
-                                  } transition hover:bg-slate-900/20`}
-                                  style={{
-                                    gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
-                                  }}
-                                  aria-label={`${track.name} öffnen`}
-                                >
-                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
-                                    {track.name}
-                                  </span>
-                                  {events.map((event, index) => {
-                                    const day = getDateOnly(event.date).getDate();
-                                    const position =
-                                      month.daysInMonth > 1
-                                        ? ((day - 1) / (month.daysInMonth - 1)) * 100
-                                        : 0;
-                                    return (
-                                      <span
-                                        key={`${event.type}-${event.date}-${index}`}
-                                        className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                          event.type
-                                        )}`}
-                                        style={{ left: `${position}%` }}
-                                      />
-                                    );
-                                  })}
-                                </Link>
-                              ) : (
-                                <div
-                                  className={`relative h-5 rounded-full ${
-                                    track.tone === "project"
-                                      ? "bg-slate-900/10"
-                                      : "bg-amber-100"
-                                  }`}
-                                  style={{
-                                    gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
-                                  }}
-                                >
-                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
-                                    {track.name}
-                                  </span>
-                                  {events.map((event, index) => {
-                                    const day = getDateOnly(event.date).getDate();
-                                    const position =
-                                      month.daysInMonth > 1
-                                        ? ((day - 1) / (month.daysInMonth - 1)) * 100
-                                        : 0;
-                                    return (
-                                      <span
-                                        key={`${event.type}-${event.date}-${index}`}
-                                        className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                          event.type
-                                        )}`}
-                                        style={{ left: `${position}%` }}
-                                      />
-                                    );
-                                  })}
-                                </div>
-                              )
-                            ) : null}
+                    <div className="absolute inset-0 flex flex-col gap-2 px-1 py-1">
+                      {tracks.map((track) => {
+                        const bar = getBarSegment(track.start, track.end, month);
+                        const events = track.events.filter((event) =>
+                          isDateInMonth(event.date, month)
+                        );
+                        const barBaseClass =
+                          track.tone === "project"
+                            ? "bg-slate-900/10"
+                            : "bg-amber-100";
+                        return (
+                          <div key={`${month.year}-${month.monthIndex}-${track.id}`}>
+                            <div className="grid w-full" style={dayColumnsStyle}>
+                              {bar ? (
+                                track.href ? (
+                                  <Link
+                                    href={track.href}
+                                    className={`relative h-5 rounded-full ${barBaseClass} transition hover:bg-slate-900/20`}
+                                    style={{
+                                      gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
+                                    }}
+                                    aria-label={`${track.name} öffnen`}
+                                  >
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
+                                      {track.name}
+                                    </span>
+                                    {events.map((event, index) => {
+                                      const day = getDateOnly(event.date).getDate();
+                                      const position =
+                                        month.daysInMonth > 1
+                                          ? ((day - 1) / (month.daysInMonth - 1)) *
+                                            100
+                                          : 0;
+                                      return (
+                                        <span
+                                          key={`${event.type}-${event.date}-${index}`}
+                                          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                            event.type
+                                          )}`}
+                                          style={{ left: `${position}%` }}
+                                        />
+                                      );
+                                    })}
+                                  </Link>
+                                ) : (
+                                  <div
+                                    className={`relative h-5 rounded-full ${barBaseClass}`}
+                                    style={{
+                                      gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
+                                    }}
+                                  >
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
+                                      {track.name}
+                                    </span>
+                                    {events.map((event, index) => {
+                                      const day = getDateOnly(event.date).getDate();
+                                      const position =
+                                        month.daysInMonth > 1
+                                          ? ((day - 1) / (month.daysInMonth - 1)) *
+                                            100
+                                          : 0;
+                                      return (
+                                        <span
+                                          key={`${event.type}-${event.date}-${index}`}
+                                          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                            event.type
+                                          )}`}
+                                          style={{ left: `${position}%` }}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                )
+                              ) : null}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     </div>
