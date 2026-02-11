@@ -31,6 +31,7 @@ type ProjectTrack = {
 };
 
 const dayColumnsStyle = { gridTemplateColumns: "repeat(31, minmax(0, 1fr))" };
+const gridColsClass = "grid-cols-[96px_repeat(31,minmax(0,1fr))]";
 
 const getSeasonStartYear = (today: Date) =>
   today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
@@ -160,7 +161,24 @@ export default function CalendarPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
-        <div className="grid grid-cols-[140px_repeat(31,minmax(0,1fr))] items-center gap-y-2 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          {projectTracks.map((track) => (
+            <Link
+              key={track.id}
+              href={track.href ?? "/calendar"}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 transition hover:border-slate-300 hover:text-slate-700"
+            >
+              <span className="h-2 w-2 rounded-full bg-slate-900/40" />
+              {track.name}
+            </Link>
+          ))}
+          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            {strings.calendar.extraEvents}
+          </span>
+        </div>
+
+        <div className={`mt-5 grid ${gridColsClass} items-center gap-y-2 text-xs text-slate-400`}>
           <div />
           <div className="grid" style={dayColumnsStyle}>
             {Array.from({ length: 31 }, (_, day) => (
@@ -174,7 +192,7 @@ export default function CalendarPage({
         <div className="mt-4 space-y-6">
           {months.map((month) => (
             <div key={`${month.year}-${month.monthIndex}`}>
-              <div className="grid grid-cols-[140px_repeat(31,minmax(0,1fr))] items-center">
+              <div className={`grid ${gridColsClass} items-center`}>
                 <div className="text-sm font-semibold text-slate-900 capitalize">
                   {month.label}
                 </div>
@@ -201,18 +219,9 @@ export default function CalendarPage({
                   return (
                     <div
                       key={`${month.year}-${month.monthIndex}-${track.id}`}
-                      className="grid grid-cols-[140px_repeat(31,minmax(0,1fr))] items-center"
+                      className={`grid ${gridColsClass} items-center`}
                     >
-                      {track.href ? (
-                        <Link
-                          href={track.href}
-                          className="text-xs text-slate-500 transition hover:text-slate-700"
-                        >
-                          {track.name}
-                        </Link>
-                      ) : (
-                        <div className="text-xs text-slate-500">{track.name}</div>
-                      )}
+                      <div />
                       <div className="grid" style={dayColumnsStyle}>
                         {bar ? (
                           track.href ? (
@@ -228,6 +237,9 @@ export default function CalendarPage({
                               }}
                               aria-label={`${track.name} öffnen`}
                             >
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
+                                {track.name}
+                              </span>
                               {events.map((event, index) => {
                                 const day = getDateOnly(event.date).getDate();
                                 const position =
@@ -256,6 +268,9 @@ export default function CalendarPage({
                                 gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
                               }}
                             >
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
+                                {track.name}
+                              </span>
                               {events.map((event, index) => {
                                 const day = getDateOnly(event.date).getDate();
                                 const position =
