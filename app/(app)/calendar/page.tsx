@@ -66,9 +66,11 @@ const getBarSegment = (
 ) => {
   const monthStart = new Date(month.year, month.monthIndex, 1);
   const monthEnd = new Date(month.year, month.monthIndex + 1, 0);
-  const start = clampDate(getDateOnly(startIso), monthStart, monthEnd);
-  const end = clampDate(getDateOnly(endIso), monthStart, monthEnd);
-  if (end < monthStart || start > monthEnd) return null;
+  const rawStart = getDateOnly(startIso);
+  const rawEnd = getDateOnly(endIso);
+  if (rawEnd < monthStart || rawStart > monthEnd) return null;
+  const start = clampDate(rawStart, monthStart, monthEnd);
+  const end = clampDate(rawEnd, monthStart, monthEnd);
   return {
     startDay: start.getDate(),
     endDay: end.getDate()
