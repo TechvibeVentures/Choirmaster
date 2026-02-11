@@ -33,7 +33,9 @@ type ProjectTrack = {
 const dayColumnsStyle = {
   gridTemplateColumns: "repeat(31, minmax(0, 1fr))"
 };
-const gridColsClass = "grid-cols-[140px_repeat(31,minmax(0,1fr))]";
+const gridColumnsStyle = {
+  gridTemplateColumns: "140px repeat(31, minmax(0, 1fr))"
+};
 
 const getSeasonStartYear = (today: Date) =>
   today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
@@ -181,7 +183,10 @@ export default function CalendarPage({
         </div>
 
         <div className="mt-5 w-full">
-          <div className={`grid ${gridColsClass} items-center gap-y-2 text-xs text-slate-400`}>
+          <div
+            className="grid w-full items-center gap-y-2 text-xs text-slate-400"
+            style={gridColumnsStyle}
+          >
             <div />
             <div className="grid w-full" style={dayColumnsStyle}>
               {Array.from({ length: 31 }, (_, day) => (
@@ -195,7 +200,7 @@ export default function CalendarPage({
           <div className="mt-4 space-y-6">
             {months.map((month) => (
               <div key={`${month.year}-${month.monthIndex}`}>
-                <div className={`grid ${gridColsClass} items-center`}>
+                <div className="grid w-full items-center" style={gridColumnsStyle}>
                   <div className="text-sm font-semibold text-slate-900 capitalize">
                     {month.label}
                   </div>
