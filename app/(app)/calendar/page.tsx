@@ -34,7 +34,7 @@ const dayColumnsStyle = {
   gridTemplateColumns: "repeat(31, minmax(0, 1fr))"
 };
 const gridColumnsStyle = {
-  gridTemplateColumns: "140px repeat(31, minmax(0, 1fr))"
+  gridTemplateColumns: "140px 1fr"
 };
 
 const getSeasonStartYear = (today: Date) =>
