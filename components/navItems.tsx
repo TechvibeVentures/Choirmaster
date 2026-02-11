@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { FolderKanban, Home, MessageCircle, Music2, Users } from "lucide-react";
+import { CalendarDays, Home, MessageCircle, Music2, Users } from "lucide-react";
 import { getPersonName, people, projects } from "@/lib/mockData";
 import { strings } from "@/lib/i18n";
 
@@ -12,7 +12,7 @@ type NavItem = {
 
 export const navItems: NavItem[] = [
   { label: strings.nav.dashboard, href: "/dashboard", icon: Home },
-  { label: strings.nav.projects, href: "/projects", icon: FolderKanban },
+  { label: strings.nav.calendar, href: "/calendar", icon: CalendarDays },
   { label: strings.nav.repertoire, href: "/sheets", icon: Music2 },
   { label: strings.nav.singers, href: "/singers", icon: Users },
   {
@@ -24,16 +24,13 @@ export const navItems: NavItem[] = [
 
 export const getPageTitle = (pathname: string) => {
   if (!pathname) return strings.nav.dashboard;
-  if (pathname === "/projects/overview") {
-    return strings.projects.overviewTitle;
+  if (pathname === "/calendar") {
+    return strings.calendar.title;
   }
-  if (pathname === "/projects") {
-    return strings.nav.projects;
-  }
-  if (pathname.startsWith("/projects/")) {
+  if (pathname.startsWith("/calendar/")) {
     const projectId = pathname.split("/")[2];
     const project = projects.find((item) => item.id === projectId);
-    return project?.name ?? strings.nav.projects;
+    return project?.name ?? strings.calendar.title;
   }
   if (pathname === "/singers/onboarding") {
     return strings.onboarding.title;

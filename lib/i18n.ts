@@ -2,6 +2,7 @@ export const strings = {
   nav: {
     dashboard: "Übersicht",
     projects: "Projekte",
+    calendar: "Kalender",
     repertoire: "Noten",
     singers: "Sänger",
     messages: "Nachrichten"
@@ -91,6 +92,21 @@ export const strings = {
     availability: "Anwesenheit",
     participantsStatus: "Teilnahme-Status",
     projectStatusLabel: "Projektstatus"
+  },
+  calendar: {
+    title: "Kalender",
+    overviewButton: "Kalenderübersicht",
+    yearTitle: "Jahreskalender",
+    projectsTitle: "Projekte",
+    rehearsals: "Proben",
+    concerts: "Konzerte",
+    extraEvents: "Weitere Termine",
+    eventRehearsal: "Probe",
+    eventConcert: "Konzert",
+    eventExtra: "Termin",
+    eventMeeting: "Sitzung",
+    eventWorkshop: "Workshop",
+    eventSocial: "Anlass"
   },
   singer: {
     title: "Sängerzugang",

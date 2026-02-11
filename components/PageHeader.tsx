@@ -19,9 +19,8 @@ export default function PageHeader({
   const [selected, setSelected] = useState(choirs[0]?.name ?? "Ensemble");
   const menuRef = useRef<HTMLDivElement>(null);
   const showOverviewLink =
-    currentPath.startsWith("/projects") &&
-    currentPath !== "/projects/overview";
-  const showNewProjectButton = currentPath === "/projects";
+    currentPath.startsWith("/calendar/") && currentPath !== "/calendar";
+  const showNewProjectButton = currentPath === "/calendar";
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -62,10 +61,10 @@ export default function PageHeader({
           </h1>
           {showOverviewLink ? (
             <Link
-              href="/projects/overview"
+              href="/calendar"
               className="hidden rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 sm:inline-flex"
             >
-              {strings.projects.overviewButton}
+              {strings.calendar.overviewButton}
             </Link>
           ) : null}
         </div>

@@ -105,6 +105,16 @@ export type Availability = {
   status: "yes" | "no" | "unknown";
 };
 
+export type ExtraEvent = {
+  id: string;
+  choir_id: string;
+  date: string;
+  time?: string;
+  title: string;
+  location?: string;
+  category: "meeting" | "workshop" | "social" | "other";
+};
+
 export type RepertoirePiece = {
   id: string;
   choir_id: string;
@@ -1302,6 +1312,45 @@ export const rehearsalsByProject: Record<string, Rehearsal[]> = {
     }
   ]
 };
+
+export const extraEvents: ExtraEvent[] = [
+  {
+    id: "gv-2026",
+    choir_id: "luzia-chor",
+    date: "2026-02-24",
+    time: "19:00",
+    title: "Generalversammlung",
+    location: "Pfarreizentrum, Zürich",
+    category: "meeting"
+  },
+  {
+    id: "board-briefing",
+    choir_id: "luzia-chor",
+    date: "2026-03-05",
+    time: "20:30",
+    title: "Vorstandssitzung",
+    location: "Pfrundhaus, Zürich",
+    category: "meeting"
+  },
+  {
+    id: "voice-workshop",
+    choir_id: "luzia-chor",
+    date: "2026-03-28",
+    time: "10:00–13:00",
+    title: "Stimmworkshop",
+    location: "Musikschule, Zürich",
+    category: "workshop"
+  },
+  {
+    id: "summer-social",
+    choir_id: "luzia-chor",
+    date: "2026-06-20",
+    time: "18:00",
+    title: "Sommerabend",
+    location: "Seepromenade, Zürich",
+    category: "social"
+  }
+];
 
 export const projectParticipations: ProjectParticipation[] = memberships.map(
   (member, index) => {
