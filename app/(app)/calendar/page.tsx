@@ -30,8 +30,10 @@ type ProjectTrack = {
   tone: "project" | "extra";
 };
 
-const dayColumnsStyle = { gridTemplateColumns: "repeat(31, minmax(0, 1fr))" };
-const gridColsClass = "grid-cols-[120px_repeat(31,28px)]";
+const dayColumnsStyle = {
+  gridTemplateColumns: "repeat(31, minmax(24px, 1fr))"
+};
+const gridColsClass = "grid-cols-[140px_repeat(31,minmax(24px,1fr))]";
 
 const getSeasonStartYear = (today: Date) =>
   today.getMonth() >= 7 ? today.getFullYear() : today.getFullYear() - 1;
@@ -178,8 +180,7 @@ export default function CalendarPage({
           </span>
         </div>
 
-        <div className="mt-5 overflow-x-auto pb-4">
-          <div className="min-w-[1200px]">
+        <div className="mt-5 w-full">
             <div className={`grid ${gridColsClass} items-center gap-y-2 text-xs text-slate-400`}>
               <div />
               <div className="grid" style={dayColumnsStyle}>
@@ -300,7 +301,6 @@ export default function CalendarPage({
                 </div>
               ))}
             </div>
-          </div>
         </div>
       </section>
     </div>
