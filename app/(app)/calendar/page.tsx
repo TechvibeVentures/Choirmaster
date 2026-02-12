@@ -239,7 +239,7 @@ export default function CalendarPage({
                               className="relative h-12 text-[10px] text-slate-400"
                               style={{ gridColumnStart: start }}
                             >
-                              <span className="absolute right-1 top-1">
+                              <span className="absolute right-1 top-0.5">
                                 {day}
                               </span>
                             </div>
@@ -277,7 +277,7 @@ export default function CalendarPage({
                                 track.href ? (
                                   <Link
                                     href={track.href}
-                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 ${
+                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} shadow-sm transition hover:border-slate-300 ${
                                       trimmedLeft
                                         ? "rounded-r-full"
                                         : trimmedRight
@@ -288,12 +288,10 @@ export default function CalendarPage({
                                       gridColumn: `${startCol} / ${endCol}`
                                     }}
                                     aria-label={`${track.name} öffnen`}
-                                  >
-                                    <span className="relative z-10">&nbsp;</span>
-                                  </Link>
+                                  />
                                 ) : (
                                   <div
-                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm ${
+                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} shadow-sm ${
                                       trimmedLeft
                                         ? "rounded-r-full"
                                         : trimmedRight
@@ -303,13 +301,11 @@ export default function CalendarPage({
                                     style={{
                                       gridColumn: `${startCol} / ${endCol}`
                                     }}
-                                  >
-                                    <span className="relative z-10">&nbsp;</span>
-                                  </div>
+                                  />
                                 )
                               ) : null}
                             </div>
-                            {bar ? (
+                            {bar && !trimmedLeft ? (
                               <div className="mt-1 text-[10px] font-semibold text-slate-600">
                                 {track.name}
                               </div>
