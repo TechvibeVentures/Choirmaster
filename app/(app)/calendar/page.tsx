@@ -18,6 +18,7 @@ type SeasonMonth = {
 type ProjectEvent = {
   date: string;
   type: "rehearsal" | "concert" | "extra";
+  label: string;
 };
 
 type ProjectTrack = {
@@ -31,7 +32,7 @@ type ProjectTrack = {
 };
 
 const dayColumnsStyle = {
-  gridTemplateColumns: "repeat(31, minmax(0, 1fr))"
+  gridTemplateColumns: "repeat(37, minmax(0, 1fr))"
 };
 const gridColumnsStyle = {
   gridTemplateColumns: "140px 1fr"
@@ -90,6 +91,14 @@ const getDotColor = (type: ProjectEvent["type"]) => {
   return "bg-amber-500";
 };
 
+const weekdayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+
+const getWeekdayOffset = (month: SeasonMonth) => {
+  const jsDay = new Date(month.year, month.monthIndex, 1).getDay(); // 0=Sun
+  const mondayIndex = (jsDay + 6) % 7; // 0=Mon
+  return mondayIndex;
+};
+
 export default function CalendarPage({
   searchParams
 }: {
@@ -112,30 +121,40 @@ export default function CalendarPage({
     events: [
       ...(rehearsalsByProject[project.id] ?? []).map((rehearsal) => ({
         date: rehearsal.date,
-        type: "rehearsal" as const
+        type: "rehearsal" as const,
+        label: "Probe"
       })),
       ...(concertsByProject[project.id] ?? []).map((concert) => ({
         date: concert.date,
-        type: "concert" as const
+        type: "concert" as const,
+        label: "Konzert"
       }))
     ],
     href: `/calendar/${project.id}`,
     tone: "project"
   }));
 
-  const extraTrack: ProjectTrack = {
-    id: "extra-events",
-    name: strings.calendar.extraEvents,
-    start: `${seasonStartYear}-08-01`,
-    end: `${seasonStartYear + 1}-07-31`,
-    events: extraEvents.map((event) => ({
-      date: event.date,
-      type: "extra" as const
-    })),
-    tone: "extra"
+  const assignExtraEvents = (events: typeof extraEvents) => {
+    events.forEach((event) => {
+      const date = getDateOnly(event.date);
+      const target =
+        projectTracks.find((project) => {
+          const start = getDateOnly(project.start);
+          const end = getDateOnly(project.end);
+          return date >= start && date <= end;
+        }) ?? projectTracks[0];
+      if (!target) return;
+      target.events.push({
+        date: event.date,
+        type: "extra" as const,
+        label: event.title
+      });
+    });
   };
 
-  const tracks = [...projectTracks, extraTrack];
+  assignExtraEvents(extraEvents);
+
+  const tracks = projectTracks;
 
   return (
     <div className="flex flex-col gap-6">
@@ -167,22 +186,18 @@ export default function CalendarPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
-        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-          {projectTracks.map((track) => (
-            <Link
-              key={track.id}
-              href={track.href ?? "/calendar"}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 transition hover:border-slate-300 hover:text-slate-700"
-            >
-              <span className="h-2 w-2 rounded-full bg-slate-900/40" />
-              {track.name}
-            </Link>
-          ))}
-          <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            {strings.calendar.extraEvents}
-          </span>
-        </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            {projectTracks.map((track) => (
+              <Link
+                key={track.id}
+                href={track.href ?? "/calendar"}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 transition hover:border-slate-300 hover:text-slate-700"
+              >
+                <span className="h-2 w-2 rounded-full bg-slate-900/40" />
+                {track.name}
+              </Link>
+            ))}
+          </div>
 
         <div className="mt-5 w-full">
           <div
@@ -191,9 +206,9 @@ export default function CalendarPage({
           >
             <div />
             <div className="grid w-full" style={dayColumnsStyle}>
-              {Array.from({ length: 31 }, (_, day) => (
-                <div key={day} className="text-center">
-                  {day + 1}
+              {Array.from({ length: 37 }, (_, index) => (
+                <div key={index} className="text-center">
+                  {weekdayLabels[index % 7]}
                 </div>
               ))}
             </div>
@@ -208,11 +223,11 @@ export default function CalendarPage({
                   </div>
                   <div className="relative">
                     <div className="grid w-full" style={dayColumnsStyle}>
-                      {Array.from({ length: 31 }, (_, index) => (
+                      {Array.from({ length: 37 }, (_, index) => (
                         <div
                           key={index}
                           className={`h-7 border border-slate-100 ${
-                            index + 1 > month.daysInMonth
+                            index + 1 > month.daysInMonth + getWeekdayOffset(month)
                               ? "bg-slate-50"
                               : "bg-white"
                           }`}
@@ -221,6 +236,21 @@ export default function CalendarPage({
                     </div>
 
                     <div className="absolute inset-0 flex flex-col gap-2 px-1 py-1">
+                      <div className="grid w-full" style={dayColumnsStyle}>
+                        {Array.from({ length: month.daysInMonth }, (_, dayIndex) => {
+                          const day = dayIndex + 1;
+                          const start = day + getWeekdayOffset(month);
+                          return (
+                            <div
+                              key={`day-${month.year}-${month.monthIndex}-${day}`}
+                              className="h-7 text-[10px] text-slate-400"
+                              style={{ gridColumnStart: start }}
+                            >
+                              {day}
+                            </div>
+                          );
+                        })}
+                      </div>
                       {tracks.map((track) => {
                         const bar = getBarSegment(track.start, track.end, month);
                         const events = track.events.filter((event) =>
@@ -230,6 +260,7 @@ export default function CalendarPage({
                           track.tone === "project"
                             ? "bg-slate-900/10"
                             : "bg-amber-100";
+                        const offset = getWeekdayOffset(month);
                         return (
                           <div key={`${month.year}-${month.monthIndex}-${track.id}`}>
                             <div className="grid w-full" style={dayColumnsStyle}>
@@ -237,58 +268,72 @@ export default function CalendarPage({
                                 track.href ? (
                                   <Link
                                     href={track.href}
-                                    className={`relative h-5 rounded-full ${barBaseClass} transition hover:bg-slate-900/20`}
+                                    className={`relative h-6 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300`}
                                     style={{
-                                      gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
+                                      gridColumn: `${bar.startDay + offset} / ${
+                                        bar.endDay + offset + 1
+                                      }`
                                     }}
                                     aria-label={`${track.name} öffnen`}
                                   >
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
-                                      {track.name}
-                                    </span>
+                                    <span className="relative z-10">{track.name}</span>
                                     {events.map((event, index) => {
                                       const day = getDateOnly(event.date).getDate();
+                                      const col = day + offset;
                                       const position =
                                         month.daysInMonth > 1
-                                          ? ((day - 1) / (month.daysInMonth - 1)) *
-                                            100
+                                          ? ((col - 1) / 36) * 100
                                           : 0;
                                       return (
-                                        <span
-                                          key={`${event.type}-${event.date}-${index}`}
-                                          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                            event.type
-                                          )}`}
-                                          style={{ left: `${position}%` }}
-                                        />
+                                        <span key={`${event.type}-${event.date}-${index}`}>
+                                          <span
+                                            className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                              event.type
+                                            )}`}
+                                            style={{ left: `${position}%` }}
+                                          />
+                                          <span
+                                            className="absolute -top-5 text-[10px] text-slate-500"
+                                            style={{ left: `${position}%` }}
+                                          >
+                                            {event.label}
+                                          </span>
+                                        </span>
                                       );
                                     })}
                                   </Link>
                                 ) : (
                                   <div
-                                    className={`relative h-5 rounded-full ${barBaseClass}`}
+                                    className={`relative h-6 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm`}
                                     style={{
-                                      gridColumn: `${bar.startDay} / ${bar.endDay + 1}`
+                                      gridColumn: `${bar.startDay + offset} / ${
+                                        bar.endDay + offset + 1
+                                      }`
                                     }}
                                   >
-                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-700">
-                                      {track.name}
-                                    </span>
+                                    <span className="relative z-10">{track.name}</span>
                                     {events.map((event, index) => {
                                       const day = getDateOnly(event.date).getDate();
+                                      const col = day + offset;
                                       const position =
                                         month.daysInMonth > 1
-                                          ? ((day - 1) / (month.daysInMonth - 1)) *
-                                            100
+                                          ? ((col - 1) / 36) * 100
                                           : 0;
                                       return (
-                                        <span
-                                          key={`${event.type}-${event.date}-${index}`}
-                                          className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                            event.type
-                                          )}`}
-                                          style={{ left: `${position}%` }}
-                                        />
+                                        <span key={`${event.type}-${event.date}-${index}`}>
+                                          <span
+                                            className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                              event.type
+                                            )}`}
+                                            style={{ left: `${position}%` }}
+                                          />
+                                          <span
+                                            className="absolute -top-5 text-[10px] text-slate-500"
+                                            style={{ left: `${position}%` }}
+                                          >
+                                            {event.label}
+                                          </span>
+                                        </span>
                                       );
                                     })}
                                   </div>

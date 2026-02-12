@@ -560,6 +560,23 @@ export const projects: Project[] = [
       end_time: "21:30",
       location: "Pfrundhaus, Zürich"
     }
+  },
+  {
+    id: "weihnachtsmusik-2025",
+    choir_id: "luzia-chor",
+    name: "Weihnachtsmusik",
+    description:
+      "Advents- und Weihnachtsprogramm mit festlichen Chorwerken für die Konzertsaison.",
+    date_range: {
+      start: "2025-11-10",
+      end: "2025-12-07"
+    },
+    rehearsal_facts: {
+      weekdays: ["Tue"],
+      start_time: "19:30",
+      end_time: "21:30",
+      location: "Pfrundhaus, Zürich"
+    }
   }
 ];
 
@@ -1217,6 +1234,22 @@ export const concertsByProject: Record<string, Concert[]> = {
       time: "Vorprobe 14:30-16:00 · Konzert 17:00",
       place: "Raum Zürich"
     }
+  ],
+  "weihnachtsmusik-2025": [
+    {
+      id: "wm-con-1",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-12-06",
+      time: "Konzert 19:30",
+      place: "St. Jakob, Zürich"
+    },
+    {
+      id: "wm-con-2",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-12-07",
+      time: "Konzert 17:00",
+      place: "St. Jakob, Zürich"
+    }
   ]
 };
 
@@ -1309,6 +1342,40 @@ export const rehearsalsByProject: Record<string, Rehearsal[]> = {
       start_time: "19:00",
       end_time: "22:00",
       location: "Pfrundhaus, Zürich (Generalprobe)"
+    }
+  ],
+  "weihnachtsmusik-2025": [
+    {
+      id: "wm-reh-1",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-11-11",
+      start_time: "19:30",
+      end_time: "21:30",
+      location: "Pfrundhaus, Zürich"
+    },
+    {
+      id: "wm-reh-2",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-11-18",
+      start_time: "19:30",
+      end_time: "21:30",
+      location: "Pfrundhaus, Zürich"
+    },
+    {
+      id: "wm-reh-3",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-11-25",
+      start_time: "19:30",
+      end_time: "21:30",
+      location: "Pfrundhaus, Zürich"
+    },
+    {
+      id: "wm-reh-4",
+      project_id: "weihnachtsmusik-2025",
+      date: "2025-12-02",
+      start_time: "19:30",
+      end_time: "21:30",
+      location: "Pfrundhaus, Zürich"
     }
   ]
 };
