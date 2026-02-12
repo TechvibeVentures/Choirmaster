@@ -86,9 +86,14 @@ const isDateInMonth = (iso: string, month: SeasonMonth) => {
 };
 
 const getDotColor = (type: ProjectEvent["type"]) => {
-  if (type === "concert") return "bg-rose-500";
+  if (type === "concert") return "bg-blue-500";
   if (type === "rehearsal") return "bg-slate-500";
   return "bg-amber-500";
+};
+
+const abbreviateLabel = (label: string) => {
+  if (label.length <= 8) return label;
+  return `${label.slice(0, 7)}…`;
 };
 
 const weekdayLabels = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -201,7 +206,7 @@ export default function CalendarPage({
             </div>
           </div>
 
-          <div className="mt-2 space-y-4">
+          <div className="mt-2 space-y-2">
             {months.map((month) => (
               <div key={`${month.year}-${month.monthIndex}`}>
                 <div className="grid w-full items-center" style={gridColumnsStyle}>
@@ -213,7 +218,8 @@ export default function CalendarPage({
                       {Array.from({ length: 37 }, (_, index) => (
                         <div
                           key={index}
-                          className={`h-12 border border-slate-100 ${
+                          className={`relative h-12 border border-slate-100 ${
+                            index + 1 <= getWeekdayOffset(month) ||
                             index + 1 > month.daysInMonth + getWeekdayOffset(month)
                               ? "bg-slate-50"
                               : "bg-white"
@@ -230,7 +236,7 @@ export default function CalendarPage({
                           return (
                             <div
                               key={`day-${month.year}-${month.monthIndex}-${day}`}
-                              className="h-12 text-[10px] text-slate-400"
+                              className="flex h-12 items-start justify-end pr-1 pt-1 text-[10px] text-slate-400"
                               style={{ gridColumnStart: start }}
                             >
                               {day}
@@ -282,30 +288,6 @@ export default function CalendarPage({
                                     aria-label={`${track.name} öffnen`}
                                   >
                                     <span className="relative z-10">{track.name}</span>
-                                    {events.map((event, index) => {
-                                      const day = getDateOnly(event.date).getDate();
-                                      const col = day + offset;
-                                      const position =
-                                        month.daysInMonth > 1
-                                          ? ((col - 1) / 36) * 100
-                                          : 0;
-                                      return (
-                                        <span key={`${event.type}-${event.date}-${index}`}>
-                                          <span
-                                            className={`absolute top-1/2 z-10 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                              event.type
-                                            )}`}
-                                            style={{ left: `${position}%` }}
-                                          />
-                                          <span
-                                            className="absolute -top-5 z-10 text-[10px] text-slate-500"
-                                            style={{ left: `${position}%` }}
-                                          >
-                                            {event.label}
-                                          </span>
-                                        </span>
-                                      );
-                                    })}
                                   </Link>
                                 ) : (
                                   <div
@@ -321,34 +303,32 @@ export default function CalendarPage({
                                     }}
                                   >
                                     <span className="relative z-10">{track.name}</span>
-                                    {events.map((event, index) => {
-                                      const day = getDateOnly(event.date).getDate();
-                                      const col = day + offset;
-                                      const position =
-                                        month.daysInMonth > 1
-                                          ? ((col - 1) / 36) * 100
-                                          : 0;
-                                      return (
-                                        <span key={`${event.type}-${event.date}-${index}`}>
-                                          <span
-                                            className={`absolute top-1/2 z-10 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
-                                              event.type
-                                            )}`}
-                                            style={{ left: `${position}%` }}
-                                          />
-                                          <span
-                                            className="absolute -top-5 z-10 text-[10px] text-slate-500"
-                                            style={{ left: `${position}%` }}
-                                          >
-                                            {event.label}
-                                          </span>
-                                        </span>
-                                      );
-                                    })}
                                   </div>
                                 )
                               ) : null}
                             </div>
+                            {events.length > 0 ? (
+                              <div className="mt-1 grid w-full" style={dayColumnsStyle}>
+                                {events.map((event, index) => {
+                                  const day = getDateOnly(event.date).getDate();
+                                  const col = day + offset;
+                                  return (
+                                    <div
+                                      key={`${event.type}-${event.date}-${index}`}
+                                      className="flex items-center gap-1 text-[10px] text-slate-500"
+                                      style={{ gridColumnStart: col }}
+                                    >
+                                      <span
+                                        className={`h-2 w-2 rounded-full ${getDotColor(
+                                          event.type
+                                        )}`}
+                                      />
+                                      <span>{abbreviateLabel(event.label)}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
                           </div>
                         );
                       })}
