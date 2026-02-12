@@ -118,12 +118,8 @@ export default function CalendarPage({
     -2
   )}`;
 
-  const projectTracks: ProjectTrack[] = projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    start: project.date_range.start,
-    end: project.date_range.end,
-    events: [
+  const projectTracks: ProjectTrack[] = projects.map((project) => {
+    const events = [
       ...(rehearsalsByProject[project.id] ?? []).map((rehearsal) => ({
         date: rehearsal.date,
         type: "rehearsal" as const,
@@ -134,10 +130,20 @@ export default function CalendarPage({
         type: "concert" as const,
         label: "Konzert"
       }))
-    ],
-    href: `/calendar/${project.id}`,
-    tone: "project"
-  }));
+    ];
+    const eventDates = events.map((event) => event.date).sort();
+    const start = eventDates[0] ?? project.date_range.start;
+    const end = eventDates[eventDates.length - 1] ?? project.date_range.end;
+    return {
+      id: project.id,
+      name: project.name,
+      start,
+      end,
+      events,
+      href: `/calendar/${project.id}`,
+      tone: "project"
+    };
+  });
 
   const assignExtraEvents = (events: typeof extraEvents) => {
     events.forEach((event) => {
@@ -163,31 +169,42 @@ export default function CalendarPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-wide text-slate-400">
-            {strings.calendar.yearTitle}
+      <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/calendar?season=${seasonStartYear - 1}`}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              aria-label="Vorherige Saison"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+            <Link
+              href={`/calendar?season=${seasonStartYear + 1}`}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              aria-label="Nächste Saison"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
           </div>
-          <div className="mt-1 text-2xl font-semibold text-slate-900">
-            Saison {seasonLabel}
+          <div>
+            <div className="text-xs uppercase tracking-wide text-slate-400">
+              {strings.calendar.yearTitle}
+            </div>
+            <div className="mt-1 text-2xl font-semibold text-slate-900">
+              Saison {seasonLabel}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/calendar?season=${seasonStartYear - 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-            aria-label="Vorherige Saison"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <Link
-            href={`/calendar?season=${seasonStartYear + 1}`}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
-            aria-label="Nächste Saison"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={() =>
+            window.alert("Diese Funktion kommt in einer späteren Version der App.")
+          }
+          className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+        >
+          {strings.projects.newProject}
+        </button>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
@@ -307,8 +324,10 @@ export default function CalendarPage({
                                               event.type
                                             )}`}
                                           />
-                                          <span className="truncate">
-                                            {abbreviateLabel(event.label)}
+                                          <span className="max-w-[64px] truncate">
+                                            {event.label.length > 8
+                                              ? abbreviateLabel(event.label)
+                                              : event.label}
                                           </span>
                                         </span>
                                       );
@@ -345,8 +364,10 @@ export default function CalendarPage({
                                               event.type
                                             )}`}
                                           />
-                                          <span className="truncate">
-                                            {abbreviateLabel(event.label)}
+                                          <span className="max-w-[64px] truncate">
+                                            {event.label.length > 8
+                                              ? abbreviateLabel(event.label)
+                                              : event.label}
                                           </span>
                                         </span>
                                       );
@@ -356,11 +377,13 @@ export default function CalendarPage({
                               ) : null}
                             </div>
                             {bar && !trimmedLeft ? (
-                              <div
-                                className="mt-1 text-[10px] font-semibold text-slate-600"
-                                style={{ marginLeft: "4px" }}
-                              >
-                                {track.name}
+                              <div className="mt-1 grid w-full" style={dayColumnsStyle}>
+                                <div
+                                  className="text-[10px] font-semibold text-slate-600"
+                                  style={{ gridColumnStart: startCol }}
+                                >
+                                  {track.name}
+                                </div>
                               </div>
                             ) : null}
                           </div>

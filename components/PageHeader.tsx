@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { ArrowLeft, ChevronDown, Plus } from "lucide-react";
 import { adminProfile, choirs } from "@/lib/mockData";
 import { strings } from "@/lib/i18n";
 
@@ -20,7 +20,8 @@ export default function PageHeader({
   const menuRef = useRef<HTMLDivElement>(null);
   const showOverviewLink =
     currentPath.startsWith("/calendar/") && currentPath !== "/calendar";
-  const showNewProjectButton = currentPath === "/calendar";
+  const showNewProjectButton = false;
+  const showCalendarBack = currentPath.startsWith("/calendar/");
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -56,9 +57,20 @@ export default function PageHeader({
     <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-8">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-            {title}
-          </h1>
+          {showCalendarBack ? (
+            <Link
+              href="/calendar"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+              aria-label="Zurück zur Kalenderübersicht"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          ) : null}
+          {!showCalendarBack ? (
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+              {title}
+            </h1>
+          ) : null}
           {showOverviewLink ? (
             <Link
               href="/calendar"
