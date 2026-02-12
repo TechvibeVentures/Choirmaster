@@ -198,10 +198,9 @@ export default function CalendarPage({
         </div>
         <button
           type="button"
-          onClick={() =>
-            window.alert("Diese Funktion kommt in einer späteren Version der App.")
-          }
-          className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+          disabled
+          className="whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm"
+          title="Diese Funktion kommt in einer späteren Version der App."
         >
           {strings.projects.newProject}
         </button>
