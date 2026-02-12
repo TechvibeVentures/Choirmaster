@@ -86,7 +86,7 @@ const isDateInMonth = (iso: string, month: SeasonMonth) => {
 };
 
 const getDotColor = (type: ProjectEvent["type"]) => {
-  if (type === "concert") return "bg-slate-900";
+  if (type === "concert") return "bg-rose-500";
   if (type === "rehearsal") return "bg-slate-500";
   return "bg-amber-500";
 };
@@ -186,20 +186,7 @@ export default function CalendarPage({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-6">
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            {projectTracks.map((track) => (
-              <Link
-                key={track.id}
-                href={track.href ?? "/calendar"}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 transition hover:border-slate-300 hover:text-slate-700"
-              >
-                <span className="h-2 w-2 rounded-full bg-slate-900/40" />
-                {track.name}
-              </Link>
-            ))}
-          </div>
-
-        <div className="mt-5 w-full">
+        <div className="w-full">
           <div
             className="grid w-full items-center gap-y-2 text-xs text-slate-400"
             style={gridColumnsStyle}
@@ -226,7 +213,7 @@ export default function CalendarPage({
                       {Array.from({ length: 37 }, (_, index) => (
                         <div
                           key={index}
-                          className={`h-7 border border-slate-100 ${
+                          className={`h-12 border border-slate-100 ${
                             index + 1 > month.daysInMonth + getWeekdayOffset(month)
                               ? "bg-slate-50"
                               : "bg-white"
@@ -235,7 +222,7 @@ export default function CalendarPage({
                       ))}
                     </div>
 
-                    <div className="absolute inset-0 flex flex-col gap-2 px-1 py-1">
+                    <div className="absolute inset-0 flex flex-col gap-2 px-1 py-2">
                       <div className="grid w-full" style={dayColumnsStyle}>
                         {Array.from({ length: month.daysInMonth }, (_, dayIndex) => {
                           const day = dayIndex + 1;
@@ -243,7 +230,7 @@ export default function CalendarPage({
                           return (
                             <div
                               key={`day-${month.year}-${month.monthIndex}-${day}`}
-                              className="h-7 text-[10px] text-slate-400"
+                              className="h-12 text-[10px] text-slate-400"
                               style={{ gridColumnStart: start }}
                             >
                               {day}
@@ -260,6 +247,12 @@ export default function CalendarPage({
                           track.tone === "project"
                             ? "bg-slate-900/10"
                             : "bg-amber-100";
+                        const rawStart = getDateOnly(track.start);
+                        const rawEnd = getDateOnly(track.end);
+                        const monthStart = new Date(month.year, month.monthIndex, 1);
+                        const monthEnd = new Date(month.year, month.monthIndex + 1, 0);
+                        const trimmedLeft = rawStart < monthStart;
+                        const trimmedRight = rawEnd > monthEnd;
                         const offset = getWeekdayOffset(month);
                         return (
                           <div key={`${month.year}-${month.monthIndex}-${track.id}`}>
@@ -268,7 +261,13 @@ export default function CalendarPage({
                                 track.href ? (
                                   <Link
                                     href={track.href}
-                                    className={`relative h-6 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300`}
+                                    className={`relative h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 ${
+                                      trimmedLeft
+                                        ? "rounded-r-full"
+                                        : trimmedRight
+                                          ? "rounded-l-full"
+                                          : "rounded-full"
+                                    }`}
                                     style={{
                                       gridColumn: `${bar.startDay + offset} / ${
                                         bar.endDay + offset + 1
@@ -304,7 +303,13 @@ export default function CalendarPage({
                                   </Link>
                                 ) : (
                                   <div
-                                    className={`relative h-6 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm`}
+                                    className={`relative h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm ${
+                                      trimmedLeft
+                                        ? "rounded-r-full"
+                                        : trimmedRight
+                                          ? "rounded-l-full"
+                                          : "rounded-full"
+                                    }`}
                                     style={{
                                       gridColumn: `${bar.startDay + offset} / ${
                                         bar.endDay + offset + 1
