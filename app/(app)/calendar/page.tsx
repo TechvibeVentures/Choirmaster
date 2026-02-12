@@ -201,7 +201,7 @@ export default function CalendarPage({
             </div>
           </div>
 
-          <div className="mt-4 space-y-6">
+          <div className="mt-2 space-y-4">
             {months.map((month) => (
               <div key={`${month.year}-${month.monthIndex}`}>
                 <div className="grid w-full items-center" style={gridColumnsStyle}>
@@ -238,6 +238,7 @@ export default function CalendarPage({
                           );
                         })}
                       </div>
+                      <div className="mt-1 space-y-2">
                       {tracks.map((track) => {
                         const bar = getBarSegment(track.start, track.end, month);
                         const events = track.events.filter((event) =>
@@ -254,6 +255,13 @@ export default function CalendarPage({
                         const trimmedLeft = rawStart < monthStart;
                         const trimmedRight = rawEnd > monthEnd;
                         const offset = getWeekdayOffset(month);
+                        const adjustedStartDay = trimmedLeft ? 1 : bar?.startDay ?? 1;
+                        const startCol = trimmedLeft
+                          ? 1
+                          : adjustedStartDay + offset;
+                        const endCol = trimmedLeft
+                          ? (bar?.endDay ?? 1) + offset + 1
+                          : (bar?.endDay ?? 1) + offset + 1;
                         return (
                           <div key={`${month.year}-${month.monthIndex}-${track.id}`}>
                             <div className="grid w-full" style={dayColumnsStyle}>
@@ -269,9 +277,7 @@ export default function CalendarPage({
                                           : "rounded-full"
                                     }`}
                                     style={{
-                                      gridColumn: `${bar.startDay + offset} / ${
-                                        bar.endDay + offset + 1
-                                      }`
+                                      gridColumn: `${startCol} / ${endCol}`
                                     }}
                                     aria-label={`${track.name} öffnen`}
                                   >
@@ -311,9 +317,7 @@ export default function CalendarPage({
                                           : "rounded-full"
                                     }`}
                                     style={{
-                                      gridColumn: `${bar.startDay + offset} / ${
-                                        bar.endDay + offset + 1
-                                      }`
+                                      gridColumn: `${startCol} / ${endCol}`
                                     }}
                                   >
                                     <span className="relative z-10">{track.name}</span>
@@ -348,6 +352,7 @@ export default function CalendarPage({
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   </div>
                 </div>
