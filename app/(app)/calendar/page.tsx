@@ -239,7 +239,7 @@ export default function CalendarPage({
                               className="relative h-12 text-[10px] text-slate-400"
                               style={{ gridColumnStart: start }}
                             >
-                              <span className="absolute right-1 top-0.5">
+                              <span className="absolute right-1 top-0">
                                 {day}
                               </span>
                             </div>
@@ -288,7 +288,32 @@ export default function CalendarPage({
                                       gridColumn: `${startCol} / ${endCol}`
                                     }}
                                     aria-label={`${track.name} öffnen`}
-                                  />
+                                  >
+                                    {events.map((event, index) => {
+                                      const day = getDateOnly(event.date).getDate();
+                                      const col = day + offset;
+                                      const position =
+                                        month.daysInMonth > 1
+                                          ? ((col - 1) / 36) * 100
+                                          : 0;
+                                      return (
+                                        <span
+                                          key={`${event.type}-${event.date}-${index}`}
+                                          className="absolute top-1/2 flex -translate-y-1/2 items-center gap-1 text-[10px] text-slate-500"
+                                          style={{ left: `${position}%` }}
+                                        >
+                                          <span
+                                            className={`h-2 w-2 rounded-full ${getDotColor(
+                                              event.type
+                                            )}`}
+                                          />
+                                          <span className="truncate">
+                                            {abbreviateLabel(event.label)}
+                                          </span>
+                                        </span>
+                                      );
+                                    })}
+                                  </Link>
                                 ) : (
                                   <div
                                     className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} shadow-sm ${
@@ -301,37 +326,41 @@ export default function CalendarPage({
                                     style={{
                                       gridColumn: `${startCol} / ${endCol}`
                                     }}
-                                  />
+                                  >
+                                    {events.map((event, index) => {
+                                      const day = getDateOnly(event.date).getDate();
+                                      const col = day + offset;
+                                      const position =
+                                        month.daysInMonth > 1
+                                          ? ((col - 1) / 36) * 100
+                                          : 0;
+                                      return (
+                                        <span
+                                          key={`${event.type}-${event.date}-${index}`}
+                                          className="absolute top-1/2 flex -translate-y-1/2 items-center gap-1 text-[10px] text-slate-500"
+                                          style={{ left: `${position}%` }}
+                                        >
+                                          <span
+                                            className={`h-2 w-2 rounded-full ${getDotColor(
+                                              event.type
+                                            )}`}
+                                          />
+                                          <span className="truncate">
+                                            {abbreviateLabel(event.label)}
+                                          </span>
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
                                 )
                               ) : null}
                             </div>
                             {bar && !trimmedLeft ? (
-                              <div className="mt-1 text-[10px] font-semibold text-slate-600">
+                              <div
+                                className="mt-1 text-[10px] font-semibold text-slate-600"
+                                style={{ marginLeft: "4px" }}
+                              >
                                 {track.name}
-                              </div>
-                            ) : null}
-                            {events.length > 0 ? (
-                              <div className="mt-1 grid w-full" style={dayColumnsStyle}>
-                                {events.map((event, index) => {
-                                  const day = getDateOnly(event.date).getDate();
-                                  const col = day + offset;
-                                  return (
-                                    <div
-                                      key={`${event.type}-${event.date}-${index}`}
-                                      className="flex items-center gap-1 text-[10px] text-slate-500"
-                                      style={{ gridColumnStart: col }}
-                                    >
-                                      <span
-                                        className={`h-2 w-2 rounded-full ${getDotColor(
-                                          event.type
-                                        )}`}
-                                      />
-                                      <span className="truncate">
-                                        {abbreviateLabel(event.label)}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
                               </div>
                             ) : null}
                           </div>
