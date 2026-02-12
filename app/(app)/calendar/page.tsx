@@ -222,7 +222,7 @@ export default function CalendarPage({
                       ))}
                     </div>
 
-                    <div className="absolute inset-0 flex flex-col gap-2 px-1 py-2">
+                    <div className="pointer-events-none absolute inset-0 flex flex-col gap-2 px-1 py-2">
                       <div className="grid w-full" style={dayColumnsStyle}>
                         {Array.from({ length: month.daysInMonth }, (_, dayIndex) => {
                           const day = dayIndex + 1;
@@ -238,7 +238,7 @@ export default function CalendarPage({
                           );
                         })}
                       </div>
-                      <div className="mt-1 space-y-2">
+                      <div className="pointer-events-auto mt-1 space-y-2">
                       {tracks.map((track) => {
                         const bar = getBarSegment(track.start, track.end, month);
                         const events = track.events.filter((event) =>
@@ -269,7 +269,7 @@ export default function CalendarPage({
                                 track.href ? (
                                   <Link
                                     href={track.href}
-                                    className={`relative h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 ${
+                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 ${
                                       trimmedLeft
                                         ? "rounded-r-full"
                                         : trimmedRight
@@ -292,13 +292,13 @@ export default function CalendarPage({
                                       return (
                                         <span key={`${event.type}-${event.date}-${index}`}>
                                           <span
-                                            className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                            className={`absolute top-1/2 z-10 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
                                               event.type
                                             )}`}
                                             style={{ left: `${position}%` }}
                                           />
                                           <span
-                                            className="absolute -top-5 text-[10px] text-slate-500"
+                                            className="absolute -top-5 z-10 text-[10px] text-slate-500"
                                             style={{ left: `${position}%` }}
                                           >
                                             {event.label}
@@ -309,7 +309,7 @@ export default function CalendarPage({
                                   </Link>
                                 ) : (
                                   <div
-                                    className={`relative h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm ${
+                                    className={`relative z-10 h-7 border border-slate-200 ${barBaseClass} px-3 py-1 text-[11px] font-semibold text-slate-700 shadow-sm ${
                                       trimmedLeft
                                         ? "rounded-r-full"
                                         : trimmedRight
@@ -331,13 +331,13 @@ export default function CalendarPage({
                                       return (
                                         <span key={`${event.type}-${event.date}-${index}`}>
                                           <span
-                                            className={`absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
+                                            className={`absolute top-1/2 z-10 h-2 w-2 -translate-y-1/2 rounded-full ${getDotColor(
                                               event.type
                                             )}`}
                                             style={{ left: `${position}%` }}
                                           />
                                           <span
-                                            className="absolute -top-5 text-[10px] text-slate-500"
+                                            className="absolute -top-5 z-10 text-[10px] text-slate-500"
                                             style={{ left: `${position}%` }}
                                           >
                                             {event.label}
