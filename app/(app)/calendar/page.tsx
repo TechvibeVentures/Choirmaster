@@ -236,10 +236,12 @@ export default function CalendarPage({
                           return (
                             <div
                               key={`day-${month.year}-${month.monthIndex}-${day}`}
-                              className="flex h-12 items-start justify-end pr-1 pt-1 text-[10px] text-slate-400"
+                              className="relative h-12 text-[10px] text-slate-400"
                               style={{ gridColumnStart: start }}
                             >
-                              {day}
+                              <span className="absolute right-1 top-1">
+                                {day}
+                              </span>
                             </div>
                           );
                         })}
@@ -287,7 +289,7 @@ export default function CalendarPage({
                                     }}
                                     aria-label={`${track.name} öffnen`}
                                   >
-                                    <span className="relative z-10">{track.name}</span>
+                                    <span className="relative z-10">&nbsp;</span>
                                   </Link>
                                 ) : (
                                   <div
@@ -302,11 +304,16 @@ export default function CalendarPage({
                                       gridColumn: `${startCol} / ${endCol}`
                                     }}
                                   >
-                                    <span className="relative z-10">{track.name}</span>
+                                    <span className="relative z-10">&nbsp;</span>
                                   </div>
                                 )
                               ) : null}
                             </div>
+                            {bar ? (
+                              <div className="mt-1 text-[10px] font-semibold text-slate-600">
+                                {track.name}
+                              </div>
+                            ) : null}
                             {events.length > 0 ? (
                               <div className="mt-1 grid w-full" style={dayColumnsStyle}>
                                 {events.map((event, index) => {
@@ -323,7 +330,9 @@ export default function CalendarPage({
                                           event.type
                                         )}`}
                                       />
-                                      <span>{abbreviateLabel(event.label)}</span>
+                                      <span className="truncate">
+                                        {abbreviateLabel(event.label)}
+                                      </span>
                                     </div>
                                   );
                                 })}
