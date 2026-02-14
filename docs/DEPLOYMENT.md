@@ -8,11 +8,10 @@ This project uses **Vercel** for Preview deployments.
 3. Deploy Preview with the Vercel CLI:
 
 ```bash
-npx vercel --confirm --scope team_xbDMnG89fPDdCWEE0V1sY4jQ
+npx vercel --yes --scope team_xbDMnG89fPDdCWEE0V1sY4jQ
 ```
 
 ## Notes
 - The Vercel project is `choirmaster` under the `techvibe` team.
 - The CLI returns both an **Inspect** URL and a **Preview** URL.
-- If `--confirm` is deprecated, the CLI may suggest `--yes`. Use `--confirm` unless the team standard changes.
-
+- The CLI deprecates `--confirm` in favor of `--yes`.
