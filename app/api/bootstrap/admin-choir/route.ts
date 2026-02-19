@@ -19,14 +19,46 @@ export async function POST(request: Request) {
     const payload = bootstrapAdminChoirSchema.parse(await request.json());
     const service = getServiceSupabaseClient();
     const anyDb = service as any;
+    const currentMetadata = (session.user.user_metadata || {}) as Record<string, unknown>;
+
+    const metadataFirstName =
+      typeof currentMetadata.first_name === "string"
+        ? currentMetadata.first_name.trim()
+        : "";
+    const metadataLastName =
+      typeof currentMetadata.last_name === "string"
+        ? currentMetadata.last_name.trim()
+        : "";
+
+    const firstName = payload.profile.first_name.trim() || metadataFirstName;
+    const lastName = payload.profile.last_name.trim() || metadataLastName;
+
+    if (!firstName || !lastName) {
+      return NextResponse.json(
+        { error: "First name and last name are required" },
+        { status: 400 }
+      );
+    }
+
+    const authSync = await service.auth.admin.updateUserById(session.user.id, {
+      user_metadata: {
+        ...currentMetadata,
+        first_name: firstName,
+        last_name: lastName
+      }
+    });
+
+    if (authSync.error) {
+      throw authSync.error;
+    }
 
     let personId = session.person?.id;
 
     if (!personId) {
       const insertPayload: Record<string, unknown> = {
         email: session.user.email,
-        first_name: payload.profile.first_name,
-        last_name: payload.profile.last_name,
+        first_name: firstName,
+        last_name: lastName,
         city: payload.profile.city,
         experience_level: "professional",
         tags: ["Leitung"]
@@ -46,8 +78,9 @@ export async function POST(request: Request) {
       personId = created.data.id;
     } else {
       const updatePayload: Record<string, unknown> = {
-        first_name: payload.profile.first_name,
-        last_name: payload.profile.last_name,
+        email: session.user.email,
+        first_name: firstName,
+        last_name: lastName,
         city: payload.profile.city,
         auth_user_id: session.user.id
       };

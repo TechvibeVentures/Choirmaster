@@ -16,15 +16,24 @@ export async function GET(
     const serverDb = getServerSupabaseClient();
     const serviceDb = getServiceSupabaseClient();
 
-    const projectAccess = await serverDb
+    const projectAccess = await serviceDb
       .from("projects")
-      .select("id")
+      .select("id, choir_id")
       .eq("id", params.projectId)
       .maybeSingle();
 
     if (projectAccess.error) throw projectAccess.error;
     if (!projectAccess.data) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const adminCheck = await serverDb.rpc("is_admin", {
+      choir: projectAccess.data.choir_id
+    });
+
+    if (adminCheck.error) throw adminCheck.error;
+    if (!adminCheck.data) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     let tokenRes = await serviceDb

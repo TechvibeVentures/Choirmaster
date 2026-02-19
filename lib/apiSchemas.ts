@@ -56,3 +56,27 @@ export const updateAdminProfileSchema = z.object({
   city: z.string().optional().default(""),
   language: z.string().optional().default("Deutsch")
 });
+
+export const availabilityBatchSchema = z.object({
+  projectId: z.string().uuid(),
+  personId: z.string().uuid().optional(),
+  entries: z
+    .array(
+      z.object({
+        rehearsalId: z.string().uuid(),
+        status: z.enum(["yes", "no", "unknown"])
+      })
+    )
+    .min(1)
+});
+
+export const updateMeProfileSchema = z.object({
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional().default(""),
+  city: z.string().optional().default(""),
+  experience_level: z.enum(["junior", "regular", "advanced", "professional"]),
+  voice: z.enum(["Soprano", "Alto", "Tenor", "Bass"]),
+  choir_id: z.string().uuid()
+});

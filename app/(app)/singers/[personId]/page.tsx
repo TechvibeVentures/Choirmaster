@@ -7,6 +7,7 @@ import VoiceBadge from "@/components/VoiceBadge";
 import { useAppData } from "@/hooks/useAppData";
 import type { Project } from "@/lib/domain/types";
 import { getPersonName } from "@/lib/domain/utils";
+import { mergeAvailabilityRows } from "@/lib/domain/snapshotMutations";
 import { strings } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
 import { getVoiceLabel } from "@/lib/labels";
@@ -66,7 +67,9 @@ export default function PersonDetailPage({
     allMemberships,
     allPeople,
     projects,
-    rehearsalsByProject
+    rehearsalsByProject,
+    replaceSnapshot,
+    snapshot
   } = useAppData();
 
   const person = allPeople.find((item) => item.id === params.personId);
@@ -83,6 +86,12 @@ export default function PersonDetailPage({
     personMemberships[0]?.choir_id ?? activeChoirId
   );
   const [paymentStatus, setPaymentStatus] = useState("open");
+  const [savingAvailability, setSavingAvailability] = useState(false);
+  const [availabilitySaveError, setAvailabilitySaveError] = useState("");
+  const [availabilitySaveSuccess, setAvailabilitySaveSuccess] = useState("");
+  const [dirtyRehearsalIds, setDirtyRehearsalIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   useEffect(() => {
     setSelectedChoirId(personMemberships[0]?.choir_id ?? activeChoirId);
@@ -109,7 +118,66 @@ export default function PersonDetailPage({
       next[rehearsal.id] = record?.status ?? "unknown";
     });
     setAvailabilityByRehearsal(next);
-  }, [person.id, selectedRehearsals]);
+    setDirtyRehearsalIds(new Set());
+    setAvailabilitySaveError("");
+    setAvailabilitySaveSuccess("");
+  }, [availability, person.id, selectedRehearsals]);
+
+  const handleAvailabilityChange = (
+    rehearsalId: string,
+    status: "yes" | "no" | "unknown"
+  ) => {
+    setAvailabilityByRehearsal((prev) => ({
+      ...prev,
+      [rehearsalId]: status
+    }));
+    setDirtyRehearsalIds((prev) => {
+      const next = new Set(prev);
+      next.add(rehearsalId);
+      return next;
+    });
+    setAvailabilitySaveSuccess("");
+  };
+
+  const saveAvailability = async () => {
+    if (!selectedProjectId || dirtyRehearsalIds.size === 0) return;
+
+    setSavingAvailability(true);
+    setAvailabilitySaveError("");
+    setAvailabilitySaveSuccess("");
+    try {
+      const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
+        rehearsalId,
+        status: availabilityByRehearsal[rehearsalId] ?? "unknown"
+      }));
+
+      const response = await fetch("/api/availability/batch", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          projectId: selectedProjectId,
+          personId: person.id,
+          entries
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "save failed");
+      }
+
+      replaceSnapshot(mergeAvailabilityRows(snapshot, payload.rows || []));
+      setDirtyRehearsalIds(new Set());
+      setAvailabilitySaveSuccess("Anwesenheiten gespeichert.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Speichern fehlgeschlagen.";
+      setAvailabilitySaveError(message);
+    } finally {
+      setSavingAvailability(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -258,10 +326,7 @@ export default function PersonDetailPage({
                           key={option.value}
                           type="button"
                           onClick={() =>
-                            setAvailabilityByRehearsal((prev) => ({
-                              ...prev,
-                              [rehearsal.id]: option.value
-                            }))
+                            handleAvailabilityChange(rehearsal.id, option.value)
                           }
                           className={`rounded-full border px-2.5 py-1 text-xs transition ${
                             availabilityByRehearsal[rehearsal.id] === option.value
@@ -281,6 +346,26 @@ export default function PersonDetailPage({
                   Kein Projekt ausgewählt.
                 </p>
               ) : null}
+              {availabilitySaveError ? (
+                <p className="text-sm text-rose-600">{availabilitySaveError}</p>
+              ) : null}
+              {availabilitySaveSuccess ? (
+                <p className="text-sm text-emerald-700">{availabilitySaveSuccess}</p>
+              ) : null}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => void saveAvailability()}
+                  disabled={
+                    selectedProjectId === "" ||
+                    dirtyRehearsalIds.size === 0 ||
+                    savingAvailability
+                  }
+                  className="inline-flex rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300 disabled:opacity-50"
+                >
+                  {savingAvailability ? "Speichert..." : "Anwesenheiten speichern"}
+                </button>
+              </div>
             </div>
           </Card>
         </div>

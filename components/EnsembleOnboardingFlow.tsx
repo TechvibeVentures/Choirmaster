@@ -25,6 +25,13 @@ type Props = {
   mode?: "ensemble" | "singers";
   variant?: "modal" | "page";
   includeProfileStep?: boolean;
+  initialProfile?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    city?: string;
+    timezone?: string;
+  };
 };
 
 type ChoirType = "mixed" | "chamber" | "project";
@@ -241,7 +248,8 @@ export default function EnsembleOnboardingFlow({
   onClose,
   mode = "ensemble",
   variant = "modal",
-  includeProfileStep = false
+  includeProfileStep = false,
+  initialProfile
 }: Props) {
   const {
     choirs,
@@ -264,12 +272,20 @@ export default function EnsembleOnboardingFlow({
   const [startTime, setStartTime] = useState("19:30");
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
-  const [profileFirstName, setProfileFirstName] = useState("Julia");
-  const [profileLastName, setProfileLastName] = useState("Steiner");
-  const [profileEmail, setProfileEmail] = useState("julia.steiner@example.com");
-  const [profileCity, setProfileCity] = useState("Zürich");
+  const [profileFirstName, setProfileFirstName] = useState(
+    initialProfile?.firstName?.trim() || ""
+  );
+  const [profileLastName, setProfileLastName] = useState(
+    initialProfile?.lastName?.trim() || ""
+  );
+  const profileEmail = initialProfile?.email?.trim() || "";
+  const [profileCity, setProfileCity] = useState(
+    initialProfile?.city?.trim() || "Zürich"
+  );
   const [profileRole, setProfileRole] = useState<ProfileRole>("conductor");
-  const [profileTimezone, setProfileTimezone] = useState("Europe/Zurich");
+  const [profileTimezone, setProfileTimezone] = useState(
+    initialProfile?.timezone?.trim() || "Europe/Zurich"
+  );
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
@@ -288,6 +304,7 @@ export default function EnsembleOnboardingFlow({
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [projectAccessToken, setProjectAccessToken] = useState("");
+  const [projectAccessTokenError, setProjectAccessTokenError] = useState("");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
   const isSingerOnly = mode === "singers";
@@ -356,17 +373,34 @@ export default function EnsembleOnboardingFlow({
   useEffect(() => {
     if (!selectedProjectId || !isSingerOnly) {
       setProjectAccessToken("");
+      setProjectAccessTokenError("");
       return;
     }
 
     const run = async () => {
+      setProjectAccessTokenError("");
       try {
         const response = await fetch(`/api/projects/${selectedProjectId}/access-token`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          if (response.status === 403) {
+            setProjectAccessToken("");
+            setProjectAccessTokenError(
+              "Einladungslink kann nur von Admins generiert werden."
+            );
+            return;
+          }
+          setProjectAccessToken("");
+          setProjectAccessTokenError(
+            payload.error || "Einladungslink konnte nicht erstellt werden."
+          );
+          return;
+        }
         const payload = await response.json();
         setProjectAccessToken(payload.token || "");
       } catch {
         setProjectAccessToken("");
+        setProjectAccessTokenError("Einladungslink konnte nicht geladen werden.");
       }
     };
 
@@ -393,10 +427,9 @@ export default function EnsembleOnboardingFlow({
   };
   const inviteLink = projectAccessToken
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${projectAccessToken}`
-    : selectedProject && currentChoir
-      ? `https://choirmaster.techvibe.ch/${currentChoir.id}/${selectedProject.id}`
-      : "https://choirmaster.techvibe.ch";
+    : "";
   const handleCopyLink = async () => {
+    if (!inviteLink) return;
     try {
       await navigator.clipboard.writeText(inviteLink);
       setCopied(true);
@@ -789,8 +822,8 @@ const resultsByVoice = useMemo(() => {
                     {strings.ensembleOnboarding.profileEmail}
                     <input
                       value={profileEmail}
-                      onChange={(event) => setProfileEmail(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
+                      readOnly
+                      className="mt-2 w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 focus:outline-none"
                     />
                   </label>
                   <label className="text-sm text-slate-600">
@@ -1332,10 +1365,17 @@ const resultsByVoice = useMemo(() => {
                       Projektlink
                     </div>
                     <div className="mt-2 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                      <span className="truncate">{inviteLink}</span>
+                      <span
+                        className={`truncate ${
+                          projectAccessTokenError ? "text-rose-600" : ""
+                        }`}
+                      >
+                        {projectAccessTokenError || inviteLink || "Link wird erstellt..."}
+                      </span>
                       <button
                         type="button"
                         onClick={handleCopyLink}
+                        disabled={!inviteLink}
                         className="ml-auto rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-500"
                       >
                         {copied ? "Kopiert" : "Kopieren"}

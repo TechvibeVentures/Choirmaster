@@ -1,6 +1,7 @@
 import type { Concert, Project, Weekday } from "@/lib/domain/types";
 import { convertProjectConcerts, mapRehearsalFacts, normalizeWeekdays } from "@/lib/data/common";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
+import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
 type ProjectRow = {
   id: string;
@@ -13,11 +14,24 @@ type ProjectRow = {
   concerts: unknown;
 };
 
-export const getProjectsByChoirIds = async (choirIds: string[]) => {
+const isProjectsPolicyRecursion = (error: unknown) => {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  const message = (error as { message?: string }).message || "";
+  return code === "42P17" && message.includes('relation "projects"');
+};
+
+export const getProjectsByChoirIds = async (
+  choirIds: string[],
+  context?: {
+    currentPersonId?: string;
+    adminChoirIds?: string[];
+  }
+) => {
   if (!choirIds.length) return [] as ProjectRow[];
 
-  const supabase = getServerSupabaseClient();
-  const { data, error } = await supabase
+  const serverDb = getServerSupabaseClient();
+  const { data, error } = await serverDb
     .from("projects")
     .select(
       "id, choir_id, name, description, link, date_range_start, date_range_end, concerts"
@@ -25,7 +39,48 @@ export const getProjectsByChoirIds = async (choirIds: string[]) => {
     .in("choir_id", choirIds)
     .order("date_range_start", { ascending: true });
 
-  if (error) throw error;
+  if (error && !isProjectsPolicyRecursion(error)) {
+    throw error;
+  }
+
+  if (error && isProjectsPolicyRecursion(error)) {
+    const serviceDb = getServiceSupabaseClient();
+    const serviceQuery = await serviceDb
+      .from("projects")
+      .select(
+        "id, choir_id, name, description, link, date_range_start, date_range_end, concerts"
+      )
+      .in("choir_id", choirIds)
+      .order("date_range_start", { ascending: true });
+
+    if (serviceQuery.error) throw serviceQuery.error;
+
+    const rows = (serviceQuery.data || []) as ProjectRow[];
+    const currentPersonId = context?.currentPersonId || "";
+    const adminChoirSet = new Set(context?.adminChoirIds || []);
+
+    if (!currentPersonId) {
+      return rows.filter((row) => adminChoirSet.has(row.choir_id));
+    }
+
+    const candidateProjectIds = rows.map((row) => row.id);
+    if (!candidateProjectIds.length) return [];
+
+    const participantRes = await serviceDb
+      .from("project_participants")
+      .select("project_id")
+      .in("project_id", candidateProjectIds)
+      .eq("person_id", currentPersonId);
+
+    if (participantRes.error) throw participantRes.error;
+    const participantProjectSet = new Set(
+      (participantRes.data || []).map((item: { project_id: string }) => item.project_id)
+    );
+
+    return rows.filter(
+      (row) => adminChoirSet.has(row.choir_id) || participantProjectSet.has(row.id)
+    );
+  }
 
   return (data || []) as ProjectRow[];
 };

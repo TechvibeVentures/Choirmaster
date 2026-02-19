@@ -76,6 +76,16 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
   const choirIds = Array.from(
     new Set(myMemberships.map((item: any) => item.choir_id))
   ) as string[];
+  const adminChoirIds = Array.from(
+    new Set(
+      myMemberships
+        .filter((item: any) => {
+          const roles = item.roles || [];
+          return roles.includes("chairman") || roles.includes("conductor");
+        })
+        .map((item: any) => item.choir_id)
+    )
+  ) as string[];
   const choirs = await getChoirsByIds(choirIds);
 
   const fallbackChoirId = choirs[0]?.id || "";
@@ -100,8 +110,14 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
     )
   }));
 
-  const projectsRows = await getProjectsByChoirIds(choirIds);
+  const projectsRows = await getProjectsByChoirIds(choirIds, {
+    currentPersonId: currentPerson.id,
+    adminChoirIds
+  });
   const projectIds = projectsRows.map((item) => item.id);
+  const adminProjectIds = projectsRows
+    .filter((item) => adminChoirIds.includes(item.choir_id))
+    .map((item) => item.id);
 
   const rehearsals = await getRehearsalsByProjectIds(
     projectIds,
@@ -135,7 +151,13 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
 
   const concertsByProject = mapConcertsByProject(projectsRows);
 
-  const projectParticipations = await getProjectParticipantsByProjectIds(projectIds);
+  const projectParticipations = await getProjectParticipantsByProjectIds(
+    projectIds,
+    {
+      currentPersonId: currentPerson.id,
+      adminProjectIds
+    }
+  );
 
   const availability = await getAvailabilityByRehearsalIds(rehearsals.map((item) => item.id));
 

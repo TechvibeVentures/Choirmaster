@@ -35,6 +35,14 @@ export default async function OnboardingPage() {
     redirect("/login?next=/onboarding");
   }
 
+  const userMetadata = (user.user_metadata || {}) as Record<string, unknown>;
+  const profileFirstName =
+    typeof userMetadata.first_name === "string" ? userMetadata.first_name.trim() : "";
+  const profileLastName =
+    typeof userMetadata.last_name === "string" ? userMetadata.last_name.trim() : "";
+  const profileCity =
+    typeof userMetadata.city === "string" ? userMetadata.city.trim() : "";
+
   return (
     <div className={`${body.className} min-h-screen bg-white text-slate-900`}>
       <div className="relative overflow-hidden">
@@ -83,6 +91,13 @@ export default async function OnboardingPage() {
             onClose={() => undefined}
             variant="page"
             includeProfileStep
+            initialProfile={{
+              firstName: profileFirstName,
+              lastName: profileLastName,
+              email: user.email || "",
+              city: profileCity,
+              timezone: "Europe/Zurich"
+            }}
           />
         </div>
       </div>

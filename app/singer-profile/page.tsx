@@ -6,6 +6,11 @@ import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import { useAppData } from "@/hooks/useAppData";
 import type { Project, Voice } from "@/lib/domain/types";
+import {
+  mergeAvailabilityRows,
+  mergeCurrentPerson,
+  mergeMembershipVoice
+} from "@/lib/domain/snapshotMutations";
 import { formatDate, formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
@@ -60,9 +65,24 @@ const singerStatusLabels: Record<string, string> = {
 const inputStyles =
   "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none";
 
+const buildAttendanceState = (
+  rehearsalIds: string[],
+  personId: string,
+  availability: Array<{ rehearsal_id: string; person_id: string; status: "yes" | "no" | "unknown" }>
+) => {
+  return rehearsalIds.reduce<Record<string, boolean>>((acc, rehearsalId) => {
+    const row = availability.find(
+      (item) => item.rehearsal_id === rehearsalId && item.person_id === personId
+    );
+    acc[rehearsalId] = row?.status === "yes";
+    return acc;
+  }, {});
+};
+
 export default function SingerViewPage() {
   const {
     activeChoirId,
+    availability,
     choirs,
     concertPrograms,
     concertsByProject,
@@ -71,7 +91,9 @@ export default function SingerViewPage() {
     allPeople,
     allProjects,
     projectParticipations,
-    rehearsalsByProject
+    rehearsalsByProject,
+    replaceSnapshot,
+    snapshot
   } = useAppData();
 
   const singer = allPeople.find((person) => person.id === currentPersonId) ?? allPeople[0];
@@ -111,18 +133,33 @@ export default function SingerViewPage() {
     singer?.experience_level ?? "regular"
   );
   const [selectedVoice, setSelectedVoice] = useState<Voice | null>(voice ?? null);
+  const [firstName, setFirstName] = useState(singer?.first_name ?? "");
+  const [lastName, setLastName] = useState(singer?.last_name ?? "");
+  const [email, setEmail] = useState(singer?.email ?? "");
+  const [phone, setPhone] = useState(singer?.phone ?? "");
+  const [city, setCity] = useState(singer?.city ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState("");
+  const [profileSaveSuccess, setProfileSaveSuccess] = useState("");
   const [participationStatus, setParticipationStatus] = useState<
     "invited" | "confirmed" | "declined"
   >(participation?.invite_status ?? "invited");
   const [paymentStatus, setPaymentStatus] = useState<
     "unpaid" | "pending" | "confirmed"
   >("unpaid");
+  const [savingAttendance, setSavingAttendance] = useState(false);
+  const [attendanceSaveError, setAttendanceSaveError] = useState("");
+  const [attendanceSaveSuccess, setAttendanceSaveSuccess] = useState("");
+  const [dirtyRehearsalIds, setDirtyRehearsalIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [attendanceState, setAttendanceState] = useState<Record<string, boolean>>(
     () =>
-      sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
-        acc[rehearsal.id] = true;
-        return acc;
-      }, {})
+      buildAttendanceState(
+        sortedRehearsals.map((item) => item.id),
+        singer?.id || "",
+        availability
+      )
   );
 
   const voiceOptions = useMemo(() => ["Soprano", "Alto", "Tenor", "Bass"] as Voice[], []);
@@ -131,21 +168,156 @@ export default function SingerViewPage() {
 
   useEffect(() => {
     setSelectedVoice(selectedMembership?.voice ?? voice ?? null);
+    setSelectedExperience(singer?.experience_level ?? "regular");
+    setFirstName(singer?.first_name ?? "");
+    setLastName(singer?.last_name ?? "");
+    setEmail(singer?.email ?? "");
+    setPhone(singer?.phone ?? "");
+    setCity(singer?.city ?? "");
     setParticipationStatus(participation?.invite_status ?? "invited");
     setPaymentStatus("unpaid");
     setAttendanceState(
-      sortedRehearsals.reduce<Record<string, boolean>>((acc, rehearsal) => {
-        acc[rehearsal.id] = true;
-        return acc;
-      }, {})
+      buildAttendanceState(
+        sortedRehearsals.map((item) => item.id),
+        singer?.id || "",
+        availability
+      )
     );
+    setDirtyRehearsalIds(new Set());
+    setAttendanceSaveError("");
+    setAttendanceSaveSuccess("");
+    setProfileSaveError("");
+    setProfileSaveSuccess("");
   }, [
+    availability,
     selectedChoirId,
     selectedMembership?.voice,
+    singer?.city,
+    singer?.email,
+    singer?.experience_level,
+    singer?.first_name,
+    singer?.id,
+    singer?.last_name,
+    singer?.phone,
     participation?.invite_status,
     sortedRehearsals,
     voice
   ]);
+
+  const saveProfile = async () => {
+    if (!singer || !selectedVoice || !selectedChoirId) {
+      setProfileSaveError("Profil konnte nicht gespeichert werden.");
+      return;
+    }
+
+    setSavingProfile(true);
+    setProfileSaveError("");
+    setProfileSaveSuccess("");
+    try {
+      const response = await fetch("/api/profile/me", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          city: city.trim(),
+          experience_level: selectedExperience,
+          voice: selectedVoice,
+          choir_id: selectedChoirId
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "save failed");
+      }
+
+      let nextSnapshot = mergeCurrentPerson(snapshot, {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim() || undefined,
+        city: city.trim(),
+        experience_level: selectedExperience
+      });
+      nextSnapshot = mergeMembershipVoice(
+        nextSnapshot,
+        selectedChoirId,
+        singer.id,
+        selectedVoice
+      );
+      replaceSnapshot(nextSnapshot);
+
+      setProfileSaveSuccess(
+        payload.emailChangeRequested
+          ? "Profil gespeichert. Bitte bestätige die E-Mail-Änderung über den Link in deinem Postfach."
+          : "Profil gespeichert."
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Profil konnte nicht gespeichert werden.";
+      setProfileSaveError(message);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const toggleAttendance = (rehearsalId: string) => {
+    setAttendanceState((prev) => ({
+      ...prev,
+      [rehearsalId]: !prev[rehearsalId]
+    }));
+    setDirtyRehearsalIds((prev) => {
+      const next = new Set(prev);
+      next.add(rehearsalId);
+      return next;
+    });
+    setAttendanceSaveSuccess("");
+  };
+
+  const saveAttendance = async () => {
+    if (!project || dirtyRehearsalIds.size === 0) return;
+
+    setSavingAttendance(true);
+    setAttendanceSaveError("");
+    setAttendanceSaveSuccess("");
+    try {
+      const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
+        rehearsalId,
+        status: attendanceState[rehearsalId] ? "yes" : "no"
+      }));
+
+      const response = await fetch("/api/availability/batch", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          projectId: project.id,
+          entries
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "save failed");
+      }
+
+      replaceSnapshot(mergeAvailabilityRows(snapshot, payload.rows || []));
+      setDirtyRehearsalIds(new Set());
+      setAttendanceSaveSuccess("Anwesenheiten gespeichert.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Anwesenheiten konnten nicht gespeichert werden.";
+      setAttendanceSaveError(message);
+    } finally {
+      setSavingAttendance(false);
+    }
+  };
 
   const roleLabels = (singer?.roles ?? []).map((role) =>
     role === "chairman" ? "Vorstand" : role === "conductor" ? "Leitung" : "Sänger"
@@ -188,7 +360,8 @@ export default function SingerViewPage() {
                   {strings.singer.fields.firstName}
                   <input
                     className={inputStyles}
-                    defaultValue={singer?.first_name}
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
                     type="text"
                   />
                 </label>
@@ -196,7 +369,8 @@ export default function SingerViewPage() {
                   {strings.singer.fields.lastName}
                   <input
                     className={inputStyles}
-                    defaultValue={singer?.last_name}
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
                     type="text"
                   />
                 </label>
@@ -204,7 +378,8 @@ export default function SingerViewPage() {
                   {strings.singer.fields.email}
                   <input
                     className={inputStyles}
-                    defaultValue={singer?.email}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
                     type="email"
                   />
                 </label>
@@ -212,7 +387,8 @@ export default function SingerViewPage() {
                   {strings.singer.fields.phone}
                   <input
                     className={inputStyles}
-                    defaultValue={singer?.phone ?? ""}
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
                     type="tel"
                     placeholder="+41 79 000 00 00"
                   />
@@ -221,7 +397,8 @@ export default function SingerViewPage() {
                 Ort
                 <input
                   className={inputStyles}
-                  defaultValue={singer?.city}
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
                   type="text"
                 />
                 </label>
@@ -281,11 +458,19 @@ export default function SingerViewPage() {
                 <div className="sm:col-span-2">
                   <button
                     type="button"
+                    onClick={() => void saveProfile()}
+                    disabled={savingProfile}
                     className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   >
-                    {strings.singer.save}
+                    {savingProfile ? "Speichert..." : strings.singer.save}
                   </button>
                 </div>
+                {profileSaveError ? (
+                  <p className="sm:col-span-2 text-sm text-rose-600">{profileSaveError}</p>
+                ) : null}
+                {profileSaveSuccess ? (
+                  <p className="sm:col-span-2 text-sm text-emerald-700">{profileSaveSuccess}</p>
+                ) : null}
               </form>
             </Card>
 
@@ -473,12 +658,7 @@ export default function SingerViewPage() {
                           </div>
                           <button
                             type="button"
-                            onClick={() =>
-                              setAttendanceState((prev) => ({
-                                ...prev,
-                                [rehearsal.id]: !prev[rehearsal.id]
-                              }))
-                            }
+                            onClick={() => toggleAttendance(rehearsal.id)}
                             className="flex items-center gap-2 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
                             aria-pressed={isPresent}
                           >
@@ -508,11 +688,19 @@ export default function SingerViewPage() {
                 <div className="mt-4">
                   <button
                     type="button"
+                    onClick={() => void saveAttendance()}
+                    disabled={dirtyRehearsalIds.size === 0 || savingAttendance || !project}
                     className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
                   >
-                    Anwesenheiten speichern
+                    {savingAttendance ? "Speichert..." : "Anwesenheiten speichern"}
                   </button>
                 </div>
+                {attendanceSaveError ? (
+                  <p className="mt-3 text-sm text-rose-600">{attendanceSaveError}</p>
+                ) : null}
+                {attendanceSaveSuccess ? (
+                  <p className="mt-3 text-sm text-emerald-700">{attendanceSaveSuccess}</p>
+                ) : null}
               </div>
             </Card>
 

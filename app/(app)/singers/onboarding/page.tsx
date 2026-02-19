@@ -151,6 +151,7 @@ export default function PeopleOnboardingPage() {
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [inviteToken, setInviteToken] = useState("");
+  const [inviteTokenError, setInviteTokenError] = useState("");
   const [commitStats, setCommitStats] = useState<{
     createdPersons: number;
     upsertedMemberships: number;
@@ -173,17 +174,30 @@ export default function PeopleOnboardingPage() {
   useEffect(() => {
     if (!selectedProjectId) {
       setInviteToken("");
+      setInviteTokenError("");
       return;
     }
 
     const run = async () => {
+      setInviteTokenError("");
       try {
         const response = await fetch(`/api/projects/${selectedProjectId}/access-token`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          if (response.status === 403) {
+            setInviteToken("");
+            setInviteTokenError("Einladungslink kann nur von Admins generiert werden.");
+            return;
+          }
+          setInviteToken("");
+          setInviteTokenError(payload.error || "Einladungslink konnte nicht erstellt werden.");
+          return;
+        }
         const payload = await response.json();
         setInviteToken(payload.token || "");
       } catch {
         setInviteToken("");
+        setInviteTokenError("Einladungslink konnte nicht geladen werden.");
       }
     };
 
@@ -637,8 +651,12 @@ export default function PeopleOnboardingPage() {
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-3">
-                  <span className="text-sm text-slate-700">
-                    {inviteLink || "Link wird erstellt..."}
+                  <span
+                    className={`text-sm ${
+                      inviteTokenError ? "text-rose-600" : "text-slate-700"
+                    }`}
+                  >
+                    {inviteTokenError || inviteLink || "Link wird erstellt..."}
                   </span>
                   <button
                     type="button"
