@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const bootstrapAdminChoirSchema = z.object({
   profile: z.object({
-    first_name: z.string().min(1),
-    last_name: z.string().min(1),
+    first_name: z.string().optional().default(""),
+    last_name: z.string().optional().default(""),
     city: z.string().optional().default(""),
     role: z.enum(["chair", "conductor", "manager"]).default("conductor"),
     language: z.string().optional().default("Deutsch"),

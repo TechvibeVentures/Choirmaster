@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { bootstrapAdminChoirSchema } from "@/lib/apiSchemas";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
@@ -197,6 +198,12 @@ export async function POST(request: Request) {
       projectAccessToken
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: error.issues },
+        { status: 400 }
+      );
+    }
     console.error("bootstrap/admin-choir error", error);
     return NextResponse.json(
       { error: "Failed to bootstrap admin choir" },

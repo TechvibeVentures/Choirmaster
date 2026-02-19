@@ -21,7 +21,7 @@ import { getVoiceLabel } from "@/lib/labels";
 
 type Props = {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   mode?: "ensemble" | "singers";
   variant?: "modal" | "page";
   includeProfileStep?: boolean;
@@ -311,6 +311,15 @@ export default function EnsembleOnboardingFlow({
   const shouldIncludeProfile = includeProfileStep && !isSingerOnly;
   const isPage = variant === "page";
   const isOpen = isPage || open;
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
+    if (isPage) {
+      window.location.href = "/dashboard";
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -557,6 +566,14 @@ const resultsByVoice = useMemo(() => {
   };
 
   const submitBootstrap = async () => {
+    const firstName = profileFirstName.trim();
+    const lastName = profileLastName.trim();
+
+    if (!firstName || !lastName) {
+      window.alert("Bitte Vor- und Nachname eingeben.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const response = await fetch("/api/bootstrap/admin-choir", {
@@ -566,8 +583,8 @@ const resultsByVoice = useMemo(() => {
         },
         body: JSON.stringify({
           profile: {
-            first_name: profileFirstName,
-            last_name: profileLastName,
+            first_name: firstName,
+            last_name: lastName,
             city: profileCity,
             role: profileRole,
             language: "Deutsch",
@@ -593,7 +610,8 @@ const resultsByVoice = useMemo(() => {
       }
 
       if (!response.ok) {
-        throw new Error("bootstrap failed");
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "bootstrap failed");
       }
 
       const result = await response.json();
@@ -602,8 +620,12 @@ const resultsByVoice = useMemo(() => {
         activeChoirId: result.activeChoirId || snapshot.activeChoirId
       });
       window.location.href = "/dashboard";
-    } catch {
-      window.alert("Ensemble konnte nicht erstellt werden.");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Ensemble konnte nicht erstellt werden.";
+      window.alert(message);
     } finally {
       setSubmitting(false);
     }
@@ -658,7 +680,7 @@ const resultsByVoice = useMemo(() => {
             {isPage ? null : (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
               >
                 Schliessen
@@ -685,7 +707,7 @@ const resultsByVoice = useMemo(() => {
               {isPage ? null : (
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                 >
                   {strings.ensembleOnboarding.close}
@@ -1695,7 +1717,7 @@ const resultsByVoice = useMemo(() => {
                 type="button"
                 onClick={() => {
                   if (inviteSent) {
-                    onClose();
+                    handleClose();
                     return;
                   }
                   if (isSingerOnly && step === steps.length - 1) {

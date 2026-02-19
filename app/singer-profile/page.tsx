@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import { useAppData } from "@/hooks/useAppData";
-import type { Project, Voice } from "@/lib/domain/types";
+import type { Concert, Project, Rehearsal, Voice } from "@/lib/domain/types";
 import {
   mergeAvailabilityRows,
   mergeCurrentPerson,
@@ -79,6 +79,21 @@ const buildAttendanceState = (
   }, {});
 };
 
+const EMPTY_REHEARSALS: Rehearsal[] = [];
+const EMPTY_CONCERTS: Concert[] = [];
+
+const mapRoleToLabel = (role: string) => {
+  if (role === "chairman") return "Vorstand";
+  if (role === "conductor") return "Leitung";
+  return "Sänger";
+};
+
+const getRoleLabels = (roles?: string[]) => {
+  const labels = (roles || []).map(mapRoleToLabel);
+  const unique = Array.from(new Set(labels));
+  return unique.length ? unique : ["Sänger"];
+};
+
 export default function SingerViewPage() {
   const {
     activeChoirId,
@@ -97,17 +112,47 @@ export default function SingerViewPage() {
   } = useAppData();
 
   const singer = allPeople.find((person) => person.id === currentPersonId) ?? allPeople[0];
-  const membership = allMemberships.find((item) => item.person_id === singer?.id);
-  const membershipChoirs = allMemberships.filter((item) => item.person_id === singer?.id);
-  const initialChoirId = membershipChoirs[0]?.choir_id ?? activeChoirId;
-  const [selectedChoirId, setSelectedChoirId] = useState(initialChoirId);
-  const choir = choirs.find((entry) => entry.id === selectedChoirId) ?? choirs[0];
-  const selectedMembership = membershipChoirs.find(
-    (item) => item.choir_id === selectedChoirId
+  const membership = useMemo(
+    () => allMemberships.find((item) => item.person_id === singer?.id),
+    [allMemberships, singer?.id]
   );
-  const project = getCurrentProject(allProjects, selectedChoirId);
-  const rehearsals = project ? rehearsalsByProject[project.id] ?? [] : [];
-  const concerts = project ? concertsByProject[project.id] ?? [] : [];
+  const membershipChoirs = useMemo(
+    () => allMemberships.filter((item) => item.person_id === singer?.id),
+    [allMemberships, singer?.id]
+  );
+  const defaultSelectedChoirId = membershipChoirs[0]?.choir_id ?? activeChoirId;
+  const [selectedChoirId, setSelectedChoirId] = useState(defaultSelectedChoirId);
+
+  useEffect(() => {
+    if (
+      selectedChoirId &&
+      membershipChoirs.some((item) => item.choir_id === selectedChoirId)
+    ) {
+      return;
+    }
+    setSelectedChoirId(defaultSelectedChoirId);
+  }, [defaultSelectedChoirId, membershipChoirs, selectedChoirId]);
+
+  const choir = useMemo(
+    () => choirs.find((entry) => entry.id === selectedChoirId) ?? choirs[0],
+    [choirs, selectedChoirId]
+  );
+  const selectedMembership = useMemo(
+    () => membershipChoirs.find((item) => item.choir_id === selectedChoirId),
+    [membershipChoirs, selectedChoirId]
+  );
+  const project = useMemo(
+    () => getCurrentProject(allProjects, selectedChoirId),
+    [allProjects, selectedChoirId]
+  );
+  const rehearsals = useMemo(
+    () => (project ? rehearsalsByProject[project.id] ?? EMPTY_REHEARSALS : EMPTY_REHEARSALS),
+    [project, rehearsalsByProject]
+  );
+  const concerts = useMemo(
+    () => (project ? concertsByProject[project.id] ?? EMPTY_CONCERTS : EMPTY_CONCERTS),
+    [concertsByProject, project]
+  );
   const sortedRehearsals = useMemo(
     () =>
       [...rehearsals].sort(
@@ -319,10 +364,6 @@ export default function SingerViewPage() {
     }
   };
 
-  const roleLabels = (singer?.roles ?? []).map((role) =>
-    role === "chairman" ? "Vorstand" : role === "conductor" ? "Leitung" : "Sänger"
-  );
-
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -486,12 +527,13 @@ export default function SingerViewPage() {
                 </div>
               </div>
               <div className="mt-4 space-y-3">
-                {membershipChoirs.map((item) => {
+                {membershipChoirs.map((item, membershipIndex) => {
                   const choirEntry = choirs.find((entry) => entry.id === item.choir_id);
                   const isSelected = item.choir_id === selectedChoirId;
+                  const roleLabels = getRoleLabels(item.roles);
                   return (
                     <button
-                      key={`${item.choir_id}-${item.voice}`}
+                      key={`${item.choir_id}-${membershipIndex}`}
                       type="button"
                       onClick={() => setSelectedChoirId(item.choir_id)}
                       className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left text-sm transition ${
@@ -509,9 +551,9 @@ export default function SingerViewPage() {
                         </div>
                       </div>
                       <div className="flex flex-wrap justify-end gap-2 text-[11px] text-slate-500">
-                        {roleLabels.map((label) => (
+                        {roleLabels.map((label, labelIndex) => (
                           <span
-                            key={`${item.choir_id}-${label}`}
+                            key={`${item.choir_id}-${label}-${labelIndex}`}
                             className="rounded-full border border-slate-200 px-2 py-0.5"
                           >
                             {label}

@@ -5,7 +5,7 @@ import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
 import { useAppData } from "@/hooks/useAppData";
-import type { Project } from "@/lib/domain/types";
+import type { Project, Rehearsal } from "@/lib/domain/types";
 import { getPersonName } from "@/lib/domain/utils";
 import { mergeAvailabilityRows } from "@/lib/domain/snapshotMutations";
 import { strings } from "@/lib/i18n";
@@ -54,6 +54,8 @@ const getCurrentProjectForChoir = (
   return active ?? sorted[0];
 };
 
+const EMPTY_REHEARSALS: Rehearsal[] = [];
+
 export default function PersonDetailPage({
   params
 }: {
@@ -79,11 +81,13 @@ export default function PersonDetailPage({
   }
 
   const membership = getMembership(person.id, activeChoirId);
-  const personMemberships = allMemberships.filter(
-    (entry) => entry.person_id === person.id
+  const personMemberships = useMemo(
+    () => allMemberships.filter((entry) => entry.person_id === person.id),
+    [allMemberships, person.id]
   );
+  const defaultSelectedChoirId = personMemberships[0]?.choir_id ?? activeChoirId;
   const [selectedChoirId, setSelectedChoirId] = useState(
-    personMemberships[0]?.choir_id ?? activeChoirId
+    defaultSelectedChoirId
   );
   const [paymentStatus, setPaymentStatus] = useState("open");
   const [savingAvailability, setSavingAvailability] = useState(false);
@@ -94,15 +98,24 @@ export default function PersonDetailPage({
   );
 
   useEffect(() => {
-    setSelectedChoirId(personMemberships[0]?.choir_id ?? activeChoirId);
-  }, [activeChoirId, personMemberships]);
+    if (
+      selectedChoirId &&
+      personMemberships.some((entry) => entry.choir_id === selectedChoirId)
+    ) {
+      return;
+    }
+    setSelectedChoirId(defaultSelectedChoirId);
+  }, [defaultSelectedChoirId, personMemberships, selectedChoirId]);
 
   const selectedProject = useMemo(
     () => getCurrentProjectForChoir(projects, selectedChoirId),
     [projects, selectedChoirId]
   );
   const selectedProjectId = selectedProject?.id ?? "";
-  const selectedRehearsals = rehearsalsByProject[selectedProjectId] ?? [];
+  const selectedRehearsals = useMemo(
+    () => rehearsalsByProject[selectedProjectId] ?? EMPTY_REHEARSALS,
+    [rehearsalsByProject, selectedProjectId]
+  );
 
   const [availabilityByRehearsal, setAvailabilityByRehearsal] = useState<
     Record<string, "yes" | "no" | "unknown">

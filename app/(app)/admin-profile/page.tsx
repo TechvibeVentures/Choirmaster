@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import Card from "@/components/Card";
 import { useAppData } from "@/hooks/useAppData";
@@ -21,6 +22,7 @@ const choirRoleLabels: Record<
 
 export default function ProfilePage() {
   const { adminProfile, choirs, personSettings, replaceSnapshot, snapshot } = useAppData();
+  const router = useRouter();
 
   const languageOptions = ["Deutsch", "Französisch", "Italienisch", "Englisch"];
   const defaultLanguage = languageOptions.includes(adminProfile.language)
@@ -235,6 +237,7 @@ export default function ProfilePage() {
               </div>
               <button
                 type="button"
+                onClick={() => router.push("/onboarding")}
                 className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
               >
                 {strings.profile.actions.addChoir}
