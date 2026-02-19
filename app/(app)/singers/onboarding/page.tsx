@@ -14,12 +14,8 @@ import {
 } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
-import {
-  choirs,
-  projects,
-  type Project,
-  type Voice
-} from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type { Project, Voice } from "@/lib/domain/types";
 import {
   formatDate,
   formatDateRange,
@@ -136,6 +132,7 @@ const getProjectStatus = (project: Project) => {
 };
 
 export default function PeopleOnboardingPage() {
+  const { choirs, allProjects } = useAppData();
   const [step, setStep] = useState(0);
   const [selectedChoirId, setSelectedChoirId] = useState(
     choirs[0]?.id ?? ""
@@ -152,19 +149,46 @@ export default function PeopleOnboardingPage() {
     "Hallo! Wir suchen Verstärkung für unser nächstes Projekt. Hier findest du alle Infos und kannst dich direkt eintragen."
   );
   const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [inviteToken, setInviteToken] = useState("");
+  const [commitStats, setCommitStats] = useState<{
+    createdPersons: number;
+    upsertedMemberships: number;
+    upsertedParticipants: number;
+  } | null>(null);
 
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
   const choirProjects = useMemo(
-    () => projects.filter((project) => project.choir_id === selectedChoirId),
-    [selectedChoirId]
+    () => allProjects.filter((project) => project.choir_id === selectedChoirId),
+    [allProjects, selectedChoirId]
   );
 
   useEffect(() => {
     setSelectedProjectId(choirProjects[0]?.id ?? "");
   }, [choirProjects]);
+
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setInviteToken("");
+      return;
+    }
+
+    const run = async () => {
+      try {
+        const response = await fetch(`/api/projects/${selectedProjectId}/access-token`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        setInviteToken(payload.token || "");
+      } catch {
+        setInviteToken("");
+      }
+    };
+
+    void run();
+  }, [selectedProjectId]);
 
   const selectedChoir = choirs.find((choir) => choir.id === selectedChoirId);
   const selectedProject = choirProjects.find(
@@ -181,7 +205,9 @@ export default function PeopleOnboardingPage() {
     (row) => row.name.trim() || row.email.trim()
   );
 
-  const inviteLink = `choirmaster.app/chor/${selectedChoir?.id ?? "link"}/join`;
+  const inviteLink = inviteToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${inviteToken}`
+    : "";
 
   const toggleChannel = (id: string) => {
     setSelectedChannels((prev) =>
@@ -206,8 +232,14 @@ export default function PeopleOnboardingPage() {
     ]);
   };
 
-  const handleCopy = () => {
-    handleComingSoon();
+  const handleCopy = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+    } catch {
+      window.alert("Link konnte nicht kopiert werden.");
+      return;
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   };
@@ -215,6 +247,46 @@ export default function PeopleOnboardingPage() {
   const handleNext = () =>
     setStep((prev) => Math.min(prev + 1, stepLabels.length - 1));
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
+
+  const handleCommit = async () => {
+    if (!selectedProjectId) {
+      window.alert("Bitte zuerst ein Projekt auswählen.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const payloadInvites = filledInvites
+        .filter((row) => row.email.trim())
+        .map((row) => ({
+          name: row.name.trim(),
+          email: row.email.trim().toLowerCase(),
+          voice: row.voice || null
+        }));
+
+      const response = await fetch(
+        `/api/projects/${selectedProjectId}/invites/commit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ invites: payloadInvites })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("commit failed");
+      }
+
+      const result = await response.json();
+      setCommitStats(result);
+    } catch {
+      window.alert("Einladungen konnten nicht gespeichert werden.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -565,11 +637,14 @@ export default function PeopleOnboardingPage() {
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-3">
-                  <span className="text-sm text-slate-700">{inviteLink}</span>
+                  <span className="text-sm text-slate-700">
+                    {inviteLink || "Link wird erstellt..."}
+                  </span>
                   <button
                     type="button"
-                    onClick={handleCopy}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300"
+                    onClick={() => void handleCopy()}
+                    disabled={!inviteLink}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
                   >
                     <Copy className="h-3.5 w-3.5" />
                     {copied ? "Kopiert" : "Kopieren"}
@@ -746,13 +821,21 @@ export default function PeopleOnboardingPage() {
                     Rückmeldungen im Projekt-Board verfolgen
                   </li>
                 </ul>
+                {commitStats ? (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                    {commitStats.createdPersons} neue Personen,{" "}
+                    {commitStats.upsertedMemberships} Memberships,{" "}
+                    {commitStats.upsertedParticipants} Projektteilnahmen gespeichert.
+                  </div>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={handleComingSoon}
-                    className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
+                    onClick={() => void handleCommit()}
+                    disabled={submitting}
+                    className="rounded-lg border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white disabled:opacity-60"
                   >
-                    Onboarding starten
+                    {submitting ? "Speichert..." : "Onboarding starten"}
                   </button>
                   <Link
                     href="/singers"

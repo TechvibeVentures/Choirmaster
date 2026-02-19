@@ -5,20 +5,10 @@ import { useState } from "react";
 import { Pencil } from "lucide-react";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
+import { useAppData } from "@/hooks/useAppData";
+import type { Availability, Project, Voice } from "@/lib/domain/types";
+import { getPersonName } from "@/lib/domain/utils";
 import { strings } from "@/lib/i18n";
-import {
-  availability,
-  concertsByProject,
-  defaultChoirId,
-  getMembership,
-  getPersonName,
-  people,
-  projectParticipations,
-  projects,
-  rehearsalsByProject,
-  type Project,
-  type Voice
-} from "@/lib/mockData";
 import {
   formatDate,
   formatDateRange,
@@ -51,7 +41,11 @@ const getProjectStatus = (project: Project) => {
   };
 };
 
-const getAvailabilitySummary = (rehearsalIds: string[], personId: string) => {
+const getAvailabilitySummary = (
+  availability: Availability[],
+  rehearsalIds: string[],
+  personId: string
+) => {
   return rehearsalIds.reduce(
     (acc, rehearsalId) => {
       const record = availability.find(
@@ -79,6 +73,16 @@ const voiceBorderColors: Record<Voice, string> = {
 };
 
 export default function ProjectDetailView({ projectId }: { projectId: string }) {
+  const {
+    activeChoirId,
+    availability,
+    concertsByProject,
+    getMembership,
+    people,
+    projectParticipations,
+    projects,
+    rehearsalsByProject
+  } = useAppData();
   const project = projects.find((item) => item.id === projectId);
 
   if (!project) {
@@ -160,8 +164,9 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
   );
   const participantRows = participants.map((participant) => {
     const person = people.find((item) => item.id === participant.person_id);
-    const membership = getMembership(participant.person_id, defaultChoirId);
+    const membership = getMembership(participant.person_id, activeChoirId);
     const availabilitySummary = getAvailabilitySummary(
+      availability,
       rehearsalIds,
       participant.person_id
     );
@@ -252,7 +257,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
               </h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 {conductors.map((person) => {
-                  const membership = getMembership(person.id, defaultChoirId);
+                  const membership = getMembership(person.id, activeChoirId);
                   return (
                     <Link
                       key={person.id}

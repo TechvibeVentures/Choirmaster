@@ -7,6 +7,7 @@ import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
 import PageHeader from "@/components/PageHeader";
 import SidebarNav from "@/components/SidebarNav";
 import { getPageTitle } from "@/components/navItems";
+import { useAppData } from "@/hooks/useAppData";
 
 export default function ShellChrome({
   children
@@ -14,7 +15,11 @@ export default function ShellChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "";
-  const title = getPageTitle(pathname);
+  const { allProjects, allPeople } = useAppData();
+  const title = getPageTitle(pathname, {
+    projects: allProjects,
+    people: allPeople
+  });
   const [showEnsembleFlow, setShowEnsembleFlow] = useState(false);
 
   return (

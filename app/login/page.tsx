@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { ArrowLeft, Mail } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { formatMagicLinkError } from "@/lib/supabase/authErrors";
 import { strings } from "@/lib/i18n";
 
 const display = Playfair_Display({
@@ -14,6 +20,40 @@ const body = Manrope({
 });
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/dashboard";
+
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const sendMagicLink = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) return;
+
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const supabase = getBrowserSupabaseClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: redirectTo
+        }
+      });
+
+      if (error) throw error;
+      setSent(true);
+    } catch (error) {
+      console.error("login magic link failed", error);
+      setErrorMessage(formatMagicLinkError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={`${body.className} min-h-screen bg-white text-slate-900`}>
       <div className="relative overflow-hidden">
@@ -40,28 +80,35 @@ export default function LoginPage() {
               <h1 className={`${display.className} mt-4 text-3xl font-semibold`}>
                 {strings.auth.loginSubtitle}
               </h1>
-              <form className="mt-8 grid gap-4">
+              <form onSubmit={sendMagicLink} className="mt-8 grid gap-4">
                 <label className="text-sm text-slate-600">
                   {strings.auth.loginEmailLabel}
                   <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
                       placeholder="name@chor.de"
                       className="w-full border-none text-sm text-slate-900 focus:outline-none"
+                      required
                     />
                   </div>
                 </label>
                 <button
-                  type="button"
-                  className="mt-2 inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white"
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 inline-flex items-center justify-center rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  {strings.auth.loginAction}
+                  {loading ? "Senden..." : strings.auth.loginAction}
                 </button>
               </form>
               <p className="mt-4 text-xs text-slate-500">
-                {strings.auth.loginHint}
+                {sent ? "Magic Link wurde versendet." : strings.auth.loginHint}
               </p>
+              {errorMessage ? (
+                <p className="mt-2 text-xs text-rose-600">{errorMessage}</p>
+              ) : null}
             </div>
 
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6 sm:p-8">

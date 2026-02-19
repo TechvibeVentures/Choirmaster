@@ -1,0 +1,302 @@
+[
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "policyname": "availability_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM (rehearsals\n     JOIN projects ON ((projects.id = rehearsals.project_id)))\n  WHERE ((rehearsals.id = availability.rehearsal_id) AND is_admin(projects.choir_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "policyname": "availability_select_admin_or_self",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((person_id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (rehearsals\n     JOIN projects ON ((projects.id = rehearsals.project_id)))\n  WHERE ((rehearsals.id = availability.rehearsal_id) AND is_admin(projects.choir_id)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "policyname": "availability_update_self_or_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "((person_id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (rehearsals\n     JOIN projects ON ((projects.id = rehearsals.project_id)))\n  WHERE ((rehearsals.id = availability.rehearsal_id) AND is_admin(projects.choir_id)))))",
+      "with_check": "((person_id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (rehearsals\n     JOIN projects ON ((projects.id = rehearsals.project_id)))\n  WHERE ((rehearsals.id = availability.rehearsal_id) AND is_admin(projects.choir_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "policyname": "availability_write_self_or_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((person_id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (rehearsals\n     JOIN projects ON ((projects.id = rehearsals.project_id)))\n  WHERE ((rehearsals.id = availability.rehearsal_id) AND is_admin(projects.choir_id)))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "policyname": "memberships_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "is_admin(choir_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "policyname": "memberships_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "is_admin(choir_id)",
+      "with_check": "is_admin(choir_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "policyname": "memberships_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "is_admin(choir_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "policyname": "memberships_select_member",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "is_member(choir_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choirs",
+      "policyname": "choirs_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "ALL",
+      "qual": "is_admin(id)",
+      "with_check": "is_admin(id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choirs",
+      "policyname": "choirs_select_member",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "is_member(id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "persons",
+      "policyname": "persons_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM choir_memberships\n  WHERE ((choir_memberships.person_id = current_person_id()) AND ((choir_memberships.roles @> ARRAY['chairman'::text]) OR (choir_memberships.roles @> ARRAY['conductor'::text])))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "persons",
+      "policyname": "persons_select_self_or_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (choir_memberships admin_m\n     JOIN choir_memberships target_m ON (((target_m.person_id = persons.id) AND (target_m.choir_id = admin_m.choir_id))))\n  WHERE ((admin_m.person_id = current_person_id()) AND ((admin_m.roles @> ARRAY['chairman'::text]) OR (admin_m.roles @> ARRAY['conductor'::text]))))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "persons",
+      "policyname": "persons_update_self_or_admin",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "((id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (choir_memberships admin_m\n     JOIN choir_memberships target_m ON (((target_m.person_id = persons.id) AND (target_m.choir_id = admin_m.choir_id))))\n  WHERE ((admin_m.person_id = current_person_id()) AND ((admin_m.roles @> ARRAY['chairman'::text]) OR (admin_m.roles @> ARRAY['conductor'::text]))))))",
+      "with_check": "((id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM (choir_memberships admin_m\n     JOIN choir_memberships target_m ON (((target_m.person_id = persons.id) AND (target_m.choir_id = admin_m.choir_id))))\n  WHERE ((admin_m.person_id = current_person_id()) AND ((admin_m.roles @> ARRAY['chairman'::text]) OR (admin_m.roles @> ARRAY['conductor'::text]))))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "policyname": "tokens_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_access_tokens.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "policyname": "tokens_admin_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_access_tokens.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "policyname": "tokens_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_access_tokens.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_access_tokens.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "policyname": "tokens_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_access_tokens.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "policyname": "tokens_public_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{anon}",
+      "cmd": "SELECT",
+      "qual": "(active = true)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "policyname": "participants_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_participants.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "policyname": "participants_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_participants.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_participants.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "policyname": "participants_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_participants.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "policyname": "participants_select_admin_or_self",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "((person_id = current_person_id()) OR (EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = project_participants.project_id) AND is_admin(projects.choir_id)))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "is_admin(choir_id)",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "is_admin(choir_id)",
+      "with_check": "is_admin(choir_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "is_admin(choir_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "policyname": "projects_select_admin_or_participant",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(is_admin(choir_id) OR (EXISTS ( SELECT 1\n   FROM project_participants\n  WHERE ((project_participants.project_id = projects.id) AND (project_participants.person_id = current_person_id())))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rehearsals",
+      "policyname": "rehearsals_admin_delete",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "DELETE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = rehearsals.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rehearsals",
+      "policyname": "rehearsals_admin_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "UPDATE",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = rehearsals.project_id) AND is_admin(projects.choir_id))))",
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = rehearsals.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rehearsals",
+      "policyname": "rehearsals_admin_write",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = rehearsals.project_id) AND is_admin(projects.choir_id))))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rehearsals",
+      "policyname": "rehearsals_select_admin_or_participant",
+      "permissive": "PERMISSIVE",
+      "roles": "{public}",
+      "cmd": "SELECT",
+      "qual": "(EXISTS ( SELECT 1\n   FROM projects\n  WHERE ((projects.id = rehearsals.project_id) AND (is_admin(projects.choir_id) OR (EXISTS ( SELECT 1\n           FROM project_participants\n          WHERE ((project_participants.project_id = projects.id) AND (project_participants.person_id = current_person_id()))))))))",
+      "with_check": null
+    }
+  ]

@@ -2,18 +2,15 @@
 
 import Card from "@/components/Card";
 import { Pencil } from "lucide-react";
-import {
-  availability,
-  defaultChoirId,
-  getMembership,
-  projectParticipations,
-  rehearsalsByProject,
-  type Availability,
-  type Project,
-  type ProjectParticipation,
-  type Rehearsal,
-  type Voice
-} from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type {
+  Availability,
+  ChoirMembership,
+  Project,
+  ProjectParticipation,
+  Rehearsal,
+  Voice
+} from "@/lib/domain/types";
 import { formatDate, formatTimeRange } from "@/lib/format";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
@@ -36,7 +33,8 @@ type MatrixRow = {
 const groupAvailability = (
   rehearsal: Rehearsal,
   participations: ProjectParticipation[],
-  records: Availability[]
+  records: Availability[],
+  resolveMembership: (personId: string) => ChoirMembership | undefined
 ) => {
   const participants = participations
     .filter((item) => item.project_id === rehearsal.project_id)
@@ -50,7 +48,7 @@ const groupAvailability = (
   };
 
   participants.forEach((personId) => {
-    const membership = getMembership(personId, defaultChoirId);
+    const membership = resolveMembership(personId);
     if (!membership) return;
 
     const record = records.find(
@@ -105,6 +103,14 @@ export default function AvailabilityMatrix({
 }: {
   projects: Project[];
 }) {
+  const {
+    activeChoirId,
+    availability,
+    getMembership,
+    projectParticipations,
+    rehearsalsByProject
+  } = useAppData();
+
   const rows: MatrixRow[] = projects
     .flatMap((project) => {
       const rehearsals = rehearsalsByProject[project.id] ?? [];
@@ -112,7 +118,8 @@ export default function AvailabilityMatrix({
         const counts = groupAvailability(
           rehearsal,
           projectParticipations,
-          availability
+          availability,
+          (personId) => getMembership(personId, activeChoirId)
         );
         return {
           rehearsal,
@@ -170,7 +177,12 @@ export default function AvailabilityMatrix({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((row) => (
-              <tr key={row.rehearsal.id} className="text-slate-600">
+              <tr
+                key={row.rehearsal.id}
+                className={`text-slate-600 ${
+                  row.rehearsal.id === nextRehearsalId ? "bg-slate-50/60" : ""
+                }`}
+              >
                 <td className="py-3 pr-4">
                   <div className="font-medium text-slate-800">
                     {formatDate(row.rehearsal.date)}
@@ -230,17 +242,11 @@ export default function AvailabilityMatrix({
                       <span
                         className={`rounded-full border px-2 py-1 text-xs ${warn}`}
                       >
-                        <span className="font-semibold text-slate-800">
-                          Ja:
-                        </span>{" "}
+                        <span className="font-semibold text-slate-800">Ja:</span>{" "}
                         {counts.yes} ·{" "}
-                        <span className="font-semibold text-slate-800">
-                          Nein:
-                        </span>{" "}
+                        <span className="font-semibold text-slate-800">Nein:</span>{" "}
                         {counts.no} ·{" "}
-                        <span className="font-semibold text-slate-800">
-                          Offen:
-                        </span>{" "}
+                        <span className="font-semibold text-slate-800">Offen:</span>{" "}
                         {counts.unknown}
                       </span>
                     </td>

@@ -1,4 +1,4 @@
-import type { Voice } from "@/lib/mockData";
+import type { Voice } from "@/lib/domain/types";
 
 export const voiceLabels: Record<Voice, string> = {
   Soprano: "Sopran",

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
-import { adminProfile, choirs } from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
 import { strings } from "@/lib/i18n";
 
 export default function PageHeader({
@@ -16,7 +16,7 @@ export default function PageHeader({
   onCreateChoir: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(choirs[0]?.name ?? "Ensemble");
+  const { choirs, activeChoirId, setActiveChoirId, adminProfile } = useAppData();
   const menuRef = useRef<HTMLDivElement>(null);
   const showOverviewLink =
     currentPath.startsWith("/projects") &&
@@ -33,13 +33,20 @@ export default function PageHeader({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const handleSelect = (value: string, label: string) => {
+  const selectedChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0];
+  const selected = selectedChoir?.name ?? "Ensemble";
+
+  const handleSelect = async (value: string) => {
     if (value === "new") {
       onCreateChoir();
       setOpen(false);
       return;
     }
-    setSelected(label);
+    try {
+      await setActiveChoirId(value);
+    } catch {
+      window.alert("Ensemble konnte nicht gewechselt werden.");
+    }
     setOpen(false);
   };
 
@@ -100,7 +107,7 @@ export default function PageHeader({
                     <li key={choir.id}>
                       <button
                         type="button"
-                        onClick={() => handleSelect(choir.id, choir.name)}
+                        onClick={() => void handleSelect(choir.id)}
                         className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
                       >
                         {choir.name}
@@ -111,9 +118,7 @@ export default function PageHeader({
                 <div className="border-t border-slate-100 px-3 py-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      handleSelect("new", "Neues Ensemble hinzufügen")
-                    }
+                    onClick={() => void handleSelect("new")}
                     className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700"
                   >
                     <Plus className="h-4 w-4" />

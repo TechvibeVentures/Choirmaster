@@ -24,6 +24,9 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@/supabase-types": [
+        "./supabase.ts"
+      ],
       "@/*": [
         "./*"
       ]

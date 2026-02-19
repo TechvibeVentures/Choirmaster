@@ -1,0 +1,140 @@
+[
+    {
+      "table_name": "availability",
+      "constraint_name": "availability_person_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "availability",
+      "constraint_name": "availability_rehearsal_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (rehearsal_id) REFERENCES rehearsals(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "availability",
+      "constraint_name": "availability_updated_by_person_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (updated_by_person_id) REFERENCES persons(id)"
+    },
+    {
+      "table_name": "availability",
+      "constraint_name": "availability_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "availability",
+      "constraint_name": "availability_rehearsal_id_person_id_key",
+      "constraint_type": "u",
+      "definition": "UNIQUE (rehearsal_id, person_id)"
+    },
+    {
+      "table_name": "choir_memberships",
+      "constraint_name": "choir_memberships_choir_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (choir_id) REFERENCES choirs(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "choir_memberships",
+      "constraint_name": "choir_memberships_person_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "choir_memberships",
+      "constraint_name": "choir_memberships_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "choir_memberships",
+      "constraint_name": "choir_memberships_choir_id_person_id_key",
+      "constraint_type": "u",
+      "definition": "UNIQUE (choir_id, person_id)"
+    },
+    {
+      "table_name": "choirs",
+      "constraint_name": "choirs_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "persons",
+      "constraint_name": "persons_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "persons",
+      "constraint_name": "persons_email_key",
+      "constraint_type": "u",
+      "definition": "UNIQUE (email)"
+    },
+    {
+      "table_name": "project_access_tokens",
+      "constraint_name": "project_access_tokens_project_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "project_access_tokens",
+      "constraint_name": "project_access_tokens_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "project_access_tokens",
+      "constraint_name": "project_access_tokens_token_key",
+      "constraint_type": "u",
+      "definition": "UNIQUE (token)"
+    },
+    {
+      "table_name": "project_participants",
+      "constraint_name": "project_participants_person_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "project_participants",
+      "constraint_name": "project_participants_project_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "project_participants",
+      "constraint_name": "project_participants_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "project_participants",
+      "constraint_name": "project_participants_project_id_person_id_key",
+      "constraint_type": "u",
+      "definition": "UNIQUE (project_id, person_id)"
+    },
+    {
+      "table_name": "projects",
+      "constraint_name": "projects_choir_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (choir_id) REFERENCES choirs(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "projects",
+      "constraint_name": "projects_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "table_name": "rehearsals",
+      "constraint_name": "rehearsals_project_id_fkey",
+      "constraint_type": "f",
+      "definition": "FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE"
+    },
+    {
+      "table_name": "rehearsals",
+      "constraint_name": "rehearsals_pkey",
+      "constraint_type": "p",
+      "definition": "PRIMARY KEY (id)"
+    }
+  ]

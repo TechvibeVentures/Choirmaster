@@ -1,0 +1,9 @@
+[
+    {
+      "table_name": "availability",
+      "trigger_name": "availability_updated_at",
+      "action_timing": "BEFORE",
+      "event_manipulation": "UPDATE",
+      "action_statement": "EXECUTE FUNCTION set_updated_at()"
+    }
+  ]

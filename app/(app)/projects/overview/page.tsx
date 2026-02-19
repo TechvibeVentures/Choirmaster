@@ -1,15 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Card from "@/components/Card";
+import { useAppData } from "@/hooks/useAppData";
+import type { Project, Voice } from "@/lib/domain/types";
 import { strings } from "@/lib/i18n";
-import {
-  concertsByProject,
-  defaultChoirId,
-  getMembership,
-  projectParticipations,
-  projects,
-  rehearsalsByProject,
-  type Voice
-} from "@/lib/mockData";
 import {
   formatDate,
   formatDateRange,
@@ -29,7 +24,7 @@ const voiceColors: Record<Voice, string> = {
 type ProjectStatusKey = "active" | "upcoming" | "archived";
 
 const getProjectStatus = (
-  project: (typeof projects)[number]
+  project: Project
 ): { key: ProjectStatusKey; label: string; className: string } => {
   const today = new Date();
   const start = new Date(`${project.date_range.start}T00:00:00`);
@@ -59,6 +54,15 @@ const getProjectStatus = (
 };
 
 export default function ProjectsOverviewPage() {
+  const {
+    activeChoirId,
+    concertsByProject,
+    getMembership,
+    projectParticipations,
+    projects,
+    rehearsalsByProject
+  } = useAppData();
+
   const statusCounts = projects.reduce<Record<ProjectStatusKey, number>>(
     (acc, project) => {
       const status = getProjectStatus(project).key;
@@ -161,7 +165,7 @@ export default function ProjectsOverviewPage() {
           );
 
           participants.forEach((participant) => {
-            const membership = getMembership(participant.person_id, defaultChoirId);
+            const membership = getMembership(participant.person_id, activeChoirId);
             if (membership) {
               voiceCounts[membership.voice] += 1;
             }

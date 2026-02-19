@@ -1,0 +1,50 @@
+[
+    {
+      "schema_name": "public",
+      "table_name": "availability",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "choir_memberships",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "choirs",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "persons",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "project_access_tokens",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "project_participants",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "projects",
+      "rls_enabled": true,
+      "rls_forced": false
+    },
+    {
+      "schema_name": "public",
+      "table_name": "rehearsals",
+      "rls_enabled": true,
+      "rls_forced": false
+    }
+  ]

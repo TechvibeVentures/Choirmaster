@@ -1,0 +1,193 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type ValidationPayload = {
+  valid: boolean;
+  token?: string;
+  project?: {
+    id: string;
+    name: string;
+    choir_id: string;
+  };
+  choir?: {
+    id: string;
+    name: string;
+    city: string;
+  };
+};
+
+const voiceOptions = ["", "Soprano", "Alto", "Tenor", "Bass"];
+
+export default function JoinTokenPage({
+  params
+}: {
+  params: { token: string };
+}) {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [validatingError, setValidatingError] = useState("");
+  const [payload, setPayload] = useState<ValidationPayload | null>(null);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [city, setCity] = useState("");
+  const [voice, setVoice] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      setLoading(true);
+      setValidatingError("");
+      try {
+        const response = await fetch(`/api/join/validate?token=${params.token}`);
+        const body = await response.json();
+        if (!response.ok) {
+          setPayload(body);
+          setValidatingError(body.error || "Token ist ungültig.");
+          return;
+        }
+        setPayload(body);
+      } catch {
+        setValidatingError("Token konnte nicht geprüft werden.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void run();
+  }, [params.token]);
+
+  const canSubmit = useMemo(() => Boolean(payload?.valid && !submitting), [payload?.valid, submitting]);
+
+  const completeJoin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/join/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          token: params.token,
+          first_name: firstName,
+          last_name: lastName,
+          city,
+          voice: voice || null
+        })
+      });
+
+      if (response.status === 401) {
+        const next = `/join/${params.token}`;
+        router.push(`/login?next=${encodeURIComponent(next)}`);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("join failed");
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      window.alert("Beitritt konnte nicht abgeschlossen werden.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-white px-4 py-10 text-slate-900 sm:px-6">
+      <div className="mx-auto max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="text-xs uppercase tracking-[0.2em] text-slate-400">Projektbeitritt</div>
+
+        {loading ? (
+          <p className="mt-4 text-sm text-slate-500">Token wird geprüft...</p>
+        ) : null}
+
+        {!loading && (!payload?.valid || validatingError) ? (
+          <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {validatingError || "Token ist ungültig."}
+            <div className="mt-3">
+              <Link href="/" className="text-xs font-semibold text-rose-700 underline">
+                Zurück zur Startseite
+              </Link>
+            </div>
+          </div>
+        ) : null}
+
+        {!loading && payload?.valid ? (
+          <>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-900">
+              {payload.project?.name || "Projekt"}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              {payload.choir?.name || "Ensemble"}
+              {payload.choir?.city ? ` · ${payload.choir.city}` : ""}
+            </p>
+
+            <form onSubmit={completeJoin} className="mt-6 grid gap-4">
+              <label className="text-sm text-slate-600">
+                Vorname
+                <input
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  type="text"
+                  placeholder="Vorname"
+                />
+              </label>
+              <label className="text-sm text-slate-600">
+                Nachname
+                <input
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  type="text"
+                  placeholder="Nachname"
+                />
+              </label>
+              <label className="text-sm text-slate-600">
+                Stadt
+                <input
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  type="text"
+                  placeholder="Stadt"
+                />
+              </label>
+              <label className="text-sm text-slate-600">
+                Stimme
+                <select
+                  value={voice}
+                  onChange={(event) => setVoice(event.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                >
+                  {voiceOptions.map((option) => (
+                    <option key={option || "empty"} value={option}>
+                      {option || "Stimme auswählen"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="submit"
+                disabled={!canSubmit}
+                className="mt-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+              >
+                {submitting ? "Speichert..." : "Beitritt abschließen"}
+              </button>
+            </form>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}

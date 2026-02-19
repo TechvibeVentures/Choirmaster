@@ -1,5 +1,5 @@
 import Badge from "@/components/Badge";
-import type { Voice } from "@/lib/mockData";
+import type { Voice } from "@/lib/domain/types";
 import { getVoiceLabel } from "@/lib/labels";
 
 const voiceColors: Record<Voice, string> = {

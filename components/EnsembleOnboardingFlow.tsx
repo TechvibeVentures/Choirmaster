@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 import Card from "@/components/Card";
 import { strings } from "@/lib/i18n";
-import { choirs, projects, type Voice, type Weekday } from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type { Voice, Weekday } from "@/lib/domain/types";
 import { getVoiceLabel } from "@/lib/labels";
 
 type Props = {
@@ -242,6 +243,15 @@ export default function EnsembleOnboardingFlow({
   variant = "modal",
   includeProfileStep = false
 }: Props) {
+  const {
+    choirs,
+    allProjects,
+    activeChoirId,
+    replaceSnapshot,
+    snapshot
+  } = useAppData();
+  const projects = allProjects;
+
   const [step, setStep] = useState(0);
   const [name, setName] = useState("Luzia Chor");
   const [city, setCity] = useState("Zürich");
@@ -259,7 +269,7 @@ export default function EnsembleOnboardingFlow({
   const [profileEmail, setProfileEmail] = useState("julia.steiner@example.com");
   const [profileCity, setProfileCity] = useState("Zürich");
   const [profileRole, setProfileRole] = useState<ProfileRole>("conductor");
-  const [profileTimezone, setProfileTimezone] = useState("Europa/Zurich");
+  const [profileTimezone, setProfileTimezone] = useState("Europe/Zurich");
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
   );
@@ -276,6 +286,8 @@ export default function EnsembleOnboardingFlow({
   ]);
   const [inviteSent, setInviteSent] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [projectAccessToken, setProjectAccessToken] = useState("");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
   const isSingerOnly = mode === "singers";
@@ -316,7 +328,7 @@ export default function EnsembleOnboardingFlow({
   const integrationsStepIndex = isSingerOnly ? -1 : 4 + baseIndex;
   const finishStepIndex = isSingerOnly ? -1 : 5 + baseIndex;
   const invitesStepIndex = isSingerOnly ? 1 : -1;
-  const currentChoir = choirs[0];
+  const currentChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0];
   const choirProjects = projects.filter(
     (project) => project.choir_id === currentChoir?.id
   );
@@ -326,6 +338,13 @@ export default function EnsembleOnboardingFlow({
     null;
 
   useEffect(() => {
+    if (choirProjects.some((project) => project.id === selectedProjectId)) {
+      return;
+    }
+    setSelectedProjectId(choirProjects[0]?.id ?? "");
+  }, [choirProjects, selectedProjectId]);
+
+  useEffect(() => {
     if (!open || isPage) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -333,6 +352,26 @@ export default function EnsembleOnboardingFlow({
       document.body.style.overflow = originalOverflow;
     };
   }, [open, isPage]);
+
+  useEffect(() => {
+    if (!selectedProjectId || !isSingerOnly) {
+      setProjectAccessToken("");
+      return;
+    }
+
+    const run = async () => {
+      try {
+        const response = await fetch(`/api/projects/${selectedProjectId}/access-token`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        setProjectAccessToken(payload.token || "");
+      } catch {
+        setProjectAccessToken("");
+      }
+    };
+
+    void run();
+  }, [isSingerOnly, selectedProjectId]);
 
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
@@ -352,9 +391,11 @@ export default function EnsembleOnboardingFlow({
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
-  const inviteLink = selectedProject && currentChoir
-    ? `https://choirmaster.techvibe.ch/${currentChoir.id}/${selectedProject.id}`
-    : "https://choirmaster.techvibe.ch";
+  const inviteLink = projectAccessToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${projectAccessToken}`
+    : selectedProject && currentChoir
+      ? `https://choirmaster.techvibe.ch/${currentChoir.id}/${selectedProject.id}`
+      : "https://choirmaster.techvibe.ch";
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -442,6 +483,130 @@ const resultsByVoice = useMemo(() => {
     });
     return counts;
   }, [directEntries, selectedSingerIds]);
+
+  const mapInputVoice = (value: string): Voice | null => {
+    if (value === "Sopran" || value === "Soprano") return "Soprano";
+    if (value === "Alt" || value === "Alto") return "Alto";
+    if (value === "Tenor") return "Tenor";
+    if (value === "Bass") return "Bass";
+    return null;
+  };
+
+  const buildInvitePayload = () => {
+    const selectedSet = new Set(selectedSingerIds);
+    const fromSearch = mockSingerResults
+      .filter((singer) => selectedSet.has(singer.id))
+      .map((singer) => ({
+        name: singer.name,
+        email: singer.email.toLowerCase(),
+        voice: singer.voice
+      }));
+
+    const fromDirect = directEntries
+      .filter((entry) => entry.email.trim())
+      .map((entry) => ({
+        name: `${entry.first} ${entry.last}`.trim(),
+        email: entry.email.trim().toLowerCase(),
+        voice: mapInputVoice(entry.voice)
+      }));
+
+    const byEmail = new Map<
+      string,
+      { name: string; email: string; voice: Voice | null }
+    >();
+
+    [...fromSearch, ...fromDirect].forEach((invite) => {
+      if (!invite.email) return;
+      byEmail.set(invite.email, invite);
+    });
+
+    return Array.from(byEmail.values());
+  };
+
+  const submitBootstrap = async () => {
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/bootstrap/admin-choir", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          profile: {
+            first_name: profileFirstName,
+            last_name: profileLastName,
+            city: profileCity,
+            role: profileRole,
+            language: "Deutsch",
+            timezone: profileTimezone || "Europe/Zurich"
+          },
+          choir: {
+            name,
+            city,
+            type: choirType,
+            genres,
+            rehearsal_weekdays: weekdays,
+            rehearsal_start_time: startTime,
+            rehearsal_end_time: endTime,
+            default_location: location
+          },
+          createDefaultProject: true
+        })
+      });
+
+      if (response.status === 401) {
+        window.location.href = "/login?next=/onboarding";
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("bootstrap failed");
+      }
+
+      const result = await response.json();
+      replaceSnapshot({
+        ...snapshot,
+        activeChoirId: result.activeChoirId || snapshot.activeChoirId
+      });
+      window.location.href = "/dashboard";
+    } catch {
+      window.alert("Ensemble konnte nicht erstellt werden.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitSingerInvites = async () => {
+    if (!selectedProjectId) {
+      window.alert("Bitte zuerst ein Projekt auswählen.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const invites = buildInvitePayload();
+      const response = await fetch(
+        `/api/projects/${selectedProjectId}/invites/commit`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ invites })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("commit failed");
+      }
+
+      setInviteSent(true);
+    } catch {
+      window.alert("Einladungen konnten nicht gespeichert werden.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -1494,18 +1659,21 @@ const resultsByVoice = useMemo(() => {
                     return;
                   }
                   if (isSingerOnly && step === steps.length - 1) {
-                    setInviteSent(true);
+                    void submitSingerInvites();
                     return;
                   }
                   if (step === steps.length - 1) {
-                    onClose();
+                    void submitBootstrap();
                     return;
                   }
                   handleNext();
                 }}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm text-white transition hover:bg-slate-800"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm text-white transition hover:bg-slate-800 disabled:opacity-60"
               >
-                {inviteSent
+                {submitting
+                  ? "Speichert..."
+                  : inviteSent
                   ? "Schliessen"
                   : isSingerOnly && step === steps.length - 1
                     ? strings.ensembleOnboarding.invitesAction

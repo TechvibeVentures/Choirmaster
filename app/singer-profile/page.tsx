@@ -4,21 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
+import { useAppData } from "@/hooks/useAppData";
+import type { Project, Voice } from "@/lib/domain/types";
 import { formatDate, formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
-import {
-  choirs,
-  concertPrograms,
-  concertsByProject,
-  defaultChoirId,
-  memberships,
-  people,
-  projectParticipations,
-  projects,
-  rehearsalsByProject,
-  type Voice
-} from "@/lib/mockData";
 
 const voiceColors: Record<Voice, string> = {
   Soprano: "var(--voice-soprano)",
@@ -27,7 +17,10 @@ const voiceColors: Record<Voice, string> = {
   Bass: "var(--voice-bass)"
 };
 
-const getCurrentProject = (choirId: string) => {
+const getCurrentProject = (
+  projects: Project[],
+  choirId: string
+) => {
   const choirProjects = projects.filter((project) => project.choir_id === choirId);
   if (!choirProjects.length) {
     return null;
@@ -68,17 +61,29 @@ const inputStyles =
   "mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-400 focus:outline-none";
 
 export default function SingerViewPage() {
-  const mockSingerId = "nadia-frei";
-  const singer = people.find((person) => person.id === mockSingerId) ?? people[0];
-  const membership = memberships.find((item) => item.person_id === singer?.id);
-  const membershipChoirs = memberships.filter((item) => item.person_id === singer?.id);
-  const initialChoirId = membershipChoirs[0]?.choir_id ?? defaultChoirId;
+  const {
+    activeChoirId,
+    choirs,
+    concertPrograms,
+    concertsByProject,
+    currentPersonId,
+    allMemberships,
+    allPeople,
+    allProjects,
+    projectParticipations,
+    rehearsalsByProject
+  } = useAppData();
+
+  const singer = allPeople.find((person) => person.id === currentPersonId) ?? allPeople[0];
+  const membership = allMemberships.find((item) => item.person_id === singer?.id);
+  const membershipChoirs = allMemberships.filter((item) => item.person_id === singer?.id);
+  const initialChoirId = membershipChoirs[0]?.choir_id ?? activeChoirId;
   const [selectedChoirId, setSelectedChoirId] = useState(initialChoirId);
   const choir = choirs.find((entry) => entry.id === selectedChoirId) ?? choirs[0];
   const selectedMembership = membershipChoirs.find(
     (item) => item.choir_id === selectedChoirId
   );
-  const project = getCurrentProject(selectedChoirId);
+  const project = getCurrentProject(allProjects, selectedChoirId);
   const rehearsals = project ? rehearsalsByProject[project.id] ?? [] : [];
   const concerts = project ? concertsByProject[project.id] ?? [] : [];
   const sortedRehearsals = useMemo(

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import Card from "@/components/Card";
-import { adminProfile, choirs, type AdminProfile } from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type { AdminProfile } from "@/lib/domain/types";
 import { strings } from "@/lib/i18n";
 
 const inputStyles =
@@ -19,12 +20,20 @@ const choirRoleLabels: Record<
 };
 
 export default function ProfilePage() {
+  const { adminProfile, choirs, personSettings, replaceSnapshot, snapshot } = useAppData();
+
   const languageOptions = ["Deutsch", "Französisch", "Italienisch", "Englisch"];
   const defaultLanguage = languageOptions.includes(adminProfile.language)
     ? adminProfile.language
     : "Deutsch";
   const [languageOpen, setLanguageOpen] = useState(false);
   const [language, setLanguage] = useState(defaultLanguage);
+  const [firstName, setFirstName] = useState(adminProfile.first_name);
+  const [lastName, setLastName] = useState(adminProfile.last_name);
+  const [email, setEmail] = useState(adminProfile.email);
+  const [phone, setPhone] = useState(adminProfile.phone ?? "");
+  const [city, setCity] = useState(adminProfile.city);
+  const [saving, setSaving] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,6 +56,49 @@ export default function ProfilePage() {
     };
   });
 
+  const saveProfile = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch("/api/profile/admin", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+          city,
+          language
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("save failed");
+      }
+
+      replaceSnapshot({
+        ...snapshot,
+        adminProfile: {
+          ...snapshot.adminProfile,
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+          city,
+          language
+        },
+        personSettings: {
+          ...personSettings,
+          language
+        }
+      });
+    } catch {
+      window.alert("Profil konnte nicht gespeichert werden.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -65,7 +117,8 @@ export default function ProfilePage() {
                 {strings.profile.fields.firstName}
                 <input
                   className={inputStyles}
-                  defaultValue={adminProfile.first_name}
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
                   type="text"
                 />
               </label>
@@ -73,7 +126,8 @@ export default function ProfilePage() {
                 {strings.profile.fields.lastName}
                 <input
                   className={inputStyles}
-                  defaultValue={adminProfile.last_name}
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
                   type="text"
                 />
               </label>
@@ -81,7 +135,8 @@ export default function ProfilePage() {
                 {strings.profile.fields.email}
                 <input
                   className={inputStyles}
-                  defaultValue={adminProfile.email}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   type="email"
                 />
               </label>
@@ -89,7 +144,8 @@ export default function ProfilePage() {
                 {strings.profile.fields.phone}
                 <input
                   className={inputStyles}
-                  defaultValue={adminProfile.phone ?? ""}
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
                   type="tel"
                 />
               </label>
@@ -97,7 +153,8 @@ export default function ProfilePage() {
                 {strings.profile.fields.city}
                 <input
                   className={inputStyles}
-                  defaultValue={adminProfile.city}
+                  value={city}
+                  onChange={(event) => setCity(event.target.value)}
                   type="text"
                 />
               </label>
@@ -147,9 +204,11 @@ export default function ProfilePage() {
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300"
+                    onClick={() => void saveProfile()}
+                    disabled={saving}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-60"
                   >
-                    {strings.profile.actions.save}
+                    {saving ? "Speichert..." : strings.profile.actions.save}
                   </button>
                   <button
                     type="button"

@@ -1,22 +1,13 @@
 "use client";
 
-import { notFound } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
+import { useAppData } from "@/hooks/useAppData";
+import type { Project } from "@/lib/domain/types";
+import { getPersonName } from "@/lib/domain/utils";
 import { strings } from "@/lib/i18n";
-import {
-  availability,
-  choirs,
-  defaultChoirId,
-  getMembership,
-  getPersonName,
-  memberships,
-  people,
-  projects,
-  rehearsalsByProject
-} from "@/lib/mockData";
 import { formatDate } from "@/lib/format";
 import { getVoiceLabel } from "@/lib/labels";
 
@@ -44,7 +35,10 @@ const getChoirRoleLabel = (roles: string[]) => {
   return "Sänger";
 };
 
-const getCurrentProjectForChoir = (choirId: string) => {
+const getCurrentProjectForChoir = (
+  projects: Project[],
+  choirId: string
+) => {
   const today = new Date();
   const choirProjects = projects.filter((project) => project.choir_id === choirId);
   const sorted = [...choirProjects].sort(
@@ -64,28 +58,39 @@ export default function PersonDetailPage({
 }: {
   params: { personId: string };
 }) {
-  const person = people.find((item) => item.id === params.personId);
+  const {
+    activeChoirId,
+    availability,
+    choirs,
+    getMembership,
+    allMemberships,
+    allPeople,
+    projects,
+    rehearsalsByProject
+  } = useAppData();
+
+  const person = allPeople.find((item) => item.id === params.personId);
 
   if (!person) {
-    notFound();
+    return null;
   }
 
-  const membership = getMembership(person.id, defaultChoirId);
-  const personMemberships = memberships.filter(
+  const membership = getMembership(person.id, activeChoirId);
+  const personMemberships = allMemberships.filter(
     (entry) => entry.person_id === person.id
   );
   const [selectedChoirId, setSelectedChoirId] = useState(
-    personMemberships[0]?.choir_id ?? defaultChoirId
+    personMemberships[0]?.choir_id ?? activeChoirId
   );
   const [paymentStatus, setPaymentStatus] = useState("open");
 
   useEffect(() => {
-    setSelectedChoirId(personMemberships[0]?.choir_id ?? defaultChoirId);
-  }, [personMemberships]);
+    setSelectedChoirId(personMemberships[0]?.choir_id ?? activeChoirId);
+  }, [activeChoirId, personMemberships]);
 
   const selectedProject = useMemo(
-    () => getCurrentProjectForChoir(selectedChoirId),
-    [selectedChoirId]
+    () => getCurrentProjectForChoir(projects, selectedChoirId),
+    [projects, selectedChoirId]
   );
   const selectedProjectId = selectedProject?.id ?? "";
   const selectedRehearsals = rehearsalsByProject[selectedProjectId] ?? [];

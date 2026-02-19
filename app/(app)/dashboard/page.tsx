@@ -1,16 +1,9 @@
+"use client";
+
 import AvailabilityMatrix from "@/components/AvailabilityMatrix";
 import Card from "@/components/Card";
-import {
-  availability,
-  choirs,
-  concertsByProject,
-  defaultChoirId,
-  memberships,
-  projectParticipations,
-  projects,
-  rehearsalsByProject,
-  type Voice
-} from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type { Voice } from "@/lib/domain/types";
 import { formatDate, formatTimeRange } from "@/lib/format";
 import { getVoiceLabel } from "@/lib/labels";
 
@@ -23,25 +16,19 @@ const voiceColors: Record<Voice, string> = {
   Bass: "var(--voice-bass)"
 };
 
-const getCurrentProject = () => {
-  const today = new Date();
-  const sorted = [...projects].sort(
-    (a, b) =>
-      new Date(`${a.date_range.start}T00:00:00`).getTime() -
-      new Date(`${b.date_range.start}T00:00:00`).getTime()
-  );
-
-  const active = sorted.find(
-    (project) =>
-      new Date(`${project.date_range.end}T00:00:00`) >= today
-  );
-
-  return active ?? sorted[0];
-};
-
 export default function DashboardPage() {
+  const {
+    activeChoirId,
+    availability,
+    choir,
+    concertsByProject,
+    getCurrentProject,
+    memberships,
+    projectParticipations,
+    rehearsalsByProject
+  } = useAppData();
   const project = getCurrentProject();
-  const choirName = choirs[0]?.name ?? "";
+  const choirName = choir?.name ?? "";
   const rehearsals = project ? rehearsalsByProject[project.id] ?? [] : [];
   const concerts = project ? concertsByProject[project.id] ?? [] : [];
   const nextRehearsal = rehearsals
@@ -74,7 +61,7 @@ export default function DashboardPage() {
   const voiceStats: VoiceStat[] = voiceOrder.map((voice) => {
     const members = memberships.filter(
       (member) =>
-        member.choir_id === defaultChoirId && member.voice === voice
+        member.choir_id === activeChoirId && member.voice === voice
     );
     const total = members.length;
     const active = members.filter((member) =>

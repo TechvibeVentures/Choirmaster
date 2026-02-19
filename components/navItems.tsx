@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { FolderKanban, Home, MessageCircle, Music2, Users } from "lucide-react";
-import { getPersonName, people, projects } from "@/lib/mockData";
+import type { Person, Project } from "@/lib/domain/types";
+import { getPersonName } from "@/lib/domain/utils";
 import { strings } from "@/lib/i18n";
 
 type NavItem = {
@@ -22,7 +23,13 @@ export const navItems: NavItem[] = [
   }
 ];
 
-export const getPageTitle = (pathname: string) => {
+export const getPageTitle = (
+  pathname: string,
+  data?: { projects?: Project[]; people?: Person[] }
+) => {
+  const projects = data?.projects || [];
+  const people = data?.people || [];
+
   if (!pathname) return strings.nav.dashboard;
   if (pathname === "/projects/overview") {
     return strings.projects.overviewTitle;

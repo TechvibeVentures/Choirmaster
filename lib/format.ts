@@ -1,4 +1,5 @@
-import type { Weekday } from "@/lib/mockData";
+import { DateTime } from "luxon";
+import type { Weekday } from "@/lib/domain/types";
 
 const weekdayLabels: Record<Weekday, string> = {
   Mon: "Mo",
@@ -24,3 +25,9 @@ export const formatWeekdays = (days: Weekday[]) =>
   days.map((day) => weekdayLabels[day]).join(" · ");
 
 export const formatTimeRange = (start: string, end: string) => `${start}–${end}`;
+
+export const formatDateTimeInTimezone = (
+  value: string,
+  timezone: string,
+  pattern = "dd.LL.yyyy HH:mm"
+) => DateTime.fromISO(value, { zone: "utc" }).setZone(timezone).toFormat(pattern);

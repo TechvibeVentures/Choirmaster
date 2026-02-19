@@ -2,34 +2,32 @@
 
 import Card from "@/components/Card";
 import RepertoireTopBar from "@/components/RepertoireTopBar";
+import { useAppData } from "@/hooks/useAppData";
 import { strings } from "@/lib/i18n";
-import {
-  concertPrograms,
-  defaultChoirId,
-  repertoirePieces
-} from "@/lib/mockData";
 
 export default function RepertoirePage() {
+  const { activeChoirId, concertPrograms, repertoirePieces } = useAppData();
+
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
+  const choirPrograms = concertPrograms.filter(
+    (program) => program.choir_id === activeChoirId
+  );
+
   const currentProgram =
-    concertPrograms.find(
-      (program) =>
-        program.choir_id === defaultChoirId && program.status === "current"
-    ) ?? concertPrograms.find((program) => program.choir_id === defaultChoirId);
-  const otherPrograms = concertPrograms
-    .filter(
-      (program) =>
-        program.choir_id === defaultChoirId && program.id !== currentProgram?.id
-    )
+    choirPrograms.find((program) => program.status === "current") ||
+    choirPrograms[0];
+
+  const otherPrograms = choirPrograms
+    .filter((program) => program.id !== currentProgram?.id)
     .slice(0, 5);
-  const totalRepertoire = new Set(
-    concertPrograms
-      .filter((program) => program.choir_id === defaultChoirId)
-      .flatMap((program) => program.pieces.map((piece) => piece.id))
-  ).size;
+
+  const totalRepertoire = repertoirePieces.filter(
+    (piece) => piece.choir_id === activeChoirId
+  ).length;
+
   const programPieces = currentProgram?.pieces ?? [];
 
   return (

@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Mail, User } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
-import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { formatMagicLinkError } from "@/lib/supabase/authErrors";
 
 const display = Playfair_Display({
   subsets: ["latin"],
@@ -18,7 +19,45 @@ const body = Manrope({
 });
 
 export default function SignupPage() {
-  const [open, setOpen] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const startSignup = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) return;
+
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const supabase = getBrowserSupabaseClient();
+      const params = new URLSearchParams();
+      params.set("next", "/onboarding");
+
+      const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: redirectTo,
+          data: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim()
+          }
+        }
+      });
+
+      if (error) throw error;
+      setSent(true);
+    } catch (error) {
+      console.error("signup magic link failed", error);
+      setErrorMessage(formatMagicLinkError(error));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={`${body.className} min-h-screen bg-white text-slate-900`}>
@@ -57,13 +96,15 @@ export default function SignupPage() {
               <h1 className={`${display.className} mt-4 text-3xl font-semibold`}>
                 Starte mit deinem Profil für das neue Ensemble.
               </h1>
-              <form className="mt-8 grid gap-4">
+              <form onSubmit={startSignup} className="mt-8 grid gap-4">
                 <label className="text-sm text-slate-600">
                   Vorname
                   <div className="mt-2 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
                     <User className="h-4 w-4 text-slate-400" />
                     <input
                       type="text"
+                      value={firstName}
+                      onChange={(event) => setFirstName(event.target.value)}
                       placeholder="Maria"
                       className="w-full border-none text-sm text-slate-900 focus:outline-none"
                     />
@@ -75,6 +116,8 @@ export default function SignupPage() {
                     <User className="h-4 w-4 text-slate-400" />
                     <input
                       type="text"
+                      value={lastName}
+                      onChange={(event) => setLastName(event.target.value)}
                       placeholder="Haller"
                       className="w-full border-none text-sm text-slate-900 focus:outline-none"
                     />
@@ -86,23 +129,31 @@ export default function SignupPage() {
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
                       placeholder="name@chor.de"
                       className="w-full border-none text-sm text-slate-900 focus:outline-none"
+                      required
                     />
                   </div>
                 </label>
                 <button
-                  type="button"
-                  onClick={() => setOpen(true)}
-                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white"
+                  type="submit"
+                  disabled={loading}
+                  className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                 >
-                  Neues Ensemble erstellen
+                  {loading ? "Senden..." : "Neues Ensemble erstellen"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </form>
               <p className="mt-4 text-xs text-slate-500">
-                Im nächsten Schritt legst du Ensemble, Probenrhythmus und Einladungen fest.
+                {sent
+                  ? "Magic Link wurde gesendet. Öffne die E-Mail, um mit dem Onboarding zu starten."
+                  : "Im nächsten Schritt legst du Ensemble, Probenrhythmus und Einladungen fest."}
               </p>
+              {errorMessage ? (
+                <p className="mt-2 text-xs text-rose-600">{errorMessage}</p>
+              ) : null}
             </div>
 
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-6 sm:p-8">
@@ -136,8 +187,6 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-
-      <EnsembleOnboardingFlow open={open} onClose={() => setOpen(false)} />
     </div>
   );
 }

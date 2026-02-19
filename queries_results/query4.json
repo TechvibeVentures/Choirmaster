@@ -1,0 +1,80 @@
+[
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "indexname": "availability_pkey",
+      "indexdef": "CREATE UNIQUE INDEX availability_pkey ON public.availability USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "availability",
+      "indexname": "availability_rehearsal_id_person_id_key",
+      "indexdef": "CREATE UNIQUE INDEX availability_rehearsal_id_person_id_key ON public.availability USING btree (rehearsal_id, person_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "indexname": "choir_memberships_choir_id_person_id_key",
+      "indexdef": "CREATE UNIQUE INDEX choir_memberships_choir_id_person_id_key ON public.choir_memberships USING btree (choir_id, person_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choir_memberships",
+      "indexname": "choir_memberships_pkey",
+      "indexdef": "CREATE UNIQUE INDEX choir_memberships_pkey ON public.choir_memberships USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "choirs",
+      "indexname": "choirs_pkey",
+      "indexdef": "CREATE UNIQUE INDEX choirs_pkey ON public.choirs USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "persons",
+      "indexname": "persons_email_key",
+      "indexdef": "CREATE UNIQUE INDEX persons_email_key ON public.persons USING btree (email)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "persons",
+      "indexname": "persons_pkey",
+      "indexdef": "CREATE UNIQUE INDEX persons_pkey ON public.persons USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "indexname": "project_access_tokens_pkey",
+      "indexdef": "CREATE UNIQUE INDEX project_access_tokens_pkey ON public.project_access_tokens USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_access_tokens",
+      "indexname": "project_access_tokens_token_key",
+      "indexdef": "CREATE UNIQUE INDEX project_access_tokens_token_key ON public.project_access_tokens USING btree (token)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "indexname": "project_participants_pkey",
+      "indexdef": "CREATE UNIQUE INDEX project_participants_pkey ON public.project_participants USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "project_participants",
+      "indexname": "project_participants_project_id_person_id_key",
+      "indexdef": "CREATE UNIQUE INDEX project_participants_project_id_person_id_key ON public.project_participants USING btree (project_id, person_id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "projects",
+      "indexname": "projects_pkey",
+      "indexdef": "CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id)"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "rehearsals",
+      "indexname": "rehearsals_pkey",
+      "indexdef": "CREATE UNIQUE INDEX rehearsals_pkey ON public.rehearsals USING btree (id)"
+    }
+  ]

@@ -6,21 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:supabase": "tsx scripts/seed-supabase-from-mock.ts"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.49.8",
+    "luxon": "^3.6.1",
     "lucide-react": "^0.510.0",
     "next": "14.2.5",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/luxon": "^3.6.2",
     "@types/node": "20.11.30",
     "@types/react": "18.2.66",
     "@types/react-dom": "18.2.22",
     "autoprefixer": "10.4.19",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.3",
+    "tsx": "^4.20.3",
     "typescript": "5.4.3"
   }
 }

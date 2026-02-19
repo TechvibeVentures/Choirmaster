@@ -1,0 +1,57 @@
+[
+    {
+      "enum_name": "availability_status",
+      "sort_order": 1,
+      "enum_value": "yes"
+    },
+    {
+      "enum_name": "availability_status",
+      "sort_order": 2,
+      "enum_value": "no"
+    },
+    {
+      "enum_name": "availability_status",
+      "sort_order": 3,
+      "enum_value": "unknown"
+    },
+    {
+      "enum_name": "invite_status",
+      "sort_order": 1,
+      "enum_value": "invited"
+    },
+    {
+      "enum_name": "invite_status",
+      "sort_order": 2,
+      "enum_value": "confirmed"
+    },
+    {
+      "enum_name": "invite_status",
+      "sort_order": 3,
+      "enum_value": "declined"
+    },
+    {
+      "enum_name": "singer_status",
+      "sort_order": 1,
+      "enum_value": "active"
+    },
+    {
+      "enum_name": "singer_status",
+      "sort_order": 2,
+      "enum_value": "inactive"
+    },
+    {
+      "enum_name": "singer_status",
+      "sort_order": 3,
+      "enum_value": "project_only"
+    },
+    {
+      "enum_name": "updated_by_kind",
+      "sort_order": 1,
+      "enum_value": "singer"
+    },
+    {
+      "enum_name": "updated_by_kind",
+      "sort_order": 2,
+      "enum_value": "admin"
+    }
+  ]

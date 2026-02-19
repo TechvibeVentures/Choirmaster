@@ -6,18 +6,9 @@ import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
-import {
-  availability,
-  choirs,
-  defaultChoirId,
-  getMembership,
-  getPersonName,
-  people,
-  projectParticipations,
-  projects,
-  rehearsalsByProject,
-  type Voice
-} from "@/lib/mockData";
+import { useAppData } from "@/hooks/useAppData";
+import type { Voice } from "@/lib/domain/types";
+import { getPersonName } from "@/lib/domain/utils";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
 
@@ -60,7 +51,9 @@ const voiceSplitDefaults = [
 ];
 
 
-const getCurrentProjectId = () => {
+const getCurrentProjectId = (
+  projects: Array<{ date_range: { start: string; end: string }; id: string }>
+) => {
   const today = new Date();
   const sorted = [...projects].sort(
     (a, b) =>
@@ -98,8 +91,8 @@ const getEvenSplitCounts = (total: number, parts: number) => {
   );
 };
 
-const shiftTargetsLeftInTwoColumn = (
-  items: typeof people,
+const shiftTargetsLeftInTwoColumn = <T extends { id: string }>(
+  items: T[],
   targetIds: string[]
 ) => {
   const targets = new Set(targetIds);
@@ -116,10 +109,21 @@ const shiftTargetsLeftInTwoColumn = (
 };
 
 export default function PeoplePage() {
+  const {
+    activeChoirId,
+    availability,
+    choirs,
+    getMembership,
+    people,
+    projectParticipations,
+    projects,
+    rehearsalsByProject
+  } = useAppData();
+
   const [view, setView] = useState<"list" | "seating">("list");
   const [voiceSplitOpen, setVoiceSplitOpen] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
-  const currentProjectId = useMemo(() => getCurrentProjectId(), []);
+  const currentProjectId = useMemo(() => getCurrentProjectId(projects), [projects]);
   const handleComingSoon = () => {
     alert("Diese Funktion kommt in einer späteren Version der App.");
   };
@@ -137,7 +141,7 @@ export default function PeoplePage() {
     setFinderOpen(false);
   };
 
-  const currentChoir = choirs[0];
+  const currentChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0];
   const currentProject = projects.find((project) => project.id === currentProjectId);
   const adminUser = people.find((person) => person.roles.includes("conductor"));
   const adminName = adminUser ? getPersonName(adminUser) : "Leitung";
@@ -146,12 +150,12 @@ export default function PeoplePage() {
     const result = new Map<Voice, typeof people>();
     voiceOrder.forEach((voice) => result.set(voice, []));
     people.forEach((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
       result.get(membership.voice)?.push(person);
     });
     return result;
-  }, []);
+  }, [activeChoirId, getMembership, people]);
 
   const confirmedIds = useMemo(
     () =>
@@ -164,7 +168,7 @@ export default function PeoplePage() {
           )
           .map((item) => item.person_id)
       ),
-    [currentProjectId]
+    [currentProjectId, projectParticipations]
   );
 
   const projectRehearsalIds = useMemo(
@@ -198,11 +202,11 @@ export default function PeoplePage() {
       map.set(person.id, { yes: yesCount, total: records.length, percent });
     });
     return map;
-  }, [confirmedIds, projectRehearsalIds]);
+  }, [availability, confirmedIds, people, projectRehearsalIds]);
 
   const conductors = useMemo(
     () => people.filter((person) => person.roles.includes("conductor")),
-    []
+    [people]
   );
   const conductorIds = useMemo(
     () => new Set(conductors.map((person) => person.id)),
@@ -211,46 +215,46 @@ export default function PeoplePage() {
 
   const projectActiveMembers = useMemo(() => {
     return people.filter((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       return membership && confirmedIds.has(person.id) && !conductorIds.has(person.id);
     });
-  }, [confirmedIds, conductorIds]);
+  }, [activeChoirId, confirmedIds, conductorIds, getMembership, people]);
 
   const projectPassiveMembers = useMemo(() => {
     return people.filter((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       return membership && !confirmedIds.has(person.id) && !conductorIds.has(person.id);
     });
-  }, [confirmedIds, conductorIds]);
+  }, [activeChoirId, confirmedIds, conductorIds, getMembership, people]);
 
   const activeByVoice = useMemo(() => {
     const result = new Map<Voice, typeof people>();
     voiceOrder.forEach((voice) => result.set(voice, []));
     projectActiveMembers.forEach((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
       result.get(membership.voice)?.push(person);
     });
     return result;
-  }, [projectActiveMembers]);
+  }, [activeChoirId, getMembership, projectActiveMembers]);
 
   const passiveByVoice = useMemo(() => {
     const result = new Map<Voice, typeof people>();
     voiceOrder.forEach((voice) => result.set(voice, []));
     projectPassiveMembers.forEach((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
       result.get(membership.voice)?.push(person);
     });
     return result;
-  }, [projectPassiveMembers]);
+  }, [activeChoirId, getMembership, projectPassiveMembers]);
 
   const formerSingers = useMemo(() => {
     return people.filter((person) => {
-      const membership = getMembership(person.id, defaultChoirId);
+      const membership = getMembership(person.id, activeChoirId);
       return membership?.singer_status === "inactive";
     });
-  }, []);
+  }, [activeChoirId, getMembership, people]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -397,7 +401,7 @@ export default function PeoplePage() {
                       style={{
                         borderLeftColor:
                           voiceBorderColors[
-                            getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                            getMembership(person.id, activeChoirId)?.voice ?? "Bass"
                           ]
                       }}
                     >
@@ -584,7 +588,7 @@ export default function PeoplePage() {
                   (person) =>
                     !confirmedIds.has(person.id) &&
                     !conductorIds.has(person.id) &&
-                    getMembership(person.id, defaultChoirId)?.singer_status !==
+                    getMembership(person.id, activeChoirId)?.singer_status !==
                       "inactive"
                 );
                 return (
@@ -658,7 +662,7 @@ export default function PeoplePage() {
                 const group = (grouped.get(voice) ?? []).filter(
                   (person) =>
                     !conductorIds.has(person.id) &&
-                    getMembership(person.id, defaultChoirId)?.singer_status ===
+                    getMembership(person.id, activeChoirId)?.singer_status ===
                       "inactive"
                 );
                 return (
@@ -792,7 +796,7 @@ export default function PeoplePage() {
                     style={{
                       borderColor:
                         voiceBorderColors[
-                          getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                          getMembership(person.id, activeChoirId)?.voice ?? "Bass"
                         ]
                     }}
                   >
@@ -800,7 +804,7 @@ export default function PeoplePage() {
                     <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-600 opacity-0 shadow-sm transition group-hover:opacity-100">
                       {getPersonName(person)} · Leitung ·{" "}
                       {getVoiceLabel(
-                        getMembership(person.id, defaultChoirId)?.voice ?? "Bass"
+                        getMembership(person.id, activeChoirId)?.voice ?? "Bass"
                       )}
                     </span>
                   </Link>

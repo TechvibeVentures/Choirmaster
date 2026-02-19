@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
+import { getServerSupabaseClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,24 @@ const body = Manrope({
   weight: ["400", "500", "600", "700"]
 });
 
-export default function OnboardingPage() {
+export default async function OnboardingPage() {
+  const supabase = getServerSupabaseClient();
+  const {
+    data: { user },
+    error
+  } = await supabase.auth.getUser();
+
+  if (
+    error &&
+    !(error.name === "AuthSessionMissingError" || error.message?.includes("Auth session missing"))
+  ) {
+    throw error;
+  }
+
+  if (!user) {
+    redirect("/login?next=/onboarding");
+  }
+
   return (
     <div className={`${body.className} min-h-screen bg-white text-slate-900`}>
       <div className="relative overflow-hidden">

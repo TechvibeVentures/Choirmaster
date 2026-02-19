@@ -9,13 +9,8 @@ import {
   Users
 } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
+import { getDomainSnapshot } from "@/lib/data/domainSnapshot";
 import { strings } from "@/lib/i18n";
-import {
-  choirs,
-  concertsByProject,
-  projects,
-  rehearsalsByProject
-} from "@/lib/mockData";
 import { formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 
 const display = Playfair_Display({
@@ -64,26 +59,38 @@ const steps = [
   }
 ];
 
-const previewChoir = {
-  name: "Stadtchor Aurora",
-  city: "Basel"
-};
-const previewProjectName = "Frühlingsprogramm";
-const previewProject = projects[0];
-const previewRehearsals = previewProject
-  ? rehearsalsByProject[previewProject.id] ?? []
-  : [];
-const previewConcerts = previewProject
-  ? concertsByProject[previewProject.id] ?? []
-  : [];
-const previewRehearsalLine = previewProject
-  ? `${formatWeekdays(previewProject.rehearsal_facts.weekdays)} · ${formatTimeRange(
-      previewProject.rehearsal_facts.start_time,
-      previewProject.rehearsal_facts.end_time
-    )}`
-  : "Probe nach Absprache";
+export default async function Home() {
+  const snapshot = await getDomainSnapshot();
+  const previewChoir = snapshot.choirs[0] || {
+    id: "fallback",
+    name: "Stadtchor Aurora",
+    city: "Basel",
+    type: "mixed",
+    genres: [],
+    rehearsal_pattern: {
+      weekdays: ["Tue"] as const,
+      start_time: "19:30",
+      end_time: "21:30",
+      default_location: ""
+    }
+  };
+  const previewProject = snapshot.projects.find(
+    (project) => project.choir_id === previewChoir.id
+  ) || snapshot.projects[0];
+  const previewProjectName = previewProject?.name || "Frühlingsprogramm";
+  const previewRehearsals = previewProject
+    ? snapshot.rehearsalsByProject[previewProject.id] ?? []
+    : [];
+  const previewConcerts = previewProject
+    ? snapshot.concertsByProject[previewProject.id] ?? []
+    : [];
+  const previewRehearsalLine = previewProject
+    ? `${formatWeekdays(previewProject.rehearsal_facts.weekdays)} · ${formatTimeRange(
+        previewProject.rehearsal_facts.start_time,
+        previewProject.rehearsal_facts.end_time
+      )}`
+    : "Probe nach Absprache";
 
-export default function Home() {
   return (
     <div className={`${body.className} min-h-screen bg-white text-slate-900`}>
       <div className="relative overflow-hidden">
@@ -164,7 +171,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                    {choirs.length} Ensembles
+                    {snapshot.choirs.length || 1} Ensembles
                   </div>
                 </div>
                 <div className="mt-6 grid gap-4">

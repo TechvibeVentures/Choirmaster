@@ -1,0 +1,34 @@
+[
+    {
+      "schema_name": "public",
+      "function_name": "current_person_id",
+      "args": "",
+      "security_definer": true,
+      "volatility": "v",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_person_id()\n RETURNS uuid\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select id from persons where email = auth.jwt() ->> 'email' limit 1;\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_admin",
+      "args": "choir uuid",
+      "security_definer": true,
+      "volatility": "v",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_admin(choir uuid)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select exists (\n    select 1\n    from choir_memberships\n    where choir_id = choir\n      and person_id = current_person_id()\n      and (\n        roles @> array['chairman']::text[]\n        or roles @> array['conductor']::text[]\n      )\n  );\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "is_member",
+      "args": "choir uuid",
+      "security_definer": true,
+      "volatility": "v",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_member(choir uuid)\n RETURNS boolean\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  select exists (\n    select 1\n    from choir_memberships\n    where choir_id = choir\n      and person_id = current_person_id()\n  );\n$function$\n"
+    },
+    {
+      "schema_name": "public",
+      "function_name": "set_updated_at",
+      "args": "",
+      "security_definer": false,
+      "volatility": "v",
+      "definition": "CREATE OR REPLACE FUNCTION public.set_updated_at()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nbegin\n  new.updated_at = now();\n  return new;\nend;\n$function$\n"
+    }
+  ]
