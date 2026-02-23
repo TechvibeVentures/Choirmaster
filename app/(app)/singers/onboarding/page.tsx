@@ -983,8 +983,8 @@ export default function PeopleOnboardingPage() {
               Hinweis
             </div>
             <p className="mt-2 text-sm text-slate-500">
-              Diese Ansicht nutzt Mock-Daten. Später können Einladungen
-              gespeichert, verschickt und ausgewertet werden.
+              Einladungen können später gespeichert, verschickt und ausgewertet
+              werden.
             </p>
           </Card>
         </aside>

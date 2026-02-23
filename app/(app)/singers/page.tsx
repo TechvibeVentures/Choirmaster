@@ -91,23 +91,6 @@ const getEvenSplitCounts = (total: number, parts: number) => {
   );
 };
 
-const shiftTargetsLeftInTwoColumn = <T extends { id: string }>(
-  items: T[],
-  targetIds: string[]
-) => {
-  const targets = new Set(targetIds);
-  let reordered = [...items];
-  targetIds.forEach((targetId) => {
-    const index = reordered.findIndex((person) => person.id === targetId);
-    if (index <= 0 || index % 2 === 0) return;
-    if (targets.has(reordered[index - 1]?.id)) return;
-    const temp = reordered[index - 1];
-    reordered[index - 1] = reordered[index];
-    reordered[index] = temp;
-  });
-  return reordered;
-};
-
 export default function PeoplePage() {
   const {
     activeChoirId,
@@ -896,17 +879,10 @@ export default function PeoplePage() {
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {voiceOrder.map((voice) => {
                 const members = passiveByVoice.get(voice) ?? [];
-                const orderedMembers =
-                  voice === "Tenor"
-                    ? shiftTargetsLeftInTwoColumn(members, [
-                        "benjamin-zwicky",
-                        "adrian-lutz"
-                      ])
-                    : members;
                 return (
                   <div key={voice}>
                     <div className="grid grid-cols-2 gap-2">
-                      {orderedMembers.map((person) => (
+                      {members.map((person) => (
                         <Link
                           key={person.id}
                           href={`/singers/${person.id}`}

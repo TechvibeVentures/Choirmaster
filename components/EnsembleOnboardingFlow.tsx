@@ -100,19 +100,21 @@ const voiceSplitDefaults = [
 
 const voiceOptions = ["Sopran", "Alt", "Tenor", "Bass"];
 
-const experienceOptions = [
+type ExperienceLevel = "junior" | "advanced" | "regular" | "professional";
+
+const experienceOptions: Array<{ id: ExperienceLevel; label: string }> = [
   { id: "junior", label: "Einsteiger" },
   { id: "advanced", label: "Fortgeschritten" },
   { id: "regular", label: "Erfahren" },
   { id: "professional", label: "Professionell" }
 ];
 
-const experienceLabels = experienceOptions.reduce<Record<string, string>>(
+const experienceLabels = experienceOptions.reduce<Record<ExperienceLevel, string>>(
   (acc, item) => {
     acc[item.id] = item.label;
     return acc;
   },
-  {}
+  {} as Record<ExperienceLevel, string>
 );
 
 const profileRoleOptions: {
@@ -137,112 +139,6 @@ const profileRoleOptions: {
   }
 ];
 
-const mockSingerResults: {
-  id: string;
-  name: string;
-  email: string;
-  voice: Voice;
-  city: string;
-  experience: keyof typeof experienceLabels;
-}[] = [
-  {
-    id: "s-1",
-    name: "Mara König",
-    email: "mara.koenig@example.com",
-    voice: "Soprano",
-    city: "Zürich",
-    experience: "advanced"
-  },
-  {
-    id: "s-2",
-    name: "Noah Keller",
-    email: "noah.keller@example.com",
-    voice: "Tenor",
-    city: "Winterthur",
-    experience: "regular"
-  },
-  {
-    id: "s-3",
-    name: "Lina Frei",
-    email: "lina.frei@example.com",
-    voice: "Alto",
-    city: "Baden",
-    experience: "junior"
-  },
-  {
-    id: "s-4",
-    name: "Jonas Graf",
-    email: "jonas.graf@example.com",
-    voice: "Bass",
-    city: "Uster",
-    experience: "professional"
-  },
-  {
-    id: "s-5",
-    name: "Selina Roth",
-    email: "selina.roth@example.com",
-    voice: "Soprano",
-    city: "Zürich",
-    experience: "regular"
-  },
-  {
-    id: "s-6",
-    name: "Nico Meier",
-    email: "nico.meier@example.com",
-    voice: "Tenor",
-    city: "Baden",
-    experience: "advanced"
-  },
-  {
-    id: "s-7",
-    name: "Luisa Kern",
-    email: "luisa.kern@example.com",
-    voice: "Alto",
-    city: "Winterthur",
-    experience: "professional"
-  },
-  {
-    id: "s-8",
-    name: "David Frei",
-    email: "david.frei@example.com",
-    voice: "Bass",
-    city: "Zürich",
-    experience: "regular"
-  },
-  {
-    id: "s-9",
-    name: "Eva Keller",
-    email: "eva.keller@example.com",
-    voice: "Soprano",
-    city: "Uster",
-    experience: "junior"
-  },
-  {
-    id: "s-10",
-    name: "Mira Vogt",
-    email: "mira.vogt@example.com",
-    voice: "Alto",
-    city: "St. Gallen",
-    experience: "advanced"
-  },
-  {
-    id: "s-11",
-    name: "Lars Müller",
-    email: "lars.mueller@example.com",
-    voice: "Tenor",
-    city: "Zürich",
-    experience: "professional"
-  },
-  {
-    id: "s-12",
-    name: "Simon Bucher",
-    email: "simon.bucher@example.com",
-    voice: "Bass",
-    city: "Winterthur",
-    experience: "junior"
-  }
-];
-
 export default function EnsembleOnboardingFlow({
   open,
   onClose,
@@ -254,25 +150,69 @@ export default function EnsembleOnboardingFlow({
   const {
     choirs,
     allProjects,
+    allPeople,
     activeChoirId,
     adminProfile,
+    allMemberships,
     replaceSnapshot,
     snapshot
   } = useAppData();
   const projects = allProjects;
 
+  type SingerSearchResult = {
+    id: string;
+    name: string;
+    email: string;
+    voice: Voice;
+    city: string;
+    experience: ExperienceLevel;
+  };
+
+  const singerSearchResults = useMemo<SingerSearchResult[]>(() => {
+    if (!activeChoirId) return [];
+
+    const membershipByPersonId = new Map(
+      allMemberships
+        .filter((membership) => membership.choir_id === activeChoirId)
+        .map((membership) => [membership.person_id, membership])
+    );
+
+    return allPeople.reduce<SingerSearchResult[]>((acc, person) => {
+      const membership = membershipByPersonId.get(person.id);
+      if (!membership) return acc;
+      acc.push({
+        id: person.id,
+        name: `${person.first_name} ${person.last_name}`.trim() || person.email,
+        email: person.email,
+        voice: membership.voice,
+        city: person.city,
+        experience: person.experience_level
+      });
+      return acc;
+    }, []);
+  }, [activeChoirId, allMemberships, allPeople]);
+
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("Luzia Chor");
-  const [city, setCity] = useState("Zürich");
-  const [choirType, setChoirType] = useState<ChoirType>("mixed");
-  const [genres, setGenres] = useState<string[]>([
-    "Klassik",
-    "Geistlich"
-  ]);
-  const [weekdays, setWeekdays] = useState<Weekday[]>(["Tue"]);
-  const [startTime, setStartTime] = useState("19:30");
-  const [endTime, setEndTime] = useState("21:30");
-  const [location, setLocation] = useState("Pfrundhaus, Zürich");
+  const initialChoir =
+    choirs.find((choir) => choir.id === activeChoirId) || choirs[0] || null;
+  const [name, setName] = useState(initialChoir?.name || "");
+  const [city, setCity] = useState(initialChoir?.city || "");
+  const [choirType, setChoirType] = useState<ChoirType>(
+    (initialChoir?.type as ChoirType) || "mixed"
+  );
+  const [genres, setGenres] = useState<string[]>(initialChoir?.genres || []);
+  const [weekdays, setWeekdays] = useState<Weekday[]>(
+    initialChoir?.rehearsal_pattern.weekdays || []
+  );
+  const [startTime, setStartTime] = useState(
+    initialChoir?.rehearsal_pattern.start_time || ""
+  );
+  const [endTime, setEndTime] = useState(
+    initialChoir?.rehearsal_pattern.end_time || ""
+  );
+  const [location, setLocation] = useState(
+    initialChoir?.rehearsal_pattern.default_location || ""
+  );
   const [profileFirstName, setProfileFirstName] = useState(
     initialProfile?.firstName?.trim() || adminProfile.first_name || ""
   );
@@ -281,7 +221,7 @@ export default function EnsembleOnboardingFlow({
   );
   const profileEmail = initialProfile?.email?.trim() || "";
   const [profileCity, setProfileCity] = useState(
-    initialProfile?.city?.trim() || adminProfile.city || "Zürich"
+    initialProfile?.city?.trim() || adminProfile.city || ""
   );
   const [profileRole, setProfileRole] = useState<ProfileRole>(
     (adminProfile.role as ProfileRole) || "conductor"
@@ -296,13 +236,13 @@ export default function EnsembleOnboardingFlow({
     projects[0]?.id ?? ""
   );
   const [locationQuery, setLocationQuery] = useState("");
-  const [selectedExperiences, setSelectedExperiences] = useState<string[]>([
+  const [selectedExperiences, setSelectedExperiences] = useState<ExperienceLevel[]>([
     "regular"
   ]);
   const [selectedSingerIds, setSelectedSingerIds] = useState<string[]>([]);
-  const [directEntries, setDirectEntries] = useState([
-    { id: "entry-1", first: "Lea", last: "Suter", email: "lea.suter@example.com", voice: "Sopran" }
-  ]);
+  const [directEntries, setDirectEntries] = useState<
+    Array<{ id: string; first: string; last: string; email: string; voice: string }>
+  >([]);
   const [inviteSent, setInviteSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -478,7 +418,7 @@ export default function EnsembleOnboardingFlow({
     setSelectedSingerIds((prev) => prev.filter((item) => item !== id));
   };
 
-  const toggleExperience = (id: string) => {
+  const toggleExperience = (id: ExperienceLevel) => {
     setSelectedExperiences((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
@@ -486,7 +426,7 @@ export default function EnsembleOnboardingFlow({
 
   const filteredResults = useMemo(() => {
     const query = locationQuery.trim().toLowerCase();
-    return mockSingerResults.filter((singer) => {
+    return singerSearchResults.filter((singer) => {
       const matchesLocation = query
         ? singer.city.toLowerCase().includes(query)
         : true;
@@ -495,22 +435,22 @@ export default function EnsembleOnboardingFlow({
         : true;
       return matchesLocation && matchesExperience;
     });
-  }, [locationQuery, selectedExperiences]);
+  }, [locationQuery, selectedExperiences, singerSearchResults]);
 
-const resultsByVoice = useMemo(() => {
-  const map = new Map<Voice, typeof mockSingerResults>();
-  voiceOrder.forEach((voice) => map.set(voice, []));
-  filteredResults.forEach((singer) => {
-    map.get(singer.voice)?.push(singer);
-  });
-  return map;
-}, [filteredResults]);
+  const resultsByVoice = useMemo(() => {
+    const map = new Map<Voice, SingerSearchResult[]>();
+    voiceOrder.forEach((voice) => map.set(voice, []));
+    filteredResults.forEach((singer) => {
+      map.get(singer.voice)?.push(singer);
+    });
+    return map;
+  }, [filteredResults]);
 
   const selectedCountsByVoice = useMemo(() => {
     const counts = new Map<Voice, number>();
     voiceOrder.forEach((voice) => counts.set(voice, 0));
     const selectedSet = new Set(selectedSingerIds);
-    mockSingerResults.forEach((singer) => {
+    singerSearchResults.forEach((singer) => {
       if (!selectedSet.has(singer.id)) return;
       counts.set(singer.voice, (counts.get(singer.voice) ?? 0) + 1);
     });
@@ -527,7 +467,7 @@ const resultsByVoice = useMemo(() => {
       counts.set(voice, (counts.get(voice) ?? 0) + 1);
     });
     return counts;
-  }, [directEntries, selectedSingerIds]);
+  }, [directEntries, selectedSingerIds, singerSearchResults]);
 
   const mapInputVoice = (value: string): Voice | null => {
     if (value === "Sopran" || value === "Soprano") return "Soprano";
@@ -539,7 +479,7 @@ const resultsByVoice = useMemo(() => {
 
   const buildInvitePayload = () => {
     const selectedSet = new Set(selectedSingerIds);
-    const fromSearch = mockSingerResults
+    const fromSearch = singerSearchResults
       .filter((singer) => selectedSet.has(singer.id))
       .map((singer) => ({
         name: singer.name,
@@ -1435,7 +1375,7 @@ const resultsByVoice = useMemo(() => {
                         </div>
                       ) : null}
                       {selectedSingerIds.map((id) => {
-                        const singer = mockSingerResults.find((entry) => entry.id === id);
+                        const singer = singerSearchResults.find((entry) => entry.id === id);
                         if (!singer) return null;
                         return (
                           <div
