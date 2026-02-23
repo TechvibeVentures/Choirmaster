@@ -150,10 +150,8 @@ export default function EnsembleOnboardingFlow({
   const {
     choirs,
     allProjects,
-    allPeople,
     activeChoirId,
     adminProfile,
-    allMemberships,
     replaceSnapshot,
     snapshot
   } = useAppData();
@@ -163,34 +161,13 @@ export default function EnsembleOnboardingFlow({
     id: string;
     name: string;
     email: string;
-    voice: Voice;
+    voice: Voice | null;
     city: string;
     experience: ExperienceLevel;
   };
-
-  const singerSearchResults = useMemo<SingerSearchResult[]>(() => {
-    if (!activeChoirId) return [];
-
-    const membershipByPersonId = new Map(
-      allMemberships
-        .filter((membership) => membership.choir_id === activeChoirId)
-        .map((membership) => [membership.person_id, membership])
-    );
-
-    return allPeople.reduce<SingerSearchResult[]>((acc, person) => {
-      const membership = membershipByPersonId.get(person.id);
-      if (!membership) return acc;
-      acc.push({
-        id: person.id,
-        name: `${person.first_name} ${person.last_name}`.trim() || person.email,
-        email: person.email,
-        voice: membership.voice,
-        city: person.city,
-        experience: person.experience_level
-      });
-      return acc;
-    }, []);
-  }, [activeChoirId, allMemberships, allPeople]);
+  const [singerSearchResults, setSingerSearchResults] = useState<SingerSearchResult[]>([]);
+  const [singerSearchLoading, setSingerSearchLoading] = useState(false);
+  const [singerSearchError, setSingerSearchError] = useState("");
 
   const [step, setStep] = useState(0);
   const initialChoir =
@@ -235,6 +212,7 @@ export default function EnsembleOnboardingFlow({
   const [selectedProjectId, setSelectedProjectId] = useState(
     projects[0]?.id ?? ""
   );
+  const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
   const [selectedExperiences, setSelectedExperiences] = useState<ExperienceLevel[]>([
     "regular"
@@ -359,6 +337,43 @@ export default function EnsembleOnboardingFlow({
     void run();
   }, [isSingerOnly, selectedProjectId]);
 
+  useEffect(() => {
+    if (!isOpen || !isSingerOnly || !activeChoirId) return;
+
+    const controller = new AbortController();
+    const run = async () => {
+      setSingerSearchLoading(true);
+      setSingerSearchError("");
+      try {
+        const response = await fetch(
+          `/api/choirs/${activeChoirId}/candidate-persons`,
+          { signal: controller.signal }
+        );
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || "Sänger konnten nicht geladen werden.");
+        }
+        const payload = await response.json();
+        setSingerSearchResults(payload.persons || []);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "Sänger konnten nicht geladen werden.";
+        setSingerSearchResults([]);
+        setSingerSearchError(message);
+      } finally {
+        if (!controller.signal.aborted) {
+          setSingerSearchLoading(false);
+        }
+      }
+    };
+
+    void run();
+    return () => controller.abort();
+  }, [activeChoirId, isOpen, isSingerOnly]);
+
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
       prev.includes(genre) ? prev.filter((item) => item !== genre) : [...prev, genre]
@@ -425,32 +440,44 @@ export default function EnsembleOnboardingFlow({
   };
 
   const filteredResults = useMemo(() => {
-    const query = locationQuery.trim().toLowerCase();
+    const locationFilter = locationQuery.trim().toLowerCase();
+    const textFilter = searchQuery.trim().toLowerCase();
     return singerSearchResults.filter((singer) => {
-      const matchesLocation = query
-        ? singer.city.toLowerCase().includes(query)
+      const matchesLocation = locationFilter
+        ? singer.city.toLowerCase().includes(locationFilter)
+        : true;
+      const matchesText = textFilter
+        ? singer.name.toLowerCase().includes(textFilter) ||
+          singer.email.toLowerCase().includes(textFilter)
         : true;
       const matchesExperience = selectedExperiences.length
         ? selectedExperiences.includes(singer.experience)
         : true;
-      return matchesLocation && matchesExperience;
+      return matchesLocation && matchesText && matchesExperience;
     });
-  }, [locationQuery, selectedExperiences, singerSearchResults]);
+  }, [locationQuery, searchQuery, selectedExperiences, singerSearchResults]);
 
   const resultsByVoice = useMemo(() => {
     const map = new Map<Voice, SingerSearchResult[]>();
     voiceOrder.forEach((voice) => map.set(voice, []));
     filteredResults.forEach((singer) => {
+      if (!singer.voice) return;
       map.get(singer.voice)?.push(singer);
     });
     return map;
   }, [filteredResults]);
+
+  const unknownVoiceResults = useMemo(
+    () => filteredResults.filter((singer) => !singer.voice),
+    [filteredResults]
+  );
 
   const selectedCountsByVoice = useMemo(() => {
     const counts = new Map<Voice, number>();
     voiceOrder.forEach((voice) => counts.set(voice, 0));
     const selectedSet = new Set(selectedSingerIds);
     singerSearchResults.forEach((singer) => {
+      if (!singer.voice) return;
       if (!selectedSet.has(singer.id)) return;
       counts.set(singer.voice, (counts.get(singer.voice) ?? 0) + 1);
     });
@@ -1094,6 +1121,15 @@ export default function EnsembleOnboardingFlow({
                     </p>
                     <div className="mt-4 flex flex-wrap items-center gap-4">
                       <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>Suche</span>
+                        <input
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                          placeholder="Name oder E-Mail"
+                          className="w-64 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{strings.ensembleOnboarding.singersLocation}</span>
                         <input
                           value={locationQuery}
@@ -1122,93 +1158,167 @@ export default function EnsembleOnboardingFlow({
                     <div className="mt-4 text-xs uppercase tracking-wide text-slate-400">
                       {strings.ensembleOnboarding.singersResults}
                     </div>
-                    {filteredResults.length === 0 ? (
+                    {singerSearchLoading ? (
+                      <div className="mt-3 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-xs text-slate-400">
+                        Lädt Sänger...
+                      </div>
+                    ) : singerSearchError ? (
+                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-6 text-xs text-rose-700">
+                        {singerSearchError}
+                      </div>
+                    ) : filteredResults.length === 0 ? (
                       <div className="mt-3 rounded-xl border border-dashed border-slate-200 px-4 py-6 text-xs text-slate-400">
                         {strings.ensembleOnboarding.singersEmpty}
                       </div>
                     ) : (
-                      <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                        {voiceOrder.map((voice) => {
-                          const group = resultsByVoice.get(voice) ?? [];
-                          return (
-                            <section key={`search-${voice}`} className="flex flex-col gap-3">
-                              <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
-                                <span className="flex items-center gap-2">
-                                  <span
-                                    className="h-2 w-2 rounded-full"
-                                    style={{ backgroundColor: voiceBorderColors[voice] }}
-                                  />
-                                  <span>{getVoiceLabel(voice)}</span>
-                                </span>
-                                <span className="text-xs text-slate-400">
-                                  {group.length}
-                                </span>
-                              </div>
-                              <div className="flex flex-col gap-3">
-                                {group.length === 0 ? (
-                                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
-                                    {strings.ensembleOnboarding.singersEmpty}
-                                  </div>
-                                ) : null}
-                                {group.map((singer) => (
-                                  <Link
-                                    key={singer.id}
-                                    href={`/singers/${singer.id}`}
-                                    className="block"
-                                  >
-                                    <Card
-                                      className="w-full border-l-4 transition hover:border-slate-300"
-                                      style={{ borderLeftColor: voiceBorderColors[voice] }}
+                      <div className="mt-3 space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                          {voiceOrder.map((voice) => {
+                            const group = resultsByVoice.get(voice) ?? [];
+                            return (
+                              <section key={`search-${voice}`} className="flex flex-col gap-3">
+                                <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                                  <span className="flex items-center gap-2">
+                                    <span
+                                      className="h-2 w-2 rounded-full"
+                                      style={{ backgroundColor: voiceBorderColors[voice] }}
+                                    />
+                                    <span>{getVoiceLabel(voice)}</span>
+                                  </span>
+                                  <span className="text-xs text-slate-400">
+                                    {group.length}
+                                  </span>
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                  {group.length === 0 ? (
+                                    <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-xs text-slate-400">
+                                      {strings.ensembleOnboarding.singersEmpty}
+                                    </div>
+                                  ) : null}
+                                  {group.map((singer) => (
+                                    <Link
+                                      key={singer.id}
+                                      href={`/singers/${singer.id}`}
+                                      className="block"
                                     >
-                                      <div className="space-y-2">
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div>
-                                            <div className="text-base font-semibold text-slate-900">
-                                              {singer.name}
+                                      <Card
+                                        className="w-full border-l-4 transition hover:border-slate-300"
+                                        style={{ borderLeftColor: voiceBorderColors[voice] }}
+                                      >
+                                        <div className="space-y-2">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div>
+                                              <div className="text-base font-semibold text-slate-900">
+                                                {singer.name}
+                                              </div>
+                                              <div className="text-xs text-slate-500">
+                                                {singer.email}
+                                              </div>
                                             </div>
-                                            <div className="text-xs text-slate-500">
-                                              {singer.email}
-                                            </div>
+                                            <button
+                                              type="button"
+                                              onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
+                                                toggleSingerSelection(singer.id);
+                                              }}
+                                              aria-label={
+                                                selectedSingerIds.includes(singer.id)
+                                                  ? strings.ensembleOnboarding.singersAdded
+                                                  : strings.ensembleOnboarding.singersAdd
+                                              }
+                                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
+                                                selectedSingerIds.includes(singer.id)
+                                                  ? "border-emerald-600 bg-emerald-600 text-white"
+                                                  : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                              }`}
+                                            >
+                                              {selectedSingerIds.includes(singer.id) ? (
+                                                <Check className="h-3.5 w-3.5" />
+                                              ) : (
+                                                <Plus className="h-3 w-3" />
+                                              )}
+                                            </button>
                                           </div>
-                                          <button
-                                            type="button"
-                                            onClick={(event) => {
-                                              event.preventDefault();
-                                              event.stopPropagation();
-                                              toggleSingerSelection(singer.id);
-                                            }}
-                                            aria-label={
-                                              selectedSingerIds.includes(singer.id)
-                                                ? strings.ensembleOnboarding.singersAdded
-                                                : strings.ensembleOnboarding.singersAdd
-                                            }
-                                            className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
-                                              selectedSingerIds.includes(singer.id)
-                                                ? "border-emerald-600 bg-emerald-600 text-white"
-                                                : "border-slate-200 text-slate-500 hover:border-slate-300"
-                                            }`}
-                                          >
-                                            {selectedSingerIds.includes(singer.id) ? (
-                                              <Check className="h-3.5 w-3.5" />
-                                            ) : (
-                                              <Plus className="h-3 w-3" />
-                                            )}
-                                          </button>
+                                          <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
+                                            <span>{singer.city}</span>
+                                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                              {experienceLabels[singer.experience]}
+                                            </span>
+                                          </div>
                                         </div>
-                                        <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
-                                          <span>{singer.city}</span>
-                                          <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
-                                            {experienceLabels[singer.experience]}
-                                          </span>
+                                      </Card>
+                                    </Link>
+                                  ))}
+                                </div>
+                              </section>
+                            );
+                          })}
+                        </div>
+                        {unknownVoiceResults.length ? (
+                          <section className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
+                              <span>Noch ohne Stimme</span>
+                              <span className="text-xs text-slate-400">
+                                {unknownVoiceResults.length}
+                              </span>
+                            </div>
+                            <div className="grid gap-3 md:grid-cols-2">
+                              {unknownVoiceResults.map((singer) => (
+                                <Link
+                                  key={`unknown-${singer.id}`}
+                                  href={`/singers/${singer.id}`}
+                                  className="block"
+                                >
+                                  <Card className="w-full border-l-4 border-l-slate-300 transition hover:border-slate-300">
+                                    <div className="space-y-2">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                          <div className="text-base font-semibold text-slate-900">
+                                            {singer.name}
+                                          </div>
+                                          <div className="text-xs text-slate-500">
+                                            {singer.email}
+                                          </div>
                                         </div>
+                                        <button
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            toggleSingerSelection(singer.id);
+                                          }}
+                                          aria-label={
+                                            selectedSingerIds.includes(singer.id)
+                                              ? strings.ensembleOnboarding.singersAdded
+                                              : strings.ensembleOnboarding.singersAdd
+                                          }
+                                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
+                                            selectedSingerIds.includes(singer.id)
+                                              ? "border-emerald-600 bg-emerald-600 text-white"
+                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                          }`}
+                                        >
+                                          {selectedSingerIds.includes(singer.id) ? (
+                                            <Check className="h-3.5 w-3.5" />
+                                          ) : (
+                                            <Plus className="h-3 w-3" />
+                                          )}
+                                        </button>
                                       </div>
-                                    </Card>
-                                  </Link>
-                                ))}
-                              </div>
-                            </section>
-                          );
-                        })}
+                                      <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
+                                        <span>{singer.city}</span>
+                                        <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                                          {experienceLabels[singer.experience]}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                </Link>
+                              ))}
+                            </div>
+                          </section>
+                        ) : null}
                       </div>
                     )}
                   </div>
@@ -1398,9 +1508,13 @@ export default function EnsembleOnboardingFlow({
                               <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
                                 <span
                                   className="h-2 w-2 rounded-full"
-                                  style={{ backgroundColor: voiceBorderColors[singer.voice] }}
+                                  style={{
+                                    backgroundColor: singer.voice
+                                      ? voiceBorderColors[singer.voice]
+                                      : "#CBD5E1"
+                                  }}
                                 />
-                                {getVoiceLabel(singer.voice)}
+                                {singer.voice ? getVoiceLabel(singer.voice) : "Noch ohne Stimme"}
                               </span>
                             </div>
                             <button
