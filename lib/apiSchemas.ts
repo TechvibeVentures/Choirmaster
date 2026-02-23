@@ -42,6 +42,7 @@ export const commitInvitesSchema = z.object({
 
 export const joinCompleteSchema = z.object({
   token: z.string().min(1),
+  email: z.string().email(),
   first_name: z.string().optional().default(""),
   last_name: z.string().optional().default(""),
   city: z.string().optional().default(""),

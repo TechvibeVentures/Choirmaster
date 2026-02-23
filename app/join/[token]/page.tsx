@@ -41,7 +41,7 @@ export default function JoinTokenPage({
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [city, setCity] = useState("");
+  const [email, setEmail] = useState("");
   const [voice, setVoice] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -68,7 +68,11 @@ export default function JoinTokenPage({
     void run();
   }, [token]);
 
-  const canSubmit = useMemo(() => Boolean(payload?.valid && !submitting), [payload?.valid, submitting]);
+  const canSubmit = useMemo(
+    () =>
+      Boolean(payload?.valid && !submitting && email.trim() && voice.trim()),
+    [payload?.valid, submitting, email, voice]
+  );
 
   const completeJoin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -83,24 +87,23 @@ export default function JoinTokenPage({
         },
         body: JSON.stringify({
           token,
+          email: email.trim().toLowerCase(),
           first_name: firstName,
           last_name: lastName,
-          city,
           voice: voice || null
         })
       });
-
-      if (response.status === 401) {
-        const next = `/join/${encodeURIComponent(token)}`;
-        router.push(`/login?next=${encodeURIComponent(next)}`);
-        return;
-      }
 
       if (!response.ok) {
         throw new Error("join failed");
       }
 
-      router.push("/dashboard");
+      const nextPath = "/singer-profile";
+      router.push(
+        `/login?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(
+          email.trim().toLowerCase()
+        )}`
+      );
       router.refresh();
     } catch {
       window.alert("Beitritt konnte nicht abgeschlossen werden.");
@@ -161,13 +164,14 @@ export default function JoinTokenPage({
                 />
               </label>
               <label className="text-sm text-slate-600">
-                Stadt
+                E-Mail
                 <input
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  type="text"
-                  placeholder="Stadt"
+                  type="email"
+                  placeholder="name@chor.de"
+                  required
                 />
               </label>
               <label className="text-sm text-slate-600">
@@ -176,6 +180,7 @@ export default function JoinTokenPage({
                   value={voice}
                   onChange={(event) => setVoice(event.target.value)}
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  required
                 >
                   {voiceOptions.map((option) => (
                     <option key={option || "empty"} value={option}>

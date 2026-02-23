@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Mail } from "lucide-react";
 import { Playfair_Display, Manrope } from "next/font/google";
 import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
@@ -22,23 +22,71 @@ const body = Manrope({
 export default function LoginPage() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/dashboard";
+  const prefillEmail = searchParams.get("email") || "";
+  const callbackError = searchParams.get("error") || "";
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showSignupHint, setShowSignupHint] = useState(false);
+
+  const callbackErrorMessage =
+    callbackError === "not_allowed"
+      ? "Kein Zugriff für diese E-Mail. Bitte zuerst von einer Admin-Person einladen lassen."
+      : "";
+
+  useEffect(() => {
+    if (!prefillEmail) return;
+    setEmail((current) => current || prefillEmail);
+  }, [prefillEmail]);
 
   const sendMagicLink = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim()) return;
 
     setErrorMessage(null);
+    setShowSignupHint(false);
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const preflightResponse = await fetch("/api/auth/preflight", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          flow: "login",
+          next
+        })
+      });
+      const preflightPayload = await preflightResponse
+        .json()
+        .catch(() => ({ allowed: false, reason: "internal_error" }));
+
+      if (!preflightResponse.ok || !preflightPayload.allowed) {
+        const reason =
+          typeof preflightPayload.reason === "string"
+            ? preflightPayload.reason
+            : "internal_error";
+
+        if (reason === "not_invited" || reason === "invalid_invite_token") {
+          setErrorMessage(
+            "Diese E-Mail hat aktuell keinen Zugang. Bitte lass dich von einer Admin-Person einladen."
+          );
+          setShowSignupHint(true);
+        } else {
+          setErrorMessage("Login ist aktuell nicht möglich. Bitte versuche es später erneut.");
+        }
+        setSent(false);
+        return;
+      }
+
       const supabase = getBrowserSupabaseClient();
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         options: {
           emailRedirectTo: redirectTo
         }
@@ -108,6 +156,17 @@ export default function LoginPage() {
               </p>
               {errorMessage ? (
                 <p className="mt-2 text-xs text-rose-600">{errorMessage}</p>
+              ) : null}
+              {!errorMessage && callbackErrorMessage ? (
+                <p className="mt-2 text-xs text-rose-600">{callbackErrorMessage}</p>
+              ) : null}
+              {showSignupHint ? (
+                <p className="mt-2 text-xs text-slate-600">
+                  Wenn du ein neues Ensemble leitest, starte hier:{" "}
+                  <Link href="/signup" className="font-semibold text-slate-800 underline">
+                    Neues Ensemble erstellen
+                  </Link>
+                </p>
               ) : null}
             </div>
 

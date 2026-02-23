@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { joinCompleteSchema } from "@/lib/apiSchemas";
-import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { normalizeVoice } from "@/lib/data/common";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -13,6 +12,7 @@ const decodeToken = (value: string) => {
 };
 
 const normalizeJoinToken = (token: string) => decodeToken(token).trim();
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 const isPlaceholderToken = (token: string) => /^<[^<>]+>$/.test(token);
 
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
   try {
     const payload = joinCompleteSchema.parse(await request.json());
     const token = normalizeJoinToken(payload.token);
+    const email = normalizeEmail(payload.email);
 
     if (!token) {
       return NextResponse.json({ error: "Missing token" }, { status: 400 });
@@ -32,9 +33,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const session = await getCurrentSessionPerson();
-    if (!session.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!email) {
+      return NextResponse.json({ error: "Missing email" }, { status: 400 });
     }
 
     const db = getServiceSupabaseClient();
@@ -60,30 +60,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    let personId = session.person?.id;
+    const personByEmailRes = await (db as any)
+      .from("persons")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (personByEmailRes.error) throw personByEmailRes.error;
+
+    let personId = personByEmailRes.data?.id as string | undefined;
 
     if (!personId) {
-      const inserted = await (db as any)
+      const insertedRes = await (db as any)
         .from("persons")
         .insert({
-          email: session.user.email,
+          email,
           first_name: payload.first_name || "",
           last_name: payload.last_name || "",
           city: payload.city || "",
-          auth_user_id: session.user.id,
           experience_level: "regular",
           tags: []
         })
         .select("id")
         .single();
 
-      if (inserted.error) throw inserted.error;
-      personId = inserted.data.id;
+      if (insertedRes.error) throw insertedRes.error;
+      personId = insertedRes.data.id;
     } else {
       const updated = await (db as any)
         .from("persons")
         .update({
-          auth_user_id: session.user.id,
+          email,
           first_name: payload.first_name || undefined,
           last_name: payload.last_name || undefined,
           city: payload.city || undefined

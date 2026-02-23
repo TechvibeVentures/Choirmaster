@@ -25,26 +25,62 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showLoginHint, setShowLoginHint] = useState(false);
 
   const startSignup = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!email.trim()) return;
 
     setErrorMessage(null);
+    setShowLoginHint(false);
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+      const preflightResponse = await fetch("/api/auth/preflight", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          flow: "signup"
+        })
+      });
+      const preflightPayload = await preflightResponse
+        .json()
+        .catch(() => ({ allowed: false, reason: "internal_error" }));
+
+      if (!preflightResponse.ok || !preflightPayload.allowed) {
+        const reason =
+          typeof preflightPayload.reason === "string"
+            ? preflightPayload.reason
+            : "internal_error";
+
+        if (reason === "singer_only") {
+          setErrorMessage(
+            "Diese E-Mail ist bereits als Singer eingeladen. Bitte melde dich über Login an."
+          );
+          setShowLoginHint(true);
+        } else {
+          setErrorMessage("Registrierung ist aktuell nicht möglich. Bitte versuche es später erneut.");
+        }
+        setSent(false);
+        return;
+      }
+
       const supabase = getBrowserSupabaseClient();
       const params = new URLSearchParams();
       params.set("next", "/onboarding");
 
       const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
       const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         options: {
           emailRedirectTo: redirectTo,
           data: {
             first_name: firstName.trim(),
-            last_name: lastName.trim()
+            last_name: lastName.trim(),
+            signup_flow: "admin"
           }
         }
       });
@@ -153,6 +189,14 @@ export default function SignupPage() {
               </p>
               {errorMessage ? (
                 <p className="mt-2 text-xs text-rose-600">{errorMessage}</p>
+              ) : null}
+              {showLoginHint ? (
+                <p className="mt-2 text-xs text-slate-600">
+                  Bereits eingeladen?{" "}
+                  <Link href="/login" className="font-semibold text-slate-800 underline">
+                    Hier einloggen
+                  </Link>
+                </p>
               ) : null}
             </div>
 
