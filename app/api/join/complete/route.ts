@@ -79,7 +79,8 @@ export async function POST(request: Request) {
           last_name: payload.last_name || "",
           city: payload.city || "",
           experience_level: "regular",
-          tags: []
+          tags: [],
+          voice: payload.voice ? normalizeVoice(payload.voice) : null
         })
         .select("id")
         .single();
@@ -87,13 +88,15 @@ export async function POST(request: Request) {
       if (insertedRes.error) throw insertedRes.error;
       personId = insertedRes.data.id;
     } else {
+      const normalizedVoice = payload.voice ? normalizeVoice(payload.voice) : null;
       const updated = await (db as any)
         .from("persons")
         .update({
           email,
           first_name: payload.first_name || undefined,
           last_name: payload.last_name || undefined,
-          city: payload.city || undefined
+          city: payload.city || undefined,
+          ...(normalizedVoice ? { voice: normalizedVoice } : {})
         })
         .eq("id", personId)
         .select("id")
@@ -104,7 +107,7 @@ export async function POST(request: Request) {
 
     const existingMembershipRes = await db
       .from("choir_memberships")
-      .select("roles, singer_status, voice")
+      .select("roles, singer_status")
       .eq("choir_id", projectRes.data.choir_id)
       .eq("person_id", personId)
       .maybeSingle();
@@ -122,9 +125,6 @@ export async function POST(request: Request) {
       : ["singer"];
     const nextSingerStatus =
       existingMembershipRes.data?.singer_status ?? "project_only";
-    const nextVoice = payload.voice
-      ? normalizeVoice(payload.voice)
-      : existingMembershipRes.data?.voice ?? null;
 
     const membershipRes = await db
       .from("choir_memberships")
@@ -133,8 +133,7 @@ export async function POST(request: Request) {
           choir_id: projectRes.data.choir_id,
           person_id: personId,
           roles: nextRoles,
-          singer_status: nextSingerStatus,
-          voice: nextVoice
+          singer_status: nextSingerStatus
         },
         { onConflict: "choir_id,person_id" }
       )

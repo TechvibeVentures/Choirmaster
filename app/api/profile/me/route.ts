@@ -73,6 +73,7 @@ export async function PUT(request: Request) {
         phone: payload.phone || null,
         city: payload.city || null,
         experience_level: payload.experience_level,
+        voice: payload.voice,
         auth_user_id: session.user.id
       })
       .eq("id", session.person.id)
@@ -90,21 +91,6 @@ export async function PUT(request: Request) {
         );
       }
       throw personRes.error;
-    }
-
-    const voiceRes = await serviceDb
-      .from("choir_memberships")
-      .update({
-        voice: payload.voice
-      })
-      .eq("person_id", session.person.id)
-      .eq("choir_id", payload.choir_id)
-      .select("id")
-      .maybeSingle();
-
-    if (voiceRes.error) throw voiceRes.error;
-    if (!voiceRes.data) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json({

@@ -21,12 +21,11 @@ type PersonRow = {
   last_name: string | null;
   city: string | null;
   experience_level: string | null;
+  voice: string | null;
 };
 
 type MembershipRow = {
   person_id: string;
-  choir_id: string;
-  voice: string | null;
 };
 
 export async function GET(
@@ -53,7 +52,7 @@ export async function GET(
 
     const personsRes = await serviceDb
       .from("persons")
-      .select("id, email, first_name, last_name, city, experience_level");
+      .select("id, email, first_name, last_name, city, experience_level, voice");
 
     if (personsRes.error) throw personsRes.error;
 
@@ -65,27 +64,14 @@ export async function GET(
     const personIds = persons.map((person) => person.id);
     const membershipsRes = await serviceDb
       .from("choir_memberships")
-      .select("person_id, choir_id, voice")
-      .in("person_id", personIds);
+      .select("person_id")
+      .in("person_id", personIds)
+      .eq("choir_id", params.choirId);
 
     if (membershipsRes.error) throw membershipsRes.error;
 
     const memberships = (membershipsRes.data || []) as MembershipRow[];
-    const inCurrentChoir = new Set(
-      memberships
-        .filter((membership) => membership.choir_id === params.choirId)
-        .map((membership) => membership.person_id)
-    );
-
-    const voiceByPersonId = new Map<string, "Soprano" | "Alto" | "Tenor" | "Bass" | null>();
-    memberships.forEach((membership) => {
-      if (membership.choir_id === params.choirId) return;
-      if (voiceByPersonId.has(membership.person_id)) return;
-      voiceByPersonId.set(
-        membership.person_id,
-        normalizeOptionalVoice(membership.voice)
-      );
-    });
+    const inCurrentChoir = new Set(memberships.map((membership) => membership.person_id));
 
     const candidates = persons
       .filter((person) => !inCurrentChoir.has(person.id))
@@ -95,7 +81,7 @@ export async function GET(
         email: person.email,
         city: person.city || "",
         experience: normalizeExperience(person.experience_level),
-        voice: voiceByPersonId.get(person.id) ?? null
+        voice: normalizeOptionalVoice(person.voice)
       }));
 
     return NextResponse.json({ persons: candidates });

@@ -99,7 +99,6 @@ export type Database = {
           person_id: string
           roles: string[]
           singer_status: Database["public"]["Enums"]["singer_status"] | null
-          voice: string | null
         }
         Insert: {
           choir_id: string
@@ -108,7 +107,6 @@ export type Database = {
           person_id: string
           roles?: string[]
           singer_status?: Database["public"]["Enums"]["singer_status"] | null
-          voice?: string | null
         }
         Update: {
           choir_id?: string
@@ -117,7 +115,6 @@ export type Database = {
           person_id?: string
           roles?: string[]
           singer_status?: Database["public"]["Enums"]["singer_status"] | null
-          voice?: string | null
         }
         Relationships: [
           {
@@ -186,6 +183,7 @@ export type Database = {
           last_name: string | null
           phone: string | null
           tags: string[] | null
+          voice: string | null
         }
         Insert: {
           city?: string | null
@@ -197,6 +195,7 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           tags?: string[] | null
+          voice?: string | null
         }
         Update: {
           city?: string | null
@@ -208,6 +207,7 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           tags?: string[] | null
+          voice?: string | null
         }
         Relationships: []
       }

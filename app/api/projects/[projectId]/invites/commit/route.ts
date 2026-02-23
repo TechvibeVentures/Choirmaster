@@ -64,6 +64,7 @@ export async function POST(
 
       if (!personId) {
         const derived = splitName(invite.name || "");
+        const normalizedVoice = invite.voice ? normalizeVoice(invite.voice) : null;
         const inserted = await serviceDb
           .from("persons")
           .insert({
@@ -72,7 +73,8 @@ export async function POST(
             last_name: invite.last_name || derived.last || "",
             city: "",
             experience_level: "regular",
-            tags: []
+            tags: [],
+            voice: normalizedVoice
           })
           .select("id")
           .single();
@@ -80,6 +82,15 @@ export async function POST(
         if (inserted.error) throw inserted.error;
         personId = inserted.data.id;
         createdPersons += 1;
+      } else if (invite.voice) {
+        const personVoiceUpdate = await serviceDb
+          .from("persons")
+          .update({ voice: normalizeVoice(invite.voice) })
+          .eq("id", personId)
+          .select("id")
+          .single();
+
+        if (personVoiceUpdate.error) throw personVoiceUpdate.error;
       }
 
       const membership = await serviceDb
@@ -89,8 +100,7 @@ export async function POST(
             choir_id: projectRes.data.choir_id,
             person_id: personId,
             roles: Array.from(new Set(["singer", ...(invite.roles || [])])),
-            singer_status: invite.singer_status || "project_only",
-            voice: invite.voice ? normalizeVoice(invite.voice) : null
+            singer_status: invite.singer_status || "project_only"
           },
           { onConflict: "choir_id,person_id" }
         )

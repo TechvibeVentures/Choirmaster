@@ -151,7 +151,8 @@ export async function POST(request: Request) {
         last_name: lastName,
         city: payload.profile.city,
         experience_level: "professional",
-        tags: ["Leitung"]
+        tags: ["Leitung"],
+        voice: "Soprano"
       };
 
       insertPayload.auth_user_id = session.user.id;
@@ -213,8 +214,7 @@ export async function POST(request: Request) {
           choir_id: choirId,
           person_id: personId,
           roles: [roleMap[payload.profile.role], "manager"],
-          singer_status: "active",
-          voice: "Soprano"
+          singer_status: "active"
         },
         { onConflict: "choir_id,person_id" }
       )
