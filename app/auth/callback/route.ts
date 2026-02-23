@@ -27,6 +27,30 @@ const isEmailOtpType = (value: string | null): value is EmailOtpType => {
 const toTrimmed = (value: unknown) =>
   typeof value === "string" ? value.trim() : "";
 
+const getFirstHeaderValue = (value: string | null) => {
+  if (!value) return "";
+  return value.split(",")[0]?.trim() ?? "";
+};
+
+const getRequestOrigin = (request: NextRequest, requestUrl: URL) => {
+  const host =
+    getFirstHeaderValue(request.headers.get("x-forwarded-host")) ||
+    getFirstHeaderValue(request.headers.get("host"));
+
+  if (!host) return requestUrl.origin;
+
+  const protocol =
+    getFirstHeaderValue(request.headers.get("x-forwarded-proto")) ||
+    requestUrl.protocol.replace(":", "") ||
+    "http";
+
+  try {
+    return new URL(`${protocol}://${host}`).origin;
+  } catch {
+    return requestUrl.origin;
+  }
+};
+
 const syncPersonFromAuth = async (user: {
   id: string;
   email?: string | null;
@@ -109,11 +133,12 @@ const syncPersonFromAuth = async (user: {
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
+  const origin = getRequestOrigin(request, requestUrl);
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const next = getSafeNextPath(requestUrl.searchParams.get("next"));
-  let response = NextResponse.redirect(new URL(next, requestUrl.origin));
+  let response = NextResponse.redirect(new URL(next, origin));
 
   const supabase = createServerClient<Database>(
     getSupabaseUrl(),
@@ -141,7 +166,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      const url = new URL("/login", requestUrl.origin);
+      const url = new URL("/login", origin);
       url.searchParams.set("next", next);
       url.searchParams.set("error", "callback_exchange_failed");
       return NextResponse.redirect(url);
@@ -151,7 +176,7 @@ export async function GET(request: NextRequest) {
       error: userError
     } = await supabase.auth.getUser();
     if (userError) {
-      const url = new URL("/login", requestUrl.origin);
+      const url = new URL("/login", origin);
       url.searchParams.set("next", next);
       url.searchParams.set("error", "callback_user_failed");
       return NextResponse.redirect(url);
@@ -161,7 +186,7 @@ export async function GET(request: NextRequest) {
         await syncPersonFromAuth(user);
       } catch (syncError) {
         console.error("callback person sync failed", syncError);
-        const url = new URL("/login", requestUrl.origin);
+        const url = new URL("/login", origin);
         url.searchParams.set("next", next);
         url.searchParams.set("error", "callback_person_sync_failed");
         return NextResponse.redirect(url);
@@ -176,7 +201,7 @@ export async function GET(request: NextRequest) {
       token_hash: tokenHash
     });
     if (error) {
-      const url = new URL("/login", requestUrl.origin);
+      const url = new URL("/login", origin);
       url.searchParams.set("next", next);
       url.searchParams.set("error", "callback_verify_failed");
       return NextResponse.redirect(url);
@@ -186,7 +211,7 @@ export async function GET(request: NextRequest) {
       error: userError
     } = await supabase.auth.getUser();
     if (userError) {
-      const url = new URL("/login", requestUrl.origin);
+      const url = new URL("/login", origin);
       url.searchParams.set("next", next);
       url.searchParams.set("error", "callback_user_failed");
       return NextResponse.redirect(url);
@@ -196,7 +221,7 @@ export async function GET(request: NextRequest) {
         await syncPersonFromAuth(user);
       } catch (syncError) {
         console.error("callback person sync failed", syncError);
-        const url = new URL("/login", requestUrl.origin);
+        const url = new URL("/login", origin);
         url.searchParams.set("next", next);
         url.searchParams.set("error", "callback_person_sync_failed");
         return NextResponse.redirect(url);
@@ -205,7 +230,7 @@ export async function GET(request: NextRequest) {
     return response;
   }
 
-  const url = new URL("/login", requestUrl.origin);
+  const url = new URL("/login", origin);
   url.searchParams.set("next", next);
   url.searchParams.set("error", "callback_params_missing");
   return NextResponse.redirect(url);

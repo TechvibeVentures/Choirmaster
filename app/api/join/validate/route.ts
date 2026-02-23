@@ -1,13 +1,35 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+const decodeToken = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeToken = (value: string | null) => decodeToken(value || "").trim();
+
+const isPlaceholderToken = (token: string) => /^<[^<>]+>$/.test(token);
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const token = searchParams.get("token") || "";
+    const token = normalizeToken(searchParams.get("token"));
 
     if (!token) {
       return NextResponse.json({ valid: false, error: "Missing token" }, { status: 400 });
+    }
+
+    if (isPlaceholderToken(token)) {
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "Ungültiger Platzhalter. Bitte den echten Einladungstoken verwenden."
+        },
+        { status: 400 }
+      );
     }
 
     const db = getServiceSupabaseClient();

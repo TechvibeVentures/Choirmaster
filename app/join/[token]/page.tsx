@@ -27,6 +27,13 @@ export default function JoinTokenPage({
   params: { token: string };
 }) {
   const router = useRouter();
+  const token = useMemo(() => {
+    try {
+      return decodeURIComponent(params.token);
+    } catch {
+      return params.token;
+    }
+  }, [params.token]);
 
   const [loading, setLoading] = useState(true);
   const [validatingError, setValidatingError] = useState("");
@@ -43,7 +50,7 @@ export default function JoinTokenPage({
       setLoading(true);
       setValidatingError("");
       try {
-        const response = await fetch(`/api/join/validate?token=${params.token}`);
+        const response = await fetch(`/api/join/validate?token=${encodeURIComponent(token)}`);
         const body = await response.json();
         if (!response.ok) {
           setPayload(body);
@@ -59,7 +66,7 @@ export default function JoinTokenPage({
     };
 
     void run();
-  }, [params.token]);
+  }, [token]);
 
   const canSubmit = useMemo(() => Boolean(payload?.valid && !submitting), [payload?.valid, submitting]);
 
@@ -75,7 +82,7 @@ export default function JoinTokenPage({
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          token: params.token,
+          token,
           first_name: firstName,
           last_name: lastName,
           city,
@@ -84,7 +91,7 @@ export default function JoinTokenPage({
       });
 
       if (response.status === 401) {
-        const next = `/join/${params.token}`;
+        const next = `/join/${encodeURIComponent(token)}`;
         router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }

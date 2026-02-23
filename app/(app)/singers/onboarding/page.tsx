@@ -149,6 +149,7 @@ export default function PeopleOnboardingPage() {
     "Hallo! Wir suchen Verstärkung für unser nächstes Projekt. Hier findest du alle Infos und kannst dich direkt eintragen."
   );
   const [copied, setCopied] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [inviteToken, setInviteToken] = useState("");
   const [inviteTokenError, setInviteTokenError] = useState("");
@@ -219,8 +220,9 @@ export default function PeopleOnboardingPage() {
     (row) => row.name.trim() || row.email.trim()
   );
 
-  const inviteLink = inviteToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${inviteToken}`
+  const normalizedInviteToken = inviteToken.trim();
+  const inviteLink = normalizedInviteToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${encodeURIComponent(normalizedInviteToken)}`
     : "";
 
   const toggleChannel = (id: string) => {
@@ -256,6 +258,18 @@ export default function PeopleOnboardingPage() {
     }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  const handleCopyToken = async () => {
+    if (!normalizedInviteToken) return;
+    try {
+      await navigator.clipboard.writeText(normalizedInviteToken);
+    } catch {
+      window.alert("Token konnte nicht kopiert werden.");
+      return;
+    }
+    setCopiedToken(true);
+    window.setTimeout(() => setCopiedToken(false), 1500);
   };
 
   const handleNext = () =>
@@ -650,23 +664,39 @@ export default function PeopleOnboardingPage() {
                       : "Deaktiviert"}
                   </span>
                 </div>
-                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-3">
-                  <span
-                    className={`text-sm ${
-                      inviteTokenError ? "text-rose-600" : "text-slate-700"
-                    }`}
-                  >
-                    {inviteTokenError || inviteLink || "Link wird erstellt..."}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void handleCopy()}
-                    disabled={!inviteLink}
-                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                    {copied ? "Kopiert" : "Kopieren"}
-                  </button>
+                <div className="mt-4 grid gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span
+                      className={`text-sm ${
+                        inviteTokenError ? "text-rose-600" : "text-slate-700"
+                      }`}
+                    >
+                      {inviteTokenError || inviteLink || "Link wird erstellt..."}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopy()}
+                      disabled={!inviteLink}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {copied ? "Link kopiert" : "Link kopieren"}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-xs text-slate-500">
+                      Token: {inviteTokenError ? "—" : normalizedInviteToken || "wird erstellt..."}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyToken()}
+                      disabled={!normalizedInviteToken || Boolean(inviteTokenError)}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {copiedToken ? "Token kopiert" : "Token kopieren"}
+                    </button>
+                  </div>
                 </div>
               </Card>
 

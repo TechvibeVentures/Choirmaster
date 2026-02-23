@@ -364,6 +364,18 @@ export default function SingerViewPage() {
     }
   };
 
+  useEffect(() => {
+    if (!project || savingAttendance || dirtyRehearsalIds.size === 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void saveAttendance();
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [attendanceState, dirtyRehearsalIds, project, savingAttendance]);
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">

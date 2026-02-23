@@ -4,9 +4,33 @@ import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { normalizeVoice } from "@/lib/data/common";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+const decodeToken = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const normalizeJoinToken = (token: string) => decodeToken(token).trim();
+
+const isPlaceholderToken = (token: string) => /^<[^<>]+>$/.test(token);
+
 export async function POST(request: Request) {
   try {
     const payload = joinCompleteSchema.parse(await request.json());
+    const token = normalizeJoinToken(payload.token);
+
+    if (!token) {
+      return NextResponse.json({ error: "Missing token" }, { status: 400 });
+    }
+
+    if (isPlaceholderToken(token)) {
+      return NextResponse.json(
+        { error: "Invalid placeholder token" },
+        { status: 400 }
+      );
+    }
 
     const session = await getCurrentSessionPerson();
     if (!session.user?.email) {
@@ -18,7 +42,7 @@ export async function POST(request: Request) {
     const tokenRes = await db
       .from("project_access_tokens")
       .select("project_id, token, active")
-      .eq("token", payload.token)
+      .eq("token", token)
       .eq("active", true)
       .single();
 
@@ -71,15 +95,39 @@ export async function POST(request: Request) {
       if (updated.error) throw updated.error;
     }
 
+    const existingMembershipRes = await db
+      .from("choir_memberships")
+      .select("roles, singer_status, voice")
+      .eq("choir_id", projectRes.data.choir_id)
+      .eq("person_id", personId)
+      .maybeSingle();
+
+    if (existingMembershipRes.error) throw existingMembershipRes.error;
+
+    const existingRolesRaw = Array.isArray(existingMembershipRes.data?.roles)
+      ? (existingMembershipRes.data.roles as unknown[])
+      : [];
+    const existingRoles = existingRolesRaw.filter(
+      (role): role is string => typeof role === "string" && role.length > 0
+    );
+    const nextRoles = existingRoles.length
+      ? Array.from(new Set([...existingRoles, "singer"]))
+      : ["singer"];
+    const nextSingerStatus =
+      existingMembershipRes.data?.singer_status ?? "project_only";
+    const nextVoice = payload.voice
+      ? normalizeVoice(payload.voice)
+      : existingMembershipRes.data?.voice ?? null;
+
     const membershipRes = await db
       .from("choir_memberships")
       .upsert(
         {
           choir_id: projectRes.data.choir_id,
           person_id: personId,
-          roles: ["singer"],
-          singer_status: "project_only",
-          voice: payload.voice ? normalizeVoice(payload.voice) : null
+          roles: nextRoles,
+          singer_status: nextSingerStatus,
+          voice: nextVoice
         },
         { onConflict: "choir_id,person_id" }
       )
