@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { DateTime } from "luxon";
 import { ZodError } from "zod";
 import { bootstrapAdminChoirSchema } from "@/lib/apiSchemas";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
@@ -8,6 +9,94 @@ const roleMap: Record<"chair" | "conductor" | "manager", string> = {
   chair: "chairman",
   conductor: "conductor",
   manager: "manager"
+};
+
+const weekdayToLuxon: Record<string, number> = {
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+  Sun: 7
+};
+
+const buildRehearsalRows = ({
+  projectId,
+  timezone,
+  startDate,
+  endDate,
+  weekdays,
+  startTime,
+  endTime,
+  location
+}: {
+  projectId: string;
+  timezone: string;
+  startDate: string;
+  endDate: string;
+  weekdays: string[];
+  startTime: string;
+  endTime: string;
+  location: string;
+}) => {
+  const start = DateTime.fromISO(startDate, { zone: timezone }).startOf("day");
+  const end = DateTime.fromISO(endDate, { zone: timezone }).startOf("day");
+
+  if (!start.isValid || !end.isValid || end < start) return [];
+
+  const validWeekdays = Array.from(
+    new Set(
+      (weekdays || [])
+        .map((day) => day.trim())
+        .filter((day) => weekdayToLuxon[day] !== undefined)
+    )
+  );
+  const fallbackWeekdays = validWeekdays.length ? validWeekdays : ["Tue"];
+  const weekdaySet = new Set(fallbackWeekdays.map((day) => weekdayToLuxon[day]));
+
+  const rows: Array<{
+    project_id: string;
+    starts_at: string;
+    ends_at: string;
+    location: string | null;
+  }> = [];
+
+  for (let cursor = start; cursor <= end; cursor = cursor.plus({ days: 1 })) {
+    if (!weekdaySet.has(cursor.weekday)) continue;
+
+    const dateIso = cursor.toISODate();
+    if (!dateIso) continue;
+
+    let startsLocal = DateTime.fromISO(`${dateIso}T${startTime}`, {
+      zone: timezone
+    });
+    let endsLocal = DateTime.fromISO(`${dateIso}T${endTime}`, {
+      zone: timezone
+    });
+
+    if (!startsLocal.isValid || !endsLocal.isValid) {
+      startsLocal = DateTime.fromISO(`${dateIso}T19:30`, { zone: timezone });
+      endsLocal = DateTime.fromISO(`${dateIso}T21:30`, { zone: timezone });
+    }
+
+    if (endsLocal <= startsLocal) {
+      endsLocal = endsLocal.plus({ days: 1 });
+    }
+
+    const startsAt = startsLocal.toUTC().toISO();
+    const endsAt = endsLocal.toUTC().toISO();
+    if (!startsAt || !endsAt) continue;
+
+    rows.push({
+      project_id: projectId,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      location: location || null
+    });
+  }
+
+  return rows;
 };
 
 export async function POST(request: Request) {
@@ -176,6 +265,22 @@ export async function POST(request: Request) {
 
       if (projectRes.error) throw projectRes.error;
       projectId = projectRes.data.id;
+
+      const rehearsalRows = buildRehearsalRows({
+        projectId,
+        timezone: payload.profile.timezone || "Europe/Zurich",
+        startDate: toIsoDate(today),
+        endDate: toIsoDate(endDate),
+        weekdays: payload.choir.rehearsal_weekdays,
+        startTime: payload.choir.rehearsal_start_time,
+        endTime: payload.choir.rehearsal_end_time,
+        location: payload.choir.default_location || ""
+      });
+
+      if (rehearsalRows.length) {
+        const rehearsalsRes = await service.from("rehearsals").insert(rehearsalRows);
+        if (rehearsalsRes.error) throw rehearsalsRes.error;
+      }
 
       const tokenRes = await service
         .from("project_access_tokens")

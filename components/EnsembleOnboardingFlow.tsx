@@ -255,6 +255,7 @@ export default function EnsembleOnboardingFlow({
     choirs,
     allProjects,
     activeChoirId,
+    adminProfile,
     replaceSnapshot,
     snapshot
   } = useAppData();
@@ -273,18 +274,20 @@ export default function EnsembleOnboardingFlow({
   const [endTime, setEndTime] = useState("21:30");
   const [location, setLocation] = useState("Pfrundhaus, Zürich");
   const [profileFirstName, setProfileFirstName] = useState(
-    initialProfile?.firstName?.trim() || ""
+    initialProfile?.firstName?.trim() || adminProfile.first_name || ""
   );
   const [profileLastName, setProfileLastName] = useState(
-    initialProfile?.lastName?.trim() || ""
+    initialProfile?.lastName?.trim() || adminProfile.last_name || ""
   );
   const profileEmail = initialProfile?.email?.trim() || "";
   const [profileCity, setProfileCity] = useState(
-    initialProfile?.city?.trim() || "Zürich"
+    initialProfile?.city?.trim() || adminProfile.city || "Zürich"
   );
-  const [profileRole, setProfileRole] = useState<ProfileRole>("conductor");
+  const [profileRole, setProfileRole] = useState<ProfileRole>(
+    (adminProfile.role as ProfileRole) || "conductor"
+  );
   const [profileTimezone, setProfileTimezone] = useState(
-    initialProfile?.timezone?.trim() || "Europe/Zurich"
+    initialProfile?.timezone?.trim() || adminProfile.timezone || "Europe/Zurich"
   );
   const [singerMode, setSingerMode] = useState<"search" | "upload" | "direct">(
     "search"
