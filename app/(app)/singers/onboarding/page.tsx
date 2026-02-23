@@ -101,9 +101,12 @@ const voiceSplitDefaults = [
 ];
 
 const getInitialInviteRows = (): InviteRow[] => [
-  { id: "row-1", name: "Anna Berger", email: "anna@example.com", voice: "" },
-  { id: "row-2", name: "Jonas Frei", email: "jonas@example.com", voice: "" },
-  { id: "row-3", name: "", email: "", voice: "" }
+  {
+    id: "row-1",
+    name: "",
+    email: "",
+    voice: ""
+  }
 ];
 
 const getProjectStatus = (project: Project) => {
@@ -145,9 +148,7 @@ export default function PeopleOnboardingPage() {
   const [inviteRows, setInviteRows] = useState<InviteRow[]>(
     getInitialInviteRows()
   );
-  const [inviteMessage, setInviteMessage] = useState(
-    "Hallo! Wir suchen Verstärkung für unser nächstes Projekt. Hier findest du alle Infos und kannst dich direkt eintragen."
-  );
+  const [inviteMessage, setInviteMessage] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedToken, setCopiedToken] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -906,15 +907,16 @@ export default function PeopleOnboardingPage() {
               <ChevronLeft className="h-4 w-4" />
               Zurück
             </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
-              disabled={step === stepLabels.length - 1}
-            >
-              Weiter
-              <ChevronRight className="h-4 w-4" />
-            </button>
+            {step < stepLabels.length - 1 ? (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm text-white"
+              >
+                Weiter
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : null}
           </div>
         </div>
 

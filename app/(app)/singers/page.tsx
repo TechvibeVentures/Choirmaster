@@ -324,13 +324,21 @@ export default function PeoplePage() {
             </button>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={openFinder}
-          className="hidden whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:inline-flex"
-        >
-          {strings.people.findSingers}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={openFinder}
+            className="hidden whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:inline-flex"
+          >
+            {strings.people.findSingers}
+          </button>
+          <Link
+            href="/singers/onboarding"
+            className="hidden whitespace-nowrap rounded-xl border border-slate-200 bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 sm:inline-flex"
+          >
+            Sänger-Onboarding
+          </Link>
+        </div>
       </div>
 
       {view === "list" ? (
