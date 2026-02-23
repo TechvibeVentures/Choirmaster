@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronLeft,
@@ -139,6 +140,9 @@ const profileRoleOptions: {
   }
 ];
 
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+const normalizeInviteEmail = (value: string) => value.trim().toLowerCase();
+
 export default function EnsembleOnboardingFlow({
   open,
   onClose,
@@ -147,6 +151,7 @@ export default function EnsembleOnboardingFlow({
   includeProfileStep = false,
   initialProfile
 }: Props) {
+  const router = useRouter();
   const {
     choirs,
     allProjects,
@@ -510,7 +515,7 @@ export default function EnsembleOnboardingFlow({
       .filter((singer) => selectedSet.has(singer.id))
       .map((singer) => ({
         name: singer.name,
-        email: singer.email.toLowerCase(),
+        email: normalizeInviteEmail(singer.email),
         voice: singer.voice
       }));
 
@@ -518,7 +523,7 @@ export default function EnsembleOnboardingFlow({
       .filter((entry) => entry.email.trim())
       .map((entry) => ({
         name: `${entry.first} ${entry.last}`.trim(),
-        email: entry.email.trim().toLowerCase(),
+        email: normalizeInviteEmail(entry.email),
         voice: mapInputVoice(entry.voice)
       }));
 
@@ -528,8 +533,12 @@ export default function EnsembleOnboardingFlow({
     >();
 
     [...fromSearch, ...fromDirect].forEach((invite) => {
-      if (!invite.email) return;
-      byEmail.set(invite.email, invite);
+      const normalizedEmail = normalizeInviteEmail(invite.email);
+      if (!normalizedEmail) return;
+      byEmail.set(normalizedEmail, {
+        ...invite,
+        email: normalizedEmail
+      });
     });
 
     return Array.from(byEmail.values());
@@ -610,6 +619,16 @@ export default function EnsembleOnboardingFlow({
     setSubmitting(true);
     try {
       const invites = buildInvitePayload();
+      const invalidEmails = invites
+        .map((invite) => invite.email.trim())
+        .filter((email) => !isValidEmail(email));
+
+      if (invalidEmails.length) {
+        window.alert(
+          `Bitte korrigiere diese E-Mail-Adresse(n): ${Array.from(new Set(invalidEmails)).join(", ")}`
+        );
+        return;
+      }
       const response = await fetch(
         `/api/projects/${selectedProjectId}/invites/commit`,
         {
@@ -622,12 +641,36 @@ export default function EnsembleOnboardingFlow({
       );
 
       if (!response.ok) {
-        throw new Error("commit failed");
+        const payload = await response.json().catch(() => ({}));
+        if (Array.isArray(payload.details)) {
+          const invalidInviteRows: number[] = payload.details
+            .filter(
+              (issue: { path?: unknown[]; message?: string }) =>
+                issue.path?.[0] === "invites" && issue.path?.[2] === "email"
+            )
+            .map((issue: { path?: unknown[] }) => Number(issue.path?.[1]) + 1)
+            .filter((index: number) => Number.isFinite(index) && index > 0);
+
+          if (invalidInviteRows.length) {
+            const uniqueInvalidInviteRows = Array.from(new Set(invalidInviteRows)).sort(
+              (a: number, b: number) => a - b
+            );
+            throw new Error(
+              `Ungültige E-Mail in Eintrag: ${uniqueInvalidInviteRows.join(", ")}`
+            );
+          }
+        }
+        throw new Error(payload.error || "commit failed");
       }
 
       setInviteSent(true);
-    } catch {
-      window.alert("Einladungen konnten nicht gespeichert werden.");
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Einladungen konnten nicht gespeichert werden.";
+      window.alert(message);
     } finally {
       setSubmitting(false);
     }

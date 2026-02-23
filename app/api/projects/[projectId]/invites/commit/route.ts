@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError } from "zod";
 import { commitInvitesSchema } from "@/lib/apiSchemas";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { normalizeVoice } from "@/lib/data/common";
@@ -133,6 +134,21 @@ export async function POST(
       upsertedParticipants
     });
   } catch (error) {
+    if (error instanceof ZodError) {
+      const invalidInviteRows = error.issues
+        .filter((issue) => issue.path?.[0] === "invites" && issue.path?.[2] === "email")
+        .map((issue) => Number(issue.path?.[1]))
+        .filter((index) => Number.isFinite(index));
+
+      return NextResponse.json(
+        {
+          error: "Invalid payload",
+          details: error.issues,
+          invalidInviteRows
+        },
+        { status: 400 }
+      );
+    }
     console.error("projects/[projectId]/invites/commit error", error);
     return NextResponse.json(
       { error: "Failed to commit invites" },

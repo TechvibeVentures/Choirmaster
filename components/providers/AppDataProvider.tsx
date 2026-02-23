@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode
@@ -27,6 +28,10 @@ export default function AppDataProvider({
   children: ReactNode;
 }) {
   const [snapshot, setSnapshot] = useState<DomainSnapshot>(initialSnapshot);
+
+  useEffect(() => {
+    setSnapshot(initialSnapshot);
+  }, [initialSnapshot]);
 
   const setActiveChoirId = useCallback(async (choirId: string) => {
     const response = await fetch("/api/context/active-choir", {
