@@ -27,15 +27,18 @@ export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showLoginHint, setShowLoginHint] = useState(false);
 
-  const startSignup = async (event: React.FormEvent) => {
+  const startSignup = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!email.trim()) return;
+    const formEmail = new FormData(event.currentTarget).get("email");
+    const normalizedEmail =
+      (typeof formEmail === "string" ? formEmail : email).trim().toLowerCase();
+    if (!normalizedEmail) return;
 
     setErrorMessage(null);
     setShowLoginHint(false);
     setLoading(true);
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      setEmail(normalizedEmail);
       const preflightResponse = await fetch("/api/auth/preflight", {
         method: "POST",
         headers: {
@@ -165,6 +168,7 @@ export default function SignupPage() {
                     <Mail className="h-4 w-4 text-slate-400" />
                     <input
                       type="email"
+                      name="email"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       placeholder="name@chor.de"

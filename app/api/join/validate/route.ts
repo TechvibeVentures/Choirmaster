@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+
 const decodeToken = (value: string) => {
   try {
     return decodeURIComponent(value);

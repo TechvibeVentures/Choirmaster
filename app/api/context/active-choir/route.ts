@@ -3,6 +3,8 @@ import { setActiveChoirSchema } from "@/lib/apiSchemas";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await getCurrentSessionPerson();
