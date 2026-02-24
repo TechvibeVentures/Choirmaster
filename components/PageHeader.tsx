@@ -137,6 +137,10 @@ export default function PageHeader({
                 <ul className="pb-2">
                   {choirs.map((choir) => (
                     <li key={choir.id}>
+                      {/** Keep at least one choir for the current admin context. */}
+                      {(() => {
+                        const cannotDeleteLastChoir = choirs.length <= 1;
+                        return (
                       <div className="flex items-center gap-2 px-1 py-1 hover:bg-slate-50">
                         <button
                           type="button"
@@ -152,14 +156,20 @@ export default function PageHeader({
                             event.stopPropagation();
                             void handleDeleteChoir(choir.id, choir.name);
                           }}
-                          disabled={deletingChoirId === choir.id}
+                          disabled={cannotDeleteLastChoir || deletingChoirId === choir.id}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:text-rose-600 disabled:opacity-60"
                           aria-label={`Ensemble ${choir.name} löschen`}
-                          title="Ensemble löschen"
+                          title={
+                            cannotDeleteLastChoir
+                              ? "Mindestens ein Ensemble muss erhalten bleiben"
+                              : "Ensemble löschen"
+                          }
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
+                        );
+                      })()}
                     </li>
                   ))}
                 </ul>

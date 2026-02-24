@@ -25,6 +25,22 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const membershipsRes = await serviceDb
+      .from("choir_memberships")
+      .select("choir_id")
+      .eq("person_id", session.person.id);
+
+    if (membershipsRes.error) throw membershipsRes.error;
+    const choirIds = Array.from(
+      new Set((membershipsRes.data || []).map((row: { choir_id: string }) => row.choir_id))
+    );
+    if (choirIds.length <= 1 && choirIds.includes(params.choirId)) {
+      return NextResponse.json(
+        { error: "At least one choir must remain" },
+        { status: 400 }
+      );
+    }
+
     const deleteRes = await serviceDb
       .from("choirs")
       .delete()
