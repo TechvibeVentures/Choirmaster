@@ -142,6 +142,39 @@ const profileRoleOptions: {
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 const normalizeInviteEmail = (value: string) => value.trim().toLowerCase();
+const requiredCsvHeaders = ["Vorname", "Nachname", "E-Mail", "Voice"] as const;
+const allowedCsvVoices = new Set(["Sopran", "Alt", "Tenor", "Bass"]);
+
+const parseCsvLine = (line: string, delimiter: "," | ";") => {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (char === "\"") {
+      const nextChar = line[index + 1];
+      if (inQuotes && nextChar === "\"") {
+        current += "\"";
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values.map((value) => value.replace(/^\uFEFF/, "").trim());
+};
 
 export default function EnsembleOnboardingFlow({
   open,
@@ -226,6 +259,11 @@ export default function EnsembleOnboardingFlow({
   const [directEntries, setDirectEntries] = useState<
     Array<{ id: string; first: string; last: string; email: string; voice: string }>
   >([{ id: "entry-1", first: "", last: "", email: "", voice: "" }]);
+  const [csvEntries, setCsvEntries] = useState<
+    Array<{ id: string; first: string; last: string; email: string; voice: string }>
+  >([]);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [csvUploadError, setCsvUploadError] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -233,6 +271,7 @@ export default function EnsembleOnboardingFlow({
   const [projectAccessTokenError, setProjectAccessTokenError] = useState("");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const isSingerOnly = mode === "singers";
   const shouldIncludeProfile = includeProfileStep && !isSingerOnly;
   const isPage = variant === "page";
@@ -444,6 +483,102 @@ export default function EnsembleOnboardingFlow({
     setSelectedSingerIds((prev) => prev.filter((item) => item !== id));
   };
 
+  const parseCsvInvites = (text: string) => {
+    const lines = text
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    if (!lines.length) {
+      throw new Error("Die CSV-Datei ist leer.");
+    }
+
+    const delimiter: "," | ";" = lines[0].includes(";") ? ";" : ",";
+    const header = parseCsvLine(lines[0], delimiter);
+    const normalizedHeader = header.map((value) => value.trim());
+    const hasExactHeader =
+      normalizedHeader.length === requiredCsvHeaders.length &&
+      requiredCsvHeaders.every((value, index) => normalizedHeader[index] === value);
+
+    if (!hasExactHeader) {
+      throw new Error(
+        `CSV-Header ungültig. Erwartet: ${requiredCsvHeaders.join(", ")}`
+      );
+    }
+
+    const parsedEntries = lines.slice(1).map((line, lineIndex) => {
+      const columns = parseCsvLine(line, delimiter);
+      if (columns.length !== requiredCsvHeaders.length) {
+        throw new Error(`Zeile ${lineIndex + 2}: falsche Anzahl Spalten.`);
+      }
+
+      const [first, last, emailRaw, voiceRaw] = columns;
+      const email = normalizeInviteEmail(emailRaw || "");
+      const voice = (voiceRaw || "").trim();
+
+      if (!first.trim() || !last.trim() || !email || !voice) {
+        throw new Error(`Zeile ${lineIndex + 2}: alle Felder sind Pflicht.`);
+      }
+
+      if (!isValidEmail(email)) {
+        throw new Error(`Zeile ${lineIndex + 2}: ungültige E-Mail-Adresse.`);
+      }
+
+      if (!allowedCsvVoices.has(voice)) {
+        throw new Error(
+          `Zeile ${lineIndex + 2}: Stimme muss Sopran, Alt, Tenor oder Bass sein.`
+        );
+      }
+
+      return {
+        id: `csv-${lineIndex + 1}`,
+        first: first.trim(),
+        last: last.trim(),
+        email,
+        voice
+      };
+    });
+
+    if (!parsedEntries.length) {
+      throw new Error("Die CSV-Datei enthält keine Datensätze.");
+    }
+
+    return parsedEntries;
+  };
+
+  const handleCsvFile = async (file: File | null) => {
+    if (!file) return;
+    setCsvUploadError("");
+
+    const isCsvByName = file.name.toLowerCase().endsWith(".csv");
+    const isCsvByType =
+      file.type === "text/csv" || file.type === "application/vnd.ms-excel";
+
+    if (!isCsvByName && !isCsvByType) {
+      setCsvEntries([]);
+      setCsvFileName("");
+      setCsvUploadError("Bitte genau eine CSV-Datei hochladen.");
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsed = parseCsvInvites(text);
+      setCsvEntries(parsed);
+      setCsvFileName(file.name);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "CSV konnte nicht verarbeitet werden.";
+      setCsvEntries([]);
+      setCsvFileName("");
+      setCsvUploadError(message);
+    }
+  };
+
   const toggleExperience = (id: ExperienceLevel) => {
     setSelectedExperiences((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -482,6 +617,12 @@ export default function EnsembleOnboardingFlow({
     () => filteredResults.filter((singer) => !singer.voice),
     [filteredResults]
   );
+  const directInviteEntries = useMemo(
+    () => directEntries.filter((entry) => entry.email.trim()),
+    [directEntries]
+  );
+  const hasInviteDrafts =
+    selectedSingerIds.length > 0 || directInviteEntries.length > 0 || csvEntries.length > 0;
 
   const selectedCountsByVoice = useMemo(() => {
     const counts = new Map<Voice, number>();
@@ -504,8 +645,13 @@ export default function EnsembleOnboardingFlow({
       if (!voice) return;
       counts.set(voice, (counts.get(voice) ?? 0) + 1);
     });
+    csvEntries.forEach((entry) => {
+      const voice = mapDirectVoice(entry.voice);
+      if (!voice) return;
+      counts.set(voice, (counts.get(voice) ?? 0) + 1);
+    });
     return counts;
-  }, [directEntries, selectedSingerIds, singerSearchResults]);
+  }, [csvEntries, directEntries, selectedSingerIds, singerSearchResults]);
 
   const mapInputVoice = (value: string): Voice | null => {
     if (value === "Sopran" || value === "Soprano") return "Soprano";
@@ -526,7 +672,14 @@ export default function EnsembleOnboardingFlow({
         voice: singer.voice
       }));
 
-    const fromDirect = directEntries
+    const fromDirect = directInviteEntries
+      .map((entry) => ({
+        name: `${entry.first} ${entry.last}`.trim(),
+        email: normalizeInviteEmail(entry.email),
+        voice: mapInputVoice(entry.voice)
+      }));
+
+    const fromCsv = csvEntries
       .filter((entry) => entry.email.trim())
       .map((entry) => ({
         name: `${entry.first} ${entry.last}`.trim(),
@@ -539,7 +692,7 @@ export default function EnsembleOnboardingFlow({
       { person_id?: string; name: string; email: string; voice: Voice | null }
     >();
 
-    [...fromSearch, ...fromDirect].forEach((invite) => {
+    [...fromSearch, ...fromDirect, ...fromCsv].forEach((invite) => {
       const normalizedEmail = normalizeInviteEmail(invite.email);
       if (!normalizedEmail) return;
       byEmail.set(normalizedEmail, {
@@ -1408,9 +1561,30 @@ export default function EnsembleOnboardingFlow({
                     <p className="mt-1 text-xs text-slate-500">
                       {strings.ensembleOnboarding.singersUploadHint}
                     </p>
+                    <input
+                      ref={csvInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0] ?? null;
+                        void handleCsvFile(file);
+                        event.currentTarget.value = "";
+                      }}
+                    />
                     <button
                       type="button"
-                      onClick={handleComingSoon}
+                      onClick={() => csvInputRef.current?.click()}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        if (event.dataTransfer.files.length > 1) {
+                          setCsvUploadError("Bitte nur eine CSV-Datei gleichzeitig hochladen.");
+                          return;
+                        }
+                        const file = event.dataTransfer.files?.[0] ?? null;
+                        void handleCsvFile(file);
+                      }}
                       className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-xs text-slate-500 transition hover:border-slate-300"
                     >
                       <span>{strings.ensembleOnboarding.singersUploadDrop}</span>
@@ -1418,6 +1592,53 @@ export default function EnsembleOnboardingFlow({
                         {strings.ensembleOnboarding.singersUploadFormat}
                       </span>
                     </button>
+                    {csvUploadError ? (
+                      <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                        {csvUploadError}
+                      </div>
+                    ) : null}
+                    {csvEntries.length > 0 ? (
+                      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-xs text-slate-500">
+                            Datei: <span className="font-medium text-slate-700">{csvFileName}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCsvEntries([]);
+                              setCsvFileName("");
+                              setCsvUploadError("");
+                            }}
+                            className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="min-w-full text-left text-xs text-slate-600">
+                            <thead className="text-slate-400">
+                              <tr>
+                                <th className="pb-2 pr-4 font-medium">Vorname</th>
+                                <th className="pb-2 pr-4 font-medium">Nachname</th>
+                                <th className="pb-2 pr-4 font-medium">E-Mail</th>
+                                <th className="pb-2 pr-2 font-medium">Voice</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {csvEntries.map((entry) => (
+                                <tr key={entry.id} className="border-t border-slate-100">
+                                  <td className="py-2 pr-4">{entry.first}</td>
+                                  <td className="py-2 pr-4">{entry.last}</td>
+                                  <td className="py-2 pr-4">{entry.email}</td>
+                                  <td className="py-2 pr-2">{entry.voice}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -1555,7 +1776,7 @@ export default function EnsembleOnboardingFlow({
                   </div>
                   <div className="mt-4 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
                     <div className="space-y-3">
-                      {selectedSingerIds.length === 0 && directEntries.length === 0 ? (
+                      {!hasInviteDrafts ? (
                         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm text-slate-500">
                           {strings.ensembleOnboarding.singersSummaryEmpty}
                         </div>
@@ -1603,7 +1824,7 @@ export default function EnsembleOnboardingFlow({
                           </div>
                         );
                       })}
-                      {directEntries.map((entry) => (
+                      {directInviteEntries.map((entry) => (
                         <div
                           key={`invite-${entry.id}`}
                           className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
@@ -1647,6 +1868,43 @@ export default function EnsembleOnboardingFlow({
                           >
                             Entfernen
                           </button>
+                        </div>
+                      ))}
+                      {csvEntries.map((entry) => (
+                        <div
+                          key={`invite-${entry.id}`}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                            <div className="min-w-[180px]">
+                              <div className="text-sm font-semibold text-slate-900">
+                                {`${entry.first} ${entry.last}`.trim() || "—"}
+                              </div>
+                              <div className="text-xs text-slate-500">{entry.email || "—"}</div>
+                            </div>
+                            <span>CSV</span>
+                            <span className="rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-400">
+                              —
+                            </span>
+                            <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-2 py-1 text-xs text-slate-600">
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    entry.voice === "Sopran"
+                                      ? voiceBorderColors.Soprano
+                                      : entry.voice === "Alt"
+                                        ? voiceBorderColors.Alto
+                                        : entry.voice === "Tenor"
+                                          ? voiceBorderColors.Tenor
+                                          : entry.voice === "Bass"
+                                            ? voiceBorderColors.Bass
+                                            : "#E2E8F0"
+                                }}
+                              />
+                              {entry.voice || strings.ensembleOnboarding.singersVoice}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
