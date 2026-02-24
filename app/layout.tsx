@@ -1,7 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import AppDataProvider from "@/components/providers/AppDataProvider";
-import { getDomainSnapshot } from "@/lib/data/domainSnapshot";
+import { createEmptyDomainSnapshot, getDomainSnapshot } from "@/lib/data/domainSnapshot";
 
 export const metadata: Metadata = {
   title: "Choirmaster",
@@ -16,7 +16,16 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const snapshot = await getDomainSnapshot();
+  let snapshot = createEmptyDomainSnapshot("");
+  try {
+    snapshot = await getDomainSnapshot();
+  } catch (error) {
+    const digest = (error as { digest?: string } | null)?.digest || "";
+    if (digest === "DYNAMIC_SERVER_USAGE") {
+      throw error;
+    }
+    console.error("RootLayout getDomainSnapshot error", error);
+  }
 
   return (
     <html lang="de">

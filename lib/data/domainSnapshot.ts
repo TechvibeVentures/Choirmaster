@@ -33,7 +33,7 @@ import {
 import { getRehearsalsByProjectIds } from "@/lib/data/rehearsals";
 import { getRepertoireByChoirIds } from "@/lib/data/repertoire";
 
-const emptySnapshot = (personId: string): DomainSnapshot => {
+export const createEmptyDomainSnapshot = (personId: string): DomainSnapshot => {
   const emptyPerson: Person = {
     id: personId,
     email: "",
@@ -69,7 +69,7 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
   const currentPerson = await getCurrentPerson();
 
   if (!currentPerson) {
-    return emptySnapshot("");
+    return createEmptyDomainSnapshot("");
   }
 
   const myMemberships = await getCurrentPersonMemberships(currentPerson.id);
