@@ -7,6 +7,7 @@ import Card from "@/components/Card";
 import { useAppData } from "@/hooks/useAppData";
 import type { AdminProfile } from "@/lib/domain/types";
 import { strings } from "@/lib/i18n";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 const inputStyles =
   "mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/60";
@@ -36,6 +37,7 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(adminProfile.phone ?? "");
   const [city, setCity] = useState(adminProfile.city);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const languageRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -101,8 +103,32 @@ export default function ProfilePage() {
     }
   };
 
+  const logout = async () => {
+    setLoggingOut(true);
+    try {
+      const supabase = getBrowserSupabaseClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      window.alert("Abmeldung fehlgeschlagen.");
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => void logout()}
+          disabled={loggingOut}
+          className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-60"
+        >
+          {loggingOut ? "Abmeldung..." : "Abmelden"}
+        </button>
+      </div>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="flex flex-col gap-6">
           <Card>

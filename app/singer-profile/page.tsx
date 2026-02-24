@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
@@ -14,6 +15,7 @@ import {
 import { formatDate, formatDateRange, formatTimeRange, formatWeekdays } from "@/lib/format";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
 
 const voiceColors: Record<Voice, string> = {
   Soprano: "var(--voice-soprano)",
@@ -95,6 +97,7 @@ const getRoleLabels = (roles?: string[]) => {
 };
 
 export default function SingerViewPage() {
+  const router = useRouter();
   const {
     activeChoirId,
     availability,
@@ -195,6 +198,7 @@ export default function SingerViewPage() {
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [attendanceSaveError, setAttendanceSaveError] = useState("");
   const [attendanceSaveSuccess, setAttendanceSaveSuccess] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
   const [dirtyRehearsalIds, setDirtyRehearsalIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -403,6 +407,20 @@ export default function SingerViewPage() {
     }
   };
 
+  const logout = async () => {
+    setLoggingOut(true);
+    try {
+      const supabase = getBrowserSupabaseClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      window.alert("Abmeldung fehlgeschlagen.");
+      setLoggingOut(false);
+    }
+  };
+
   useEffect(() => {
     if (!project || savingAttendance || dirtyRehearsalIds.size === 0) {
       return;
@@ -427,12 +445,22 @@ export default function SingerViewPage() {
               {singer?.first_name} {singer?.last_name}
             </h1>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: voiceColor }}
-            />
-            <span>{voiceLabel}</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 rounded-full border border-slate-200 px-4 py-2 text-xs font-medium text-slate-600">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: voiceColor }}
+              />
+              <span>{voiceLabel}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              disabled={loggingOut}
+              className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-60"
+            >
+              {loggingOut ? "Abmeldung..." : "Abmelden"}
+            </button>
           </div>
         </header>
 
