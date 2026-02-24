@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode
 } from "react";
+import { usePathname } from "next/navigation";
 import type { DomainSnapshot } from "@/lib/domain/types";
 
 type AppDataContextValue = {
@@ -28,10 +29,36 @@ export default function AppDataProvider({
   children: ReactNode;
 }) {
   const [snapshot, setSnapshot] = useState<DomainSnapshot>(initialSnapshot);
+  const pathname = usePathname();
 
   useEffect(() => {
     setSnapshot(initialSnapshot);
   }, [initialSnapshot]);
+
+  useEffect(() => {
+    if (!pathname) return;
+
+    const controller = new AbortController();
+    const run = async () => {
+      try {
+        const response = await fetch("/api/context/snapshot", {
+          cache: "no-store",
+          signal: controller.signal
+        });
+
+        if (!response.ok) return;
+        const nextSnapshot = (await response.json()) as DomainSnapshot;
+        setSnapshot(nextSnapshot);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error("AppDataProvider snapshot refresh error", error);
+      }
+    };
+
+    void run();
+
+    return () => controller.abort();
+  }, [pathname]);
 
   const setActiveChoirId = useCallback(async (choirId: string) => {
     const response = await fetch("/api/context/active-choir", {
