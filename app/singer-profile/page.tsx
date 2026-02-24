@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
@@ -206,12 +206,27 @@ export default function SingerViewPage() {
         availability
       )
   );
+  const attendanceStateRef = useRef(attendanceState);
+  const attendanceContextRef = useRef<string>("");
+
+  useEffect(() => {
+    attendanceStateRef.current = attendanceState;
+  }, [attendanceState]);
 
   const voiceOptions = useMemo(() => ["Soprano", "Alto", "Tenor", "Bass"] as Voice[], []);
   const voiceLabel = selectedVoice ? getVoiceLabel(selectedVoice) : "Stimme offen";
   const voiceColor = selectedVoice ? voiceColors[selectedVoice] : "#E2E8F0";
 
   useEffect(() => {
+    const attendanceContext = [
+      singer?.id || "",
+      selectedChoirId || "",
+      project?.id || "",
+      sortedRehearsals.map((item) => item.id).join(",")
+    ].join(":");
+    const attendanceContextChanged = attendanceContextRef.current !== attendanceContext;
+    attendanceContextRef.current = attendanceContext;
+
     setSelectedVoice(selectedMembership?.voice ?? voice ?? null);
     setSelectedExperience(singer?.experience_level ?? "regular");
     setFirstName(singer?.first_name ?? "");
@@ -221,16 +236,18 @@ export default function SingerViewPage() {
     setCity(singer?.city ?? "");
     setParticipationStatus(participation?.invite_status ?? "invited");
     setPaymentStatus("unpaid");
-    setAttendanceState(
-      buildAttendanceState(
-        sortedRehearsals.map((item) => item.id),
-        singer?.id || "",
-        availability
-      )
-    );
-    setDirtyRehearsalIds(new Set());
-    setAttendanceSaveError("");
-    setAttendanceSaveSuccess("");
+    if (attendanceContextChanged || (!savingAttendance && dirtyRehearsalIds.size === 0)) {
+      setAttendanceState(
+        buildAttendanceState(
+          sortedRehearsals.map((item) => item.id),
+          singer?.id || "",
+          availability
+        )
+      );
+      setDirtyRehearsalIds(new Set());
+      setAttendanceSaveError("");
+      setAttendanceSaveSuccess("");
+    }
     setProfileSaveError("");
     setProfileSaveSuccess("");
   }, [
@@ -327,15 +344,18 @@ export default function SingerViewPage() {
   const saveAttendance = async () => {
     if (!project || dirtyRehearsalIds.size === 0) return;
 
+    const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
+      rehearsalId,
+      status: attendanceStateRef.current[rehearsalId] ? "yes" : "no"
+    }));
+    const savedStatusByRehearsalId = new Map(
+      entries.map((entry) => [entry.rehearsalId, entry.status])
+    );
+
     setSavingAttendance(true);
     setAttendanceSaveError("");
     setAttendanceSaveSuccess("");
     try {
-      const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
-        rehearsalId,
-        status: attendanceState[rehearsalId] ? "yes" : "no"
-      }));
-
       const response = await fetch("/api/availability/batch", {
         method: "PUT",
         headers: {
@@ -353,7 +373,16 @@ export default function SingerViewPage() {
       }
 
       replaceSnapshot(mergeAvailabilityRows(snapshot, payload.rows || []));
-      setDirtyRehearsalIds(new Set());
+      setDirtyRehearsalIds((prev) => {
+        const next = new Set(prev);
+        for (const rehearsalId of savedStatusByRehearsalId.keys()) {
+          const currentStatus = attendanceStateRef.current[rehearsalId] ? "yes" : "no";
+          if (currentStatus === savedStatusByRehearsalId.get(rehearsalId)) {
+            next.delete(rehearsalId);
+          }
+        }
+        return next;
+      });
       setAttendanceSaveSuccess("Anwesenheiten gespeichert.");
     } catch (error) {
       const message =
