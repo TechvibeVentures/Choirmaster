@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import { useAppData } from "@/hooks/useAppData";
 import { strings } from "@/lib/i18n";
 
@@ -15,7 +16,9 @@ export default function PageHeader({
   currentPath: string;
   onCreateChoir: () => void;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [deletingChoirId, setDeletingChoirId] = useState<string | null>(null);
   const { choirs, activeChoirId, setActiveChoirId, adminProfile } = useAppData();
   const menuRef = useRef<HTMLDivElement>(null);
   const showOverviewLink =
@@ -52,6 +55,35 @@ export default function PageHeader({
 
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+
+  const handleDeleteChoir = async (choirId: string, choirName: string) => {
+    const confirmed = window.confirm(
+      `Ensemble "${choirName}" wirklich löschen? Projekte, Mitgliedschaften und zugehörige Daten werden entfernt.`
+    );
+    if (!confirmed) return;
+
+    setDeletingChoirId(choirId);
+    try {
+      const response = await fetch(`/api/choirs/${choirId}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Ensemble konnte nicht gelöscht werden.");
+      }
+
+      setOpen(false);
+      router.refresh();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Ensemble konnte nicht gelöscht werden.";
+      window.alert(message);
+    } finally {
+      setDeletingChoirId(null);
+    }
   };
 
   const initials = `${adminProfile.first_name[0] ?? ""}${
@@ -105,13 +137,29 @@ export default function PageHeader({
                 <ul className="pb-2">
                   {choirs.map((choir) => (
                     <li key={choir.id}>
-                      <button
-                        type="button"
-                        onClick={() => void handleSelect(choir.id)}
-                        className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                      >
-                        {choir.name}
-                      </button>
+                      <div className="flex items-center gap-2 px-1 py-1 hover:bg-slate-50">
+                        <button
+                          type="button"
+                          onClick={() => void handleSelect(choir.id)}
+                          className="flex-1 rounded-md px-2 py-1 text-left text-sm text-slate-700"
+                        >
+                          {choir.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            void handleDeleteChoir(choir.id, choir.name);
+                          }}
+                          disabled={deletingChoirId === choir.id}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-rose-200 hover:text-rose-600 disabled:opacity-60"
+                          aria-label={`Ensemble ${choir.name} löschen`}
+                          title="Ensemble löschen"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
