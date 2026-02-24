@@ -1,0 +1,20 @@
+{
+  "invite": {
+    "id": "5f88b50a-99f6-42f2-a500-0d1d5927a477",
+    "email": "federicoschermi60@gmail.com",
+    "voice": "Bass",
+    "status": "accepted",
+    "project_id": "cb6d7fc4-bef7-4ec0-8202-2e5fbfd24774",
+    "choir_id": "be788223-099a-4d28-b2f7-e37a7c73ae9b"
+  },
+  "person": {
+    "id": "b62805f7-7f2a-405a-9482-d240d7ccfdf3",
+    "auth_user_id": "f5b0c0da-8da7-4291-b1e3-82297cb9e637"
+  },
+  "membership_participation": {
+    "roles": ["singer"],
+    "singer_status": "project_only",
+    "invite_status": "confirmed",
+    "active_choir_id": "be788223-099a-4d28-b2f7-e37a7c73ae9b"
+  }
+}

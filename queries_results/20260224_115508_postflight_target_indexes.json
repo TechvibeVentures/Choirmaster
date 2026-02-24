@@ -1,0 +1,9 @@
+[
+  "availability_person_id_idx",
+  "availability_updated_by_person_id_idx",
+  "choir_memberships_person_id_idx",
+  "concert_program_pieces_repertoire_piece_id_idx",
+  "project_invites_choir_id_idx",
+  "project_invites_created_by_person_id_idx",
+  "project_participants_person_id_idx"
+]

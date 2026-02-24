@@ -1,0 +1,2 @@
+-- Snapshot captured via pg_get_functiondef('public.accept_project_invite(text,text,text,text)'::regprocedure)
+-- Stored in Supabase logs/MCP output for full text.

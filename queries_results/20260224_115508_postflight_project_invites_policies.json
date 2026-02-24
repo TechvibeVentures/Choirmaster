@@ -1,0 +1,6 @@
+[
+  {"policyname":"project_invites_admin_delete","cmd":"DELETE","qual":"is_admin(choir_id)","with_check":null},
+  {"policyname":"project_invites_admin_insert","cmd":"INSERT","qual":null,"with_check":"is_admin(choir_id)"},
+  {"policyname":"project_invites_admin_select","cmd":"SELECT","qual":"is_admin(choir_id)","with_check":null},
+  {"policyname":"project_invites_admin_update","cmd":"UPDATE","qual":"is_admin(choir_id)","with_check":"is_admin(choir_id)"}
+]

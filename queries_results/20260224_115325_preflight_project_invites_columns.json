@@ -1,0 +1,18 @@
+[
+  {"column_name":"id","data_type":"uuid","is_nullable":"NO","column_default":"gen_random_uuid()"},
+  {"column_name":"project_id","data_type":"uuid","is_nullable":"NO","column_default":null},
+  {"column_name":"choir_id","data_type":"uuid","is_nullable":"NO","column_default":null},
+  {"column_name":"email","data_type":"text","is_nullable":"NO","column_default":null},
+  {"column_name":"first_name","data_type":"text","is_nullable":"YES","column_default":"''::text"},
+  {"column_name":"last_name","data_type":"text","is_nullable":"YES","column_default":"''::text"},
+  {"column_name":"voice","data_type":"text","is_nullable":"YES","column_default":null},
+  {"column_name":"roles","data_type":"ARRAY","is_nullable":"YES","column_default":"ARRAY['singer'::text]"},
+  {"column_name":"singer_status","data_type":"text","is_nullable":"YES","column_default":"'project_only'::text"},
+  {"column_name":"status","data_type":"text","is_nullable":"NO","column_default":"'pending'::text"},
+  {"column_name":"token_hash","data_type":"text","is_nullable":"NO","column_default":null},
+  {"column_name":"expires_at","data_type":"timestamp with time zone","is_nullable":"NO","column_default":null},
+  {"column_name":"sent_at","data_type":"timestamp with time zone","is_nullable":"YES","column_default":null},
+  {"column_name":"accepted_at","data_type":"timestamp with time zone","is_nullable":"YES","column_default":null},
+  {"column_name":"created_at","data_type":"timestamp with time zone","is_nullable":"NO","column_default":"now()"},
+  {"column_name":"created_by_person_id","data_type":"uuid","is_nullable":"YES","column_default":null}
+]

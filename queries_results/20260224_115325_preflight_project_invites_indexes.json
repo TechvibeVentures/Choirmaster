@@ -1,0 +1,6 @@
+[
+  {"indexname":"project_invites_pkey"},
+  {"indexname":"project_invites_project_email_active_key"},
+  {"indexname":"project_invites_project_status_idx"},
+  {"indexname":"project_invites_token_hash_key"}
+]

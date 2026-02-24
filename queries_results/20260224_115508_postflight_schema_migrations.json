@@ -1,0 +1,20 @@
+[
+  {"version":"001","name":"001_identity_link"},
+  {"version":"002","name":"002_person_settings"},
+  {"version":"003","name":"003_repertoire"},
+  {"version":"004","name":"004_rls_repertoire_settings"},
+  {"version":"005","name":"005_workflow_functions"},
+  {"version":"006","name":"006_indexes_perf"},
+  {"version":"007","name":"007_fix_projects_participants_rls_recursion"},
+  {"version":"008","name":"008_admin_roles_include_manager"},
+  {"version":"009","name":"009_auth_users_cascade_delete"},
+  {"version":"010","name":"010_move_voice_to_persons"},
+  {"version":"011","name":"011_project_invites"},
+  {"version":"012","name":"012_fix_accept_project_invite_record_fields"},
+  {"version":"013","name":"013_fix_accept_project_invite_singer_status_cast"},
+  {"version":"014","name":"014_fix_accept_project_invite_variable_conflict"},
+  {"version":"015","name":"015_project_invites_rls_policies"},
+  {"version":"016","name":"016_fk_indexes_health"},
+  {"version":"20260203120000","name":"init"},
+  {"version":"20260223142749","name":"auth_users_cascade_delete"}
+]
