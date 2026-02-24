@@ -29,6 +29,7 @@ export const setActiveChoirSchema = z.object({
 export const commitInvitesSchema = z.object({
   invites: z.array(
     z.object({
+      person_id: z.string().uuid().optional(),
       name: z.string().optional().default(""),
       first_name: z.string().optional(),
       last_name: z.string().optional(),

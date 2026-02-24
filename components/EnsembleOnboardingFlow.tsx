@@ -520,6 +520,7 @@ export default function EnsembleOnboardingFlow({
     const fromSearch = singerSearchResults
       .filter((singer) => selectedSet.has(singer.id))
       .map((singer) => ({
+        person_id: singer.id,
         name: singer.name,
         email: normalizeInviteEmail(singer.email),
         voice: singer.voice
@@ -535,7 +536,7 @@ export default function EnsembleOnboardingFlow({
 
     const byEmail = new Map<
       string,
-      { name: string; email: string; voice: Voice | null }
+      { person_id?: string; name: string; email: string; voice: Voice | null }
     >();
 
     [...fromSearch, ...fromDirect].forEach((invite) => {
@@ -566,7 +567,7 @@ export default function EnsembleOnboardingFlow({
       );
     }
 
-    const response = await fetch(`/api/projects/${projectId}/invites/send`, {
+    const response = await fetch(`/api/projects/${projectId}/invites/commit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

@@ -14,6 +14,7 @@ export const tokenHash = (rawToken: string) =>
   createHash("sha256").update(rawToken.trim(), "utf8").digest("hex");
 
 type InviteInput = {
+  person_id?: string;
   name?: string;
   first_name?: string;
   last_name?: string;
