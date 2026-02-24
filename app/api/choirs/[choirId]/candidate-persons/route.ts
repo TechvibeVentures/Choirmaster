@@ -29,7 +29,7 @@ type MembershipRow = {
 };
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: { choirId: string } }
 ) {
   try {
@@ -50,6 +50,10 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const requestUrl = new URL(request.url);
+    const excludeCurrentChoir =
+      requestUrl.searchParams.get("excludeCurrentChoir") !== "false";
+
     const personsRes = await serviceDb
       .from("persons")
       .select("id, email, first_name, last_name, city, experience_level, voice");
@@ -61,30 +65,32 @@ export async function GET(
       return NextResponse.json({ persons: [] });
     }
 
-    const personIds = persons.map((person) => person.id);
-    const membershipsRes = await serviceDb
-      .from("choir_memberships")
-      .select("person_id")
-      .in("person_id", personIds)
-      .eq("choir_id", params.choirId);
+    let candidates = persons;
+    if (excludeCurrentChoir) {
+      const personIds = persons.map((person) => person.id);
+      const membershipsRes = await serviceDb
+        .from("choir_memberships")
+        .select("person_id")
+        .in("person_id", personIds)
+        .eq("choir_id", params.choirId);
 
-    if (membershipsRes.error) throw membershipsRes.error;
+      if (membershipsRes.error) throw membershipsRes.error;
 
-    const memberships = (membershipsRes.data || []) as MembershipRow[];
-    const inCurrentChoir = new Set(memberships.map((membership) => membership.person_id));
+      const memberships = (membershipsRes.data || []) as MembershipRow[];
+      const inCurrentChoir = new Set(memberships.map((membership) => membership.person_id));
+      candidates = persons.filter((person) => !inCurrentChoir.has(person.id));
+    }
 
-    const candidates = persons
-      .filter((person) => !inCurrentChoir.has(person.id))
-      .map((person) => ({
-        id: person.id,
-        name: `${person.first_name || ""} ${person.last_name || ""}`.trim() || person.email,
-        email: person.email,
-        city: person.city || "",
-        experience: normalizeExperience(person.experience_level),
-        voice: normalizeOptionalVoice(person.voice)
-      }));
+    const mappedCandidates = candidates.map((person) => ({
+      id: person.id,
+      name: `${person.first_name || ""} ${person.last_name || ""}`.trim() || person.email,
+      email: person.email,
+      city: person.city || "",
+      experience: normalizeExperience(person.experience_level),
+      voice: normalizeOptionalVoice(person.voice)
+    }));
 
-    return NextResponse.json({ persons: candidates });
+    return NextResponse.json({ persons: mappedCandidates });
   } catch (error) {
     console.error("choirs/[choirId]/candidate-persons error", error);
     return NextResponse.json(
@@ -93,4 +99,3 @@ export async function GET(
     );
   }
 }
-

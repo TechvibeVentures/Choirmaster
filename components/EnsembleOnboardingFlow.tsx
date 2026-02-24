@@ -343,15 +343,21 @@ export default function EnsembleOnboardingFlow({
   }, [isSingerOnly, selectedProjectId]);
 
   useEffect(() => {
-    if (!isOpen || !isSingerOnly || !activeChoirId) return;
+    if (!isOpen || !activeChoirId) {
+      setSingerSearchResults([]);
+      setSingerSearchError("");
+      setSingerSearchLoading(false);
+      return;
+    }
 
     const controller = new AbortController();
     const run = async () => {
       setSingerSearchLoading(true);
       setSingerSearchError("");
       try {
+        const excludeCurrentChoir = isSingerOnly ? "true" : "false";
         const response = await fetch(
-          `/api/choirs/${activeChoirId}/candidate-persons`,
+          `/api/choirs/${activeChoirId}/candidate-persons?excludeCurrentChoir=${excludeCurrentChoir}`,
           { signal: controller.signal }
         );
         if (!response.ok) {
@@ -544,6 +550,55 @@ export default function EnsembleOnboardingFlow({
     return Array.from(byEmail.values());
   };
 
+  const sendInvitesForProject = async (projectId: string) => {
+    const invites = buildInvitePayload();
+    if (!invites.length) {
+      return { sent: 0, skipped: true };
+    }
+
+    const invalidEmails = invites
+      .map((invite) => invite.email.trim())
+      .filter((email) => !isValidEmail(email));
+
+    if (invalidEmails.length) {
+      throw new Error(
+        `Bitte korrigiere diese E-Mail-Adresse(n): ${Array.from(new Set(invalidEmails)).join(", ")}`
+      );
+    }
+
+    const response = await fetch(`/api/projects/${projectId}/invites/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ invites })
+    });
+
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      if (Array.isArray(payload.details)) {
+        const invalidInviteRows: number[] = payload.details
+          .filter(
+            (issue: { path?: unknown[]; message?: string }) =>
+              issue.path?.[0] === "invites" && issue.path?.[2] === "email"
+          )
+          .map((issue: { path?: unknown[] }) => Number(issue.path?.[1]) + 1)
+          .filter((index: number) => Number.isFinite(index) && index > 0);
+
+        if (invalidInviteRows.length) {
+          const uniqueInvalidInviteRows = Array.from(new Set(invalidInviteRows)).sort(
+            (a: number, b: number) => a - b
+          );
+          throw new Error(`Ungültige E-Mail in Eintrag: ${uniqueInvalidInviteRows.join(", ")}`);
+        }
+      }
+      throw new Error(payload.error || "commit failed");
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    return { sent: Number(payload.sent || 0), skipped: false };
+  };
+
   const submitBootstrap = async () => {
     const firstName = profileFirstName.trim();
     const lastName = profileLastName.trim();
@@ -594,10 +649,31 @@ export default function EnsembleOnboardingFlow({
       }
 
       const result = await response.json();
+      const createdProjectId =
+        typeof result.projectId === "string" && result.projectId ? result.projectId : "";
+      let inviteWarning = "";
+
+      if (createdProjectId) {
+        try {
+          await sendInvitesForProject(createdProjectId);
+        } catch (inviteError) {
+          inviteWarning =
+            inviteError instanceof Error && inviteError.message
+              ? inviteError.message
+              : "Einladungen konnten nicht verschickt werden.";
+        }
+      }
+
       replaceSnapshot({
         ...snapshot,
         activeChoirId: result.activeChoirId || snapshot.activeChoirId
       });
+
+      if (inviteWarning) {
+        window.alert(
+          `${inviteWarning} Das Ensemble wurde erstellt. Du kannst Einladungen in der Sänger-Ansicht erneut senden.`
+        );
+      }
       window.location.href = "/dashboard";
     } catch (error) {
       const message =
@@ -618,51 +694,7 @@ export default function EnsembleOnboardingFlow({
 
     setSubmitting(true);
     try {
-      const invites = buildInvitePayload();
-      const invalidEmails = invites
-        .map((invite) => invite.email.trim())
-        .filter((email) => !isValidEmail(email));
-
-      if (invalidEmails.length) {
-        window.alert(
-          `Bitte korrigiere diese E-Mail-Adresse(n): ${Array.from(new Set(invalidEmails)).join(", ")}`
-        );
-        return;
-      }
-      const response = await fetch(
-        `/api/projects/${selectedProjectId}/invites/send`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ invites })
-        }
-      );
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        if (Array.isArray(payload.details)) {
-          const invalidInviteRows: number[] = payload.details
-            .filter(
-              (issue: { path?: unknown[]; message?: string }) =>
-                issue.path?.[0] === "invites" && issue.path?.[2] === "email"
-            )
-            .map((issue: { path?: unknown[] }) => Number(issue.path?.[1]) + 1)
-            .filter((index: number) => Number.isFinite(index) && index > 0);
-
-          if (invalidInviteRows.length) {
-            const uniqueInvalidInviteRows = Array.from(new Set(invalidInviteRows)).sort(
-              (a: number, b: number) => a - b
-            );
-            throw new Error(
-              `Ungültige E-Mail in Eintrag: ${uniqueInvalidInviteRows.join(", ")}`
-            );
-          }
-        }
-        throw new Error(payload.error || "commit failed");
-      }
-
+      await sendInvitesForProject(selectedProjectId);
       setInviteSent(true);
       router.refresh();
     } catch (error) {
