@@ -326,6 +326,85 @@ export type Database = {
           },
         ]
       }
+      project_invites: {
+        Row: {
+          id: string
+          project_id: string
+          choir_id: string
+          email: string
+          first_name: string | null
+          last_name: string | null
+          voice: string | null
+          roles: string[]
+          singer_status: string | null
+          status: string
+          token_hash: string
+          expires_at: string
+          sent_at: string | null
+          accepted_at: string | null
+          created_at: string
+          created_by_person_id: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          choir_id: string
+          email: string
+          first_name?: string | null
+          last_name?: string | null
+          voice?: string | null
+          roles?: string[]
+          singer_status?: string | null
+          status?: string
+          token_hash: string
+          expires_at: string
+          sent_at?: string | null
+          accepted_at?: string | null
+          created_at?: string
+          created_by_person_id?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          choir_id?: string
+          email?: string
+          first_name?: string | null
+          last_name?: string | null
+          voice?: string | null
+          roles?: string[]
+          singer_status?: string | null
+          status?: string
+          token_hash?: string
+          expires_at?: string
+          sent_at?: string | null
+          accepted_at?: string | null
+          created_at?: string
+          created_by_person_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_invites_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_choir_id_fkey"
+            columns: ["choir_id"]
+            isOneToOne: false
+            referencedRelation: "choirs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_invites_created_by_person_id_fkey"
+            columns: ["created_by_person_id"]
+            isOneToOne: false
+            referencedRelation: "persons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rehearsals: {
         Row: {
           created_at: string
@@ -366,9 +445,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_person_id: { Args: never; Returns: string }
-      is_admin: { Args: { choir: string }; Returns: boolean }
-      is_member: { Args: { choir: string }; Returns: boolean }
+      accept_project_invite: {
+        Args: {
+          p_token: string;
+          p_first_name?: string;
+          p_last_name?: string;
+          p_voice?: string | null;
+        };
+        Returns: Array<{
+          person_id: string;
+          choir_id: string;
+          project_id: string;
+          invite_status: Database["public"]["Enums"]["invite_status"];
+        }>;
+      };
+      current_person_id: { Args: never; Returns: string };
+      is_admin: { Args: { choir: string }; Returns: boolean };
+      is_member: { Args: { choir: string }; Returns: boolean };
     }
     Enums: {
       availability_status: "yes" | "no" | "unknown"

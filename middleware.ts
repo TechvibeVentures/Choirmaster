@@ -43,6 +43,28 @@ const isAuthSessionMissing = (error: unknown) => {
   return name === "AuthSessionMissingError" || message.includes("Auth session missing");
 };
 
+const isCorruptedAuthSession = (error: unknown) => {
+  if (!error || typeof error !== "object") return false;
+  const message = (error as { message?: string }).message || "";
+  return message.includes("Cannot create property 'user' on string");
+};
+
+const clearSupabaseAuthCookies = (request: NextRequest, response: NextResponse) => {
+  const authCookies = request.cookies
+    .getAll()
+    .filter((cookie) => cookie.name.includes("sb-") || cookie.name.includes("-auth-token"));
+
+  for (const cookie of authCookies) {
+    request.cookies.set(cookie.name, "");
+    response.cookies.set({
+      name: cookie.name,
+      value: "",
+      maxAge: 0,
+      path: "/"
+    });
+  }
+};
+
 const resolveUserKind = async (
   supabase: any,
   user: { id: string; email?: string | null }
@@ -87,31 +109,34 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
     cookies: {
-      get(name: string) {
-        return request.cookies.get(name)?.value;
+      getAll() {
+        return request.cookies.getAll();
       },
-      set(name: string, value: string, options: Record<string, unknown>) {
-        request.cookies.set({ name, value, ...(options as object) });
+      setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        response.cookies.set({ name, value, ...(options as object) });
-      },
-      remove(name: string, options: Record<string, unknown>) {
-        request.cookies.set({ name, value: "", ...(options as object) });
-        response = NextResponse.next({ request });
-        response.cookies.set({
-          name,
-          value: "",
-          ...(options as object),
-          maxAge: 0
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set({ name, value, ...(options as object) });
         });
       }
     }
   });
 
-  const {
-    data: { user },
-    error: userError
-  } = await supabase.auth.getUser();
+  let user: { id: string; email?: string | null } | null = null;
+  let userError: unknown = null;
+  try {
+    const userResult = await supabase.auth.getUser();
+    user = userResult.data.user;
+    userError = userResult.error;
+  } catch (error) {
+    userError = error;
+  }
+
+  if (isCorruptedAuthSession(userError)) {
+    clearSupabaseAuthCookies(request, response);
+    user = null;
+    userError = null;
+  }
 
   if (userError && !isAuthSessionMissing(userError)) {
     throw userError;

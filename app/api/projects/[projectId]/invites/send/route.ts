@@ -91,7 +91,7 @@ export async function POST(
         { status: 400 }
       );
     }
-    console.error("projects/[projectId]/invites/commit error", error);
+    console.error("projects/[projectId]/invites/send error", error);
     return NextResponse.json(
       { error: "Failed to send invites" },
       { status: 500 }

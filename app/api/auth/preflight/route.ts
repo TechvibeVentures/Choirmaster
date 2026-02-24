@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getJoinTokenFromPath, normalizeEmail } from "@/lib/auth/userAccess";
+import { normalizeEmail } from "@/lib/auth/userAccess";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
 const preflightSchema = z.object({
@@ -19,20 +19,6 @@ type PreflightReason =
 
 const jsonResponse = (allowed: boolean, reason: PreflightReason, status = 200) =>
   NextResponse.json({ allowed, reason }, { status });
-
-const hasActiveToken = async (token: string) => {
-  if (!token) return false;
-  const db = getServiceSupabaseClient();
-  const result = await db
-    .from("project_access_tokens")
-    .select("token")
-    .eq("token", token)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (result.error) throw result.error;
-  return Boolean(result.data?.token);
-};
 
 const hasExistingPerson = async (email: string) => {
   const db = getServiceSupabaseClient();
@@ -88,18 +74,7 @@ export async function POST(request: Request) {
       if (personId) {
         return jsonResponse(true, "allowed");
       }
-
-      const joinToken = getJoinTokenFromPath(payload.next);
-      if (!joinToken) {
-        return jsonResponse(false, "not_invited", 403);
-      }
-
-      const tokenValid = await hasActiveToken(joinToken);
-      if (!tokenValid) {
-        return jsonResponse(false, "invalid_invite_token", 403);
-      }
-
-      return jsonResponse(true, "allowed");
+      return jsonResponse(false, "not_invited", 403);
     }
 
     const singerOnly = await isSingerOnlyPerson(personId);

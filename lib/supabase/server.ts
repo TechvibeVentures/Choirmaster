@@ -10,19 +10,14 @@ export const getServerSupabaseClient = () => {
     getSupabaseAnonKey(),
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: Parameters<typeof cookieStore.set>[2]) {
+        setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
           try {
-            cookieStore.set({ name, value, ...options });
-          } catch {
-            // In server components cookies may be read-only.
-          }
-        },
-        remove(name: string, options: Parameters<typeof cookieStore.set>[2]) {
-          try {
-            cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set({ name, value, ...options })
+            );
           } catch {
             // In server components cookies may be read-only.
           }

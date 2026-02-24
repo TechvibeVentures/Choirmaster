@@ -225,7 +225,7 @@ export default function EnsembleOnboardingFlow({
   const [selectedSingerIds, setSelectedSingerIds] = useState<string[]>([]);
   const [directEntries, setDirectEntries] = useState<
     Array<{ id: string; first: string; last: string; email: string; voice: string }>
-  >([]);
+  >([{ id: "entry-1", first: "", last: "", email: "", voice: "" }]);
   const [inviteSent, setInviteSent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -630,7 +630,7 @@ export default function EnsembleOnboardingFlow({
         return;
       }
       const response = await fetch(
-        `/api/projects/${selectedProjectId}/invites/commit`,
+        `/api/projects/${selectedProjectId}/invites/send`,
         {
           method: "POST",
           headers: {

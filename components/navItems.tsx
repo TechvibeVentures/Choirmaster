@@ -43,7 +43,7 @@ export const getPageTitle = (
     return project?.name ?? strings.nav.projects;
   }
   if (pathname === "/singers/onboarding") {
-    return strings.onboarding.title;
+    return strings.nav.singers;
   }
   if (pathname.startsWith("/singers/")) {
     const personId = pathname.split("/")[2];

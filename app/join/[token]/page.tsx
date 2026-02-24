@@ -17,6 +17,13 @@ type ValidationPayload = {
     name: string;
     city: string;
   };
+  prefill?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    voice: string;
+  };
+  emailLocked?: boolean;
 };
 
 const voiceOptions = ["", "Soprano", "Alto", "Tenor", "Bass"];
@@ -58,6 +65,12 @@ export default function JoinTokenPage({
           return;
         }
         setPayload(body);
+        if (body.prefill) {
+          setFirstName(body.prefill.first_name ?? "");
+          setLastName(body.prefill.last_name ?? "");
+          setEmail(body.prefill.email ?? "");
+          setVoice(body.prefill.voice ?? "");
+        }
       } catch {
         setValidatingError("Token konnte nicht geprüft werden.");
       } finally {
@@ -168,7 +181,8 @@ export default function JoinTokenPage({
                 <input
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  readOnly={payload.emailLocked === true}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-500"
                   type="email"
                   placeholder="name@chor.de"
                   required

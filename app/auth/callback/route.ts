@@ -4,7 +4,6 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import type { Database } from "@/supabase-types";
 import {
   classifyUserKindFromMemberships,
-  getJoinTokenFromPath,
   normalizeEmail,
   type UserKind
 } from "@/lib/auth/userAccess";
@@ -223,20 +222,7 @@ const isAllowedAuthAttempt = async (
     .maybeSingle();
 
   if (personRes.error) throw personRes.error;
-  if (personRes.data?.id) return true;
-
-  const joinToken = getJoinTokenFromPath(next);
-  if (!joinToken) return false;
-
-  const tokenRes = await service
-    .from("project_access_tokens")
-    .select("token")
-    .eq("token", joinToken)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (tokenRes.error) throw tokenRes.error;
-  return Boolean(tokenRes.data?.token);
+  return Boolean(personRes.data?.id);
 };
 
 const resolveUserKind = async (user: {
@@ -279,7 +265,6 @@ const resolveUserKind = async (user: {
 };
 
 const getPostLoginPath = (next: string, kind: UserKind) => {
-  if (getJoinTokenFromPath(next)) return next;
   if (kind === "singer") return "/singer-profile";
   if (kind === "setup") return "/onboarding";
   return next;
@@ -320,18 +305,12 @@ export async function GET(request: NextRequest) {
     getSupabaseAnonKey(),
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
-          response.cookies.set({ name, value, ...(options as object) });
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          response.cookies.set({
-            name,
-            value: "",
-            ...(options as object),
-            maxAge: 0
+        setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set({ name, value, ...(options as object) });
           });
         }
       }
