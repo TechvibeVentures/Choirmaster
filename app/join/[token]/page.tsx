@@ -111,7 +111,7 @@ export default function JoinTokenPage({
         throw new Error("join failed");
       }
 
-      const nextPath = "/singer-profile";
+      const nextPath = `/singer-profile?join_token=${encodeURIComponent(token)}`;
       router.push(
         `/login?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(
           email.trim().toLowerCase()

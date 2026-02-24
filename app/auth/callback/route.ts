@@ -7,6 +7,7 @@ import {
   normalizeEmail,
   type UserKind
 } from "@/lib/auth/userAccess";
+import { tokenHash as hashInviteToken } from "@/lib/api/invites/sendInvites";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -54,6 +55,70 @@ const getRequestOrigin = (request: NextRequest, requestUrl: URL) => {
   } catch {
     return requestUrl.origin;
   }
+};
+
+const decodePart = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const getJoinTokenFromNextPath = (next: string, origin: string) => {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return "";
+  try {
+    const parsed = new URL(next, origin);
+    return decodePart(parsed.searchParams.get("join_token") || "").trim();
+  } catch {
+    return "";
+  }
+};
+
+const hasPendingInviteWithToken = async (email: string, joinToken: string) => {
+  if (!email || !joinToken) return false;
+  const service = getServiceSupabaseClient();
+
+  const inviteRes = await service
+    .from("project_invites")
+    .select("id")
+    .eq("token_hash", hashInviteToken(joinToken))
+    .eq("email", email)
+    .in("status", ["pending", "sent"])
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (inviteRes.error) throw inviteRes.error;
+  return Boolean(inviteRes.data?.id);
+};
+
+const finalizePendingInvite = async (email: string, joinToken: string) => {
+  if (!email || !joinToken) return;
+
+  const service = getServiceSupabaseClient();
+  const inviteRes = await service
+    .from("project_invites")
+    .select("id, email")
+    .eq("token_hash", hashInviteToken(joinToken))
+    .in("status", ["pending", "sent"])
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (inviteRes.error) throw inviteRes.error;
+  if (!inviteRes.data?.id) return;
+
+  if (normalizeEmail(inviteRes.data.email) !== email) {
+    throw new Error("invite_email_mismatch");
+  }
+
+  const { error: acceptError } = await service.rpc("accept_project_invite", {
+    p_token: joinToken,
+    p_first_name: "",
+    p_last_name: "",
+    p_voice: null
+  });
+
+  if (acceptError) throw acceptError;
 };
 
 const syncPersonFromAuth = async (user: {
@@ -198,19 +263,25 @@ const isSingerOnlyEmail = async (email: string) => {
   return classifyUserKindFromMemberships(membershipsRes.data || []) === "singer";
 };
 
+type AccessCheckResult = {
+  allowed: boolean;
+  joinToken: string;
+};
+
 const isAllowedAuthAttempt = async (
   user: {
     id: string;
     email?: string | null;
     user_metadata?: Record<string, unknown> | null;
   },
-  next: string
-) => {
+  next: string,
+  origin: string
+): Promise<AccessCheckResult> => {
   const email = normalizeEmail(user.email);
-  if (!email) return false;
+  if (!email) return { allowed: false, joinToken: "" };
 
   if (isSignupIntent(user, next)) {
-    return !(await isSingerOnlyEmail(email));
+    return { allowed: !(await isSingerOnlyEmail(email)), joinToken: "" };
   }
 
   const service = getServiceSupabaseClient();
@@ -222,7 +293,18 @@ const isAllowedAuthAttempt = async (
     .maybeSingle();
 
   if (personRes.error) throw personRes.error;
-  return Boolean(personRes.data?.id);
+
+  if (personRes.data?.id) {
+    return { allowed: true, joinToken: "" };
+  }
+
+  const joinToken = getJoinTokenFromNextPath(next, origin);
+  if (!joinToken) {
+    return { allowed: false, joinToken: "" };
+  }
+
+  const hasInvite = await hasPendingInviteWithToken(email, joinToken);
+  return { allowed: hasInvite, joinToken: hasInvite ? joinToken : "" };
 };
 
 const resolveUserKind = async (user: {
@@ -274,7 +356,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const origin = getRequestOrigin(request, requestUrl);
   const code = requestUrl.searchParams.get("code");
-  const tokenHash = requestUrl.searchParams.get("token_hash");
+  const otpTokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type");
   const next = getSafeNextPath(requestUrl.searchParams.get("next"));
   let response = NextResponse.redirect(new URL(next, origin));
@@ -317,7 +399,7 @@ export async function GET(request: NextRequest) {
     }
   ) as any;
 
-  if (!code && !(tokenHash && isEmailOtpType(type))) {
+  if (!code && !(otpTokenHash && isEmailOtpType(type))) {
     return redirectToLogin("callback_params_missing");
   }
 
@@ -326,10 +408,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       return redirectToLogin("callback_exchange_failed");
     }
-  } else if (tokenHash && isEmailOtpType(type)) {
+  } else if (otpTokenHash && isEmailOtpType(type)) {
     const { error } = await supabase.auth.verifyOtp({
       type,
-      token_hash: tokenHash
+      token_hash: otpTokenHash
     });
     if (error) {
       return redirectToLogin("callback_verify_failed");
@@ -345,21 +427,31 @@ export async function GET(request: NextRequest) {
     return redirectToLogin("callback_user_failed");
   }
 
-  let allowed = false;
+  let accessCheck: AccessCheckResult = { allowed: false, joinToken: "" };
   try {
-    allowed = await isAllowedAuthAttempt(user, next);
+    accessCheck = await isAllowedAuthAttempt(user, next, origin);
   } catch (accessError) {
     console.error("callback access check failed", accessError);
     return redirectToLogin("callback_access_check_failed");
   }
 
-  if (!allowed) {
+  if (!accessCheck.allowed) {
     redirectToLogin("not_allowed");
     const { error: signOutError } = await supabase.auth.signOut();
     if (signOutError) {
       console.error("callback signout failed", signOutError);
     }
     return response;
+  }
+
+  try {
+    const email = normalizeEmail(user.email);
+    if (email && accessCheck.joinToken) {
+      await finalizePendingInvite(email, accessCheck.joinToken);
+    }
+  } catch (inviteError) {
+    console.error("callback invite finalize failed", inviteError);
+    return redirectToLogin("callback_invite_finalize_failed");
   }
 
   try {

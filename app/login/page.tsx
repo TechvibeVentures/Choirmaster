@@ -24,6 +24,12 @@ export default function LoginPage() {
   const next = searchParams.get("next") || "/dashboard";
   const prefillEmail = searchParams.get("email") || "";
   const callbackError = searchParams.get("error") || "";
+  const callbackErrorMessages: Record<string, string> = {
+    not_allowed:
+      "Kein Zugriff für diese E-Mail. Bitte zuerst von einer Admin-Person einladen lassen.",
+    callback_invite_finalize_failed:
+      "Einladung konnte nicht abgeschlossen werden. Bitte versuche den Link aus der Einladung erneut."
+  };
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,10 +37,7 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showSignupHint, setShowSignupHint] = useState(false);
 
-  const callbackErrorMessage =
-    callbackError === "not_allowed"
-      ? "Kein Zugriff für diese E-Mail. Bitte zuerst von einer Admin-Person einladen lassen."
-      : "";
+  const callbackErrorMessage = callbackErrorMessages[callbackError] || "";
 
   useEffect(() => {
     if (!prefillEmail) return;

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { normalizeEmail } from "@/lib/auth/userAccess";
+import { tokenHash } from "@/lib/api/invites/sendInvites";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
 const preflightSchema = z.object({
@@ -19,6 +20,41 @@ type PreflightReason =
 
 const jsonResponse = (allowed: boolean, reason: PreflightReason, status = 200) =>
   NextResponse.json({ allowed, reason }, { status });
+
+const decodePart = (value: string) => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const getJoinTokenFromNextPath = (nextPath: string) => {
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) return "";
+
+  try {
+    const parsed = new URL(nextPath, "http://localhost");
+    return decodePart(parsed.searchParams.get("join_token") || "").trim();
+  } catch {
+    return "";
+  }
+};
+
+const hasPendingInviteWithToken = async (email: string, token: string) => {
+  if (!email || !token) return false;
+  const db = getServiceSupabaseClient();
+  const inviteRes = await db
+    .from("project_invites")
+    .select("id")
+    .eq("token_hash", tokenHash(token))
+    .eq("email", email)
+    .in("status", ["pending", "sent"])
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (inviteRes.error) throw inviteRes.error;
+  return Boolean(inviteRes.data?.id);
+};
 
 const hasExistingPerson = async (email: string) => {
   const db = getServiceSupabaseClient();
@@ -74,7 +110,18 @@ export async function POST(request: Request) {
       if (personId) {
         return jsonResponse(true, "allowed");
       }
-      return jsonResponse(false, "not_invited", 403);
+
+      const joinToken = getJoinTokenFromNextPath(payload.next || "");
+      if (!joinToken) {
+        return jsonResponse(false, "not_invited", 403);
+      }
+
+      const hasInvite = await hasPendingInviteWithToken(email, joinToken);
+      if (!hasInvite) {
+        return jsonResponse(false, "invalid_invite_token", 403);
+      }
+
+      return jsonResponse(true, "allowed");
     }
 
     const singerOnly = await isSingerOnlyPerson(personId);
