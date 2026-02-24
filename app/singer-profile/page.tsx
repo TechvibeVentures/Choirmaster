@@ -218,15 +218,6 @@ export default function SingerViewPage() {
   const voiceColor = selectedVoice ? voiceColors[selectedVoice] : "#E2E8F0";
 
   useEffect(() => {
-    const attendanceContext = [
-      singer?.id || "",
-      selectedChoirId || "",
-      project?.id || "",
-      sortedRehearsals.map((item) => item.id).join(",")
-    ].join(":");
-    const attendanceContextChanged = attendanceContextRef.current !== attendanceContext;
-    attendanceContextRef.current = attendanceContext;
-
     setSelectedVoice(selectedMembership?.voice ?? voice ?? null);
     setSelectedExperience(singer?.experience_level ?? "regular");
     setFirstName(singer?.first_name ?? "");
@@ -236,23 +227,9 @@ export default function SingerViewPage() {
     setCity(singer?.city ?? "");
     setParticipationStatus(participation?.invite_status ?? "invited");
     setPaymentStatus("unpaid");
-    if (attendanceContextChanged || (!savingAttendance && dirtyRehearsalIds.size === 0)) {
-      setAttendanceState(
-        buildAttendanceState(
-          sortedRehearsals.map((item) => item.id),
-          singer?.id || "",
-          availability
-        )
-      );
-      setDirtyRehearsalIds(new Set());
-      setAttendanceSaveError("");
-      setAttendanceSaveSuccess("");
-    }
     setProfileSaveError("");
     setProfileSaveSuccess("");
   }, [
-    availability,
-    selectedChoirId,
     selectedMembership?.voice,
     singer?.city,
     singer?.email,
@@ -262,8 +239,41 @@ export default function SingerViewPage() {
     singer?.last_name,
     singer?.phone,
     participation?.invite_status,
-    sortedRehearsals,
     voice
+  ]);
+
+  useEffect(() => {
+    const attendanceContext = [
+      singer?.id || "",
+      selectedChoirId || "",
+      project?.id || "",
+      sortedRehearsals.map((item) => item.id).join(",")
+    ].join(":");
+    const attendanceContextChanged = attendanceContextRef.current !== attendanceContext;
+    attendanceContextRef.current = attendanceContext;
+
+    if (!attendanceContextChanged && (savingAttendance || dirtyRehearsalIds.size > 0)) {
+      return;
+    }
+
+    setAttendanceState(
+      buildAttendanceState(
+        sortedRehearsals.map((item) => item.id),
+        singer?.id || "",
+        availability
+      )
+    );
+    setDirtyRehearsalIds(new Set());
+    setAttendanceSaveError("");
+    setAttendanceSaveSuccess("");
+  }, [
+    availability,
+    dirtyRehearsalIds.size,
+    project?.id,
+    savingAttendance,
+    selectedChoirId,
+    singer?.id,
+    sortedRehearsals
   ]);
 
   const saveProfile = async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
@@ -120,8 +120,27 @@ export default function PersonDetailPage({
   const [availabilityByRehearsal, setAvailabilityByRehearsal] = useState<
     Record<string, "yes" | "no" | "unknown">
   >({});
+  const availabilityByRehearsalRef = useRef(availabilityByRehearsal);
+  const availabilityContextRef = useRef<string>("");
 
   useEffect(() => {
+    availabilityByRehearsalRef.current = availabilityByRehearsal;
+  }, [availabilityByRehearsal]);
+
+  useEffect(() => {
+    const availabilityContext = [
+      person.id,
+      selectedChoirId || "",
+      selectedProjectId,
+      selectedRehearsals.map((rehearsal) => rehearsal.id).join(",")
+    ].join(":");
+    const availabilityContextChanged = availabilityContextRef.current !== availabilityContext;
+    availabilityContextRef.current = availabilityContext;
+
+    if (!availabilityContextChanged && (savingAvailability || dirtyRehearsalIds.size > 0)) {
+      return;
+    }
+
     const next: Record<string, "yes" | "no" | "unknown"> = {};
     selectedRehearsals.forEach((rehearsal) => {
       const record = availability.find(
@@ -134,7 +153,15 @@ export default function PersonDetailPage({
     setDirtyRehearsalIds(new Set());
     setAvailabilitySaveError("");
     setAvailabilitySaveSuccess("");
-  }, [availability, person.id, selectedRehearsals]);
+  }, [
+    availability,
+    dirtyRehearsalIds.size,
+    person.id,
+    savingAvailability,
+    selectedChoirId,
+    selectedProjectId,
+    selectedRehearsals
+  ]);
 
   const handleAvailabilityChange = (
     rehearsalId: string,
@@ -155,15 +182,18 @@ export default function PersonDetailPage({
   const saveAvailability = async () => {
     if (!selectedProjectId || dirtyRehearsalIds.size === 0) return;
 
+    const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
+      rehearsalId,
+      status: availabilityByRehearsalRef.current[rehearsalId] ?? "unknown"
+    }));
+    const savedStatusByRehearsalId = new Map(
+      entries.map((entry) => [entry.rehearsalId, entry.status])
+    );
+
     setSavingAvailability(true);
     setAvailabilitySaveError("");
     setAvailabilitySaveSuccess("");
     try {
-      const entries = Array.from(dirtyRehearsalIds).map((rehearsalId) => ({
-        rehearsalId,
-        status: availabilityByRehearsal[rehearsalId] ?? "unknown"
-      }));
-
       const response = await fetch("/api/availability/batch", {
         method: "PUT",
         headers: {
@@ -182,7 +212,16 @@ export default function PersonDetailPage({
       }
 
       replaceSnapshot(mergeAvailabilityRows(snapshot, payload.rows || []));
-      setDirtyRehearsalIds(new Set());
+      setDirtyRehearsalIds((prev) => {
+        const next = new Set(prev);
+        for (const rehearsalId of savedStatusByRehearsalId.keys()) {
+          const currentStatus = availabilityByRehearsalRef.current[rehearsalId] ?? "unknown";
+          if (currentStatus === savedStatusByRehearsalId.get(rehearsalId)) {
+            next.delete(rehearsalId);
+          }
+        }
+        return next;
+      });
       setAvailabilitySaveSuccess("Anwesenheiten gespeichert.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Speichern fehlgeschlagen.";
