@@ -80,6 +80,7 @@ export default function SignupPage() {
         email: normalizedEmail,
         options: {
           emailRedirectTo: redirectTo,
+          redirectTo,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),

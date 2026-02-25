@@ -1418,6 +1418,8 @@ export default function EnsembleOnboardingFlow({
                   <label className="text-sm text-slate-600">
                     {strings.ensembleOnboarding.start}
                     <input
+                      type="time"
+                      step={60}
                       value={startTime}
                       onChange={(event) => setStartTime(event.target.value)}
                       className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
@@ -1426,6 +1428,8 @@ export default function EnsembleOnboardingFlow({
                   <label className="text-sm text-slate-600">
                     {strings.ensembleOnboarding.end}
                     <input
+                      type="time"
+                      step={60}
                       value={endTime}
                       onChange={(event) => setEndTime(event.target.value)}
                       className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
