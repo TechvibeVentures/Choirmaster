@@ -145,6 +145,7 @@ export type Database = {
           rehearsal_start_time: string
           rehearsal_weekdays: string[]
           type: string | null
+          voice_distribution: Json
         }
         Insert: {
           city: string
@@ -157,6 +158,7 @@ export type Database = {
           rehearsal_start_time: string
           rehearsal_weekdays: string[]
           type?: string | null
+          voice_distribution?: Json
         }
         Update: {
           city?: string
@@ -169,6 +171,7 @@ export type Database = {
           rehearsal_start_time?: string
           rehearsal_weekdays?: string[]
           type?: string | null
+          voice_distribution?: Json
         }
         Relationships: []
       }

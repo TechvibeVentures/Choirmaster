@@ -28,7 +28,11 @@ export default function LoginPage() {
     not_allowed:
       "Kein Zugriff für diese E-Mail. Bitte zuerst von einer Admin-Person einladen lassen.",
     callback_invite_finalize_failed:
-      "Einladung konnte nicht abgeschlossen werden. Bitte versuche den Link aus der Einladung erneut."
+      "Einladung konnte nicht abgeschlossen werden. Bitte versuche den Link aus der Einladung erneut.",
+    voice_capacity_exceeded:
+      "Beitritt nicht möglich: Für diese Stimme ist das Ensemble aktuell voll. Bitte Admin kontaktieren.",
+    voice_missing_for_capacity:
+      "Beitritt nicht möglich: Für dein Profil fehlt eine gültige Stimme. Bitte Admin kontaktieren."
   };
 
   const [email, setEmail] = useState("");

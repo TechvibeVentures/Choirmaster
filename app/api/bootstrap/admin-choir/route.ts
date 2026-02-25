@@ -195,6 +195,7 @@ export async function POST(request: Request) {
         city: payload.choir.city,
         type: payload.choir.type,
         genres: payload.choir.genres,
+        voice_distribution: payload.choir.voice_distribution,
         rehearsal_weekdays: payload.choir.rehearsal_weekdays,
         rehearsal_start_time: payload.choir.rehearsal_start_time,
         rehearsal_end_time: payload.choir.rehearsal_end_time,

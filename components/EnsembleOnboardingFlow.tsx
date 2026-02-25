@@ -17,8 +17,15 @@ import {
 import Card from "@/components/Card";
 import { strings } from "@/lib/i18n";
 import { useAppData } from "@/hooks/useAppData";
-import type { Voice, Weekday } from "@/lib/domain/types";
+import type { Voice, VoiceDistribution, Weekday } from "@/lib/domain/types";
 import { getVoiceLabel } from "@/lib/labels";
+import {
+  DEFAULT_VOICE_DISTRIBUTION,
+  VOICE_ORDER,
+  cloneVoiceDistribution,
+  getVoiceCapacity,
+  normalizeVoiceDistribution
+} from "@/lib/domain/voiceDistribution";
 
 type Props = {
   open: boolean;
@@ -90,14 +97,6 @@ const voiceBorderColors: Record<Voice, string> = {
   Tenor: "var(--voice-tenor)",
   Bass: "var(--voice-bass)"
 };
-
-const voiceOrder: Voice[] = ["Soprano", "Alto", "Tenor", "Bass"];
-
-const voiceSplitDefaults = [
-  { label: "1", count: 4 },
-  { label: "2", count: 4 },
-  { label: "3", count: 0 }
-];
 
 const voiceOptions = ["Sopran", "Alt", "Tenor", "Bass"];
 
@@ -188,12 +187,17 @@ export default function EnsembleOnboardingFlow({
   const {
     choirs,
     allProjects,
+    allMemberships,
     activeChoirId,
     adminProfile,
     replaceSnapshot,
     snapshot
   } = useAppData();
   const projects = allProjects;
+  const isSingerOnly = mode === "singers";
+  const shouldIncludeProfile = includeProfileStep && !isSingerOnly;
+  const isPage = variant === "page";
+  const isOpen = isPage || open;
 
   type SingerSearchResult = {
     id: string;
@@ -208,8 +212,7 @@ export default function EnsembleOnboardingFlow({
   const [singerSearchError, setSingerSearchError] = useState("");
 
   const [step, setStep] = useState(0);
-  const initialChoir =
-    choirs.find((choir) => choir.id === activeChoirId) || choirs[0] || null;
+  const initialChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0] || null;
   const [name, setName] = useState(initialChoir?.name || "");
   const [city, setCity] = useState(initialChoir?.city || "");
   const [choirType, setChoirType] = useState<ChoirType>(
@@ -227,6 +230,11 @@ export default function EnsembleOnboardingFlow({
   );
   const [location, setLocation] = useState(
     initialChoir?.rehearsal_pattern.default_location || ""
+  );
+  const [voiceDistributionDraft, setVoiceDistributionDraft] = useState<VoiceDistribution>(
+    isSingerOnly
+      ? normalizeVoiceDistribution(initialChoir?.voice_distribution)
+      : cloneVoiceDistribution(DEFAULT_VOICE_DISTRIBUTION)
   );
   const [profileFirstName, setProfileFirstName] = useState(
     initialProfile?.firstName?.trim() || adminProfile.first_name || ""
@@ -272,10 +280,6 @@ export default function EnsembleOnboardingFlow({
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
   const projectMenuRef = useRef<HTMLDivElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
-  const isSingerOnly = mode === "singers";
-  const shouldIncludeProfile = includeProfileStep && !isSingerOnly;
-  const isPage = variant === "page";
-  const isOpen = isPage || open;
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -291,6 +295,17 @@ export default function EnsembleOnboardingFlow({
       setStep(0);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isSingerOnly) {
+      setVoiceDistributionDraft(
+        normalizeVoiceDistribution(initialChoir?.voice_distribution)
+      );
+      return;
+    }
+    setVoiceDistributionDraft(cloneVoiceDistribution(DEFAULT_VOICE_DISTRIBUTION));
+  }, [initialChoir?.id, initialChoir?.voice_distribution, isOpen, isSingerOnly]);
 
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
@@ -456,12 +471,6 @@ export default function EnsembleOnboardingFlow({
     }
   };
 
-  const toggleSingerSelection = (id: string) => {
-    setSelectedSingerIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
   const addDirectEntry = () => {
     setDirectEntries((prev) => [
       ...prev,
@@ -605,7 +614,7 @@ export default function EnsembleOnboardingFlow({
 
   const resultsByVoice = useMemo(() => {
     const map = new Map<Voice, SingerSearchResult[]>();
-    voiceOrder.forEach((voice) => map.set(voice, []));
+    VOICE_ORDER.forEach((voice) => map.set(voice, []));
     filteredResults.forEach((singer) => {
       if (!singer.voice) return;
       map.get(singer.voice)?.push(singer);
@@ -624,41 +633,212 @@ export default function EnsembleOnboardingFlow({
   const hasInviteDrafts =
     selectedSingerIds.length > 0 || directInviteEntries.length > 0 || csvEntries.length > 0;
 
-  const selectedCountsByVoice = useMemo(() => {
-    const counts = new Map<Voice, number>();
-    voiceOrder.forEach((voice) => counts.set(voice, 0));
-    const selectedSet = new Set(selectedSingerIds);
-    singerSearchResults.forEach((singer) => {
-      if (!singer.voice) return;
-      if (!selectedSet.has(singer.id)) return;
-      counts.set(singer.voice, (counts.get(singer.voice) ?? 0) + 1);
-    });
-    const mapDirectVoice = (value: string): Voice | null => {
-      if (value === "Sopran") return "Soprano";
-      if (value === "Alt") return "Alto";
-      if (value === "Tenor") return "Tenor";
-      if (value === "Bass") return "Bass";
-      return null;
-    };
-    directEntries.forEach((entry) => {
-      const voice = mapDirectVoice(entry.voice);
-      if (!voice) return;
-      counts.set(voice, (counts.get(voice) ?? 0) + 1);
-    });
-    csvEntries.forEach((entry) => {
-      const voice = mapDirectVoice(entry.voice);
-      if (!voice) return;
-      counts.set(voice, (counts.get(voice) ?? 0) + 1);
-    });
-    return counts;
-  }, [csvEntries, directEntries, selectedSingerIds, singerSearchResults]);
-
   const mapInputVoice = (value: string): Voice | null => {
     if (value === "Sopran" || value === "Soprano") return "Soprano";
     if (value === "Alt" || value === "Alto") return "Alto";
     if (value === "Tenor") return "Tenor";
     if (value === "Bass") return "Bass";
     return null;
+  };
+
+  const voiceSplitRows = useMemo(() => {
+    const distribution = normalizeVoiceDistribution(voiceDistributionDraft);
+    const rows = new Map<Voice, Array<{ label: string; count: number }>>();
+    VOICE_ORDER.forEach((voice) => {
+      rows.set(
+        voice,
+        distribution[voice].map((count, index) => ({
+          label: `${index + 1}`,
+          count
+        }))
+      );
+    });
+    return rows;
+  }, [voiceDistributionDraft]);
+
+  const capacityByVoice = useMemo(() => {
+    const distribution = normalizeVoiceDistribution(voiceDistributionDraft);
+    const map = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => {
+      map.set(voice, getVoiceCapacity(distribution, voice));
+    });
+    return map;
+  }, [voiceDistributionDraft]);
+
+  const currentSingerCountsByVoice = useMemo(() => {
+    const counts = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => counts.set(voice, 0));
+
+    if (!isSingerOnly || !currentChoir?.id) {
+      return counts;
+    }
+
+    allMemberships.forEach((membership) => {
+      if (membership.choir_id !== currentChoir.id) return;
+      if ((membership.roles || []).includes("singer") === false) return;
+      if (membership.singer_status === "inactive") return;
+      const voice = membership.voice;
+      if (!voice) return;
+      counts.set(voice, (counts.get(voice) ?? 0) + 1);
+    });
+
+    return counts;
+  }, [allMemberships, currentChoir?.id, isSingerOnly]);
+
+  const selectedDatabaseCountsByVoice = useMemo(() => {
+    const counts = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => counts.set(voice, 0));
+    const selectedSet = new Set(selectedSingerIds);
+
+    singerSearchResults.forEach((singer) => {
+      if (!singer.voice) return;
+      if (!selectedSet.has(singer.id)) return;
+      counts.set(singer.voice, (counts.get(singer.voice) ?? 0) + 1);
+    });
+
+    return counts;
+  }, [selectedSingerIds, singerSearchResults]);
+
+  const selectedCountsByVoice = useMemo(() => {
+    const counts = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => counts.set(voice, selectedDatabaseCountsByVoice.get(voice) ?? 0));
+    directEntries.forEach((entry) => {
+      if (!entry.email.trim()) return;
+      const voice = mapInputVoice(entry.voice);
+      if (!voice) return;
+      counts.set(voice, (counts.get(voice) ?? 0) + 1);
+    });
+    csvEntries.forEach((entry) => {
+      if (!entry.email.trim()) return;
+      const voice = mapInputVoice(entry.voice);
+      if (!voice) return;
+      counts.set(voice, (counts.get(voice) ?? 0) + 1);
+    });
+    return counts;
+  }, [csvEntries, directEntries, selectedDatabaseCountsByVoice]);
+
+  const availableSeatsByVoice = useMemo(() => {
+    const map = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => {
+      const capacity = capacityByVoice.get(voice) ?? 0;
+      const current = currentSingerCountsByVoice.get(voice) ?? 0;
+      map.set(voice, Math.max(0, capacity - current));
+    });
+    return map;
+  }, [capacityByVoice, currentSingerCountsByVoice]);
+
+  const inlineInviteErrors = useMemo(() => {
+    const remaining = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => {
+      remaining.set(voice, availableSeatsByVoice.get(voice) ?? 0);
+    });
+
+    VOICE_ORDER.forEach((voice) => {
+      const selected = selectedDatabaseCountsByVoice.get(voice) ?? 0;
+      const left = remaining.get(voice) ?? 0;
+      remaining.set(voice, Math.max(0, left - selected));
+    });
+
+    const directErrors = new Map<string, string>();
+    for (const entry of directEntries) {
+      if (!entry.email.trim()) continue;
+      const voice = mapInputVoice(entry.voice);
+      if (!voice) {
+        directErrors.set(entry.id, "Stimme fehlt. Bitte Sopran, Alt, Tenor oder Bass auswählen.");
+        continue;
+      }
+      const left = remaining.get(voice) ?? 0;
+      if (left <= 0) {
+        directErrors.set(
+          entry.id,
+          `${getVoiceLabel(voice)} ist voll. Bitte andere Stimme wählen oder Plätze freimachen.`
+        );
+        continue;
+      }
+      remaining.set(voice, left - 1);
+    }
+
+    const csvErrors = new Map<string, string>();
+    for (const entry of csvEntries) {
+      if (!entry.email.trim()) continue;
+      const voice = mapInputVoice(entry.voice);
+      if (!voice) {
+        csvErrors.set(entry.id, "Stimme fehlt/ungültig.");
+        continue;
+      }
+      const left = remaining.get(voice) ?? 0;
+      if (left <= 0) {
+        csvErrors.set(
+          entry.id,
+          `${getVoiceLabel(voice)} ist voll. Datensatz überschreitet das Stimm-Limit.`
+        );
+        continue;
+      }
+      remaining.set(voice, left - 1);
+    }
+
+    return {
+      directErrors,
+      csvErrors,
+      remainingByVoice: remaining,
+      hasBlockingErrors: directErrors.size > 0 || csvErrors.size > 0
+    };
+  }, [
+    availableSeatsByVoice,
+    csvEntries,
+    directEntries,
+    selectedDatabaseCountsByVoice
+  ]);
+
+  const remainingSeatsByVoice = inlineInviteErrors.remainingByVoice;
+  const totalRemainingSeats = useMemo(
+    () => VOICE_ORDER.reduce((sum, voice) => sum + (remainingSeatsByVoice.get(voice) ?? 0), 0),
+    [remainingSeatsByVoice]
+  );
+  const noSeatsLeft = totalRemainingSeats <= 0;
+  const hasVoiceCapacityExceeded = useMemo(
+    () =>
+      VOICE_ORDER.some(
+        (voice) =>
+          (selectedCountsByVoice.get(voice) ?? 0) > (availableSeatsByVoice.get(voice) ?? 0)
+      ),
+    [availableSeatsByVoice, selectedCountsByVoice]
+  );
+  const disableFinishAction =
+    !isSingerOnly && step === finishStepIndex && hasVoiceCapacityExceeded;
+
+  const updateVoiceDistributionSlot = (voice: Voice, index: 0 | 1 | 2, delta: -1 | 1) => {
+    setVoiceDistributionDraft((prev) => {
+      const normalized = normalizeVoiceDistribution(prev);
+      const next = cloneVoiceDistribution(normalized);
+      const current = next[voice][index];
+      next[voice][index] = Math.max(0, current + delta);
+      return next;
+    });
+  };
+
+  const toggleSingerSelection = (id: string) => {
+    const selectedSet = new Set(selectedSingerIds);
+    if (selectedSet.has(id)) {
+      setSelectedSingerIds((prev) => prev.filter((item) => item !== id));
+      return;
+    }
+
+    const singer = singerSearchResults.find((entry) => entry.id === id);
+    if (!singer) return;
+
+    if (!singer.voice) {
+      window.alert("Dieser Sänger hat noch keine Stimme. Bitte zuerst im Profil eine Stimme zuweisen.");
+      return;
+    }
+
+    const remaining = remainingSeatsByVoice.get(singer.voice) ?? 0;
+    if (remaining <= 0) {
+      window.alert(`Kein freier Platz mehr für ${getVoiceLabel(singer.voice)}.`);
+      return;
+    }
+
+    setSelectedSingerIds((prev) => [...prev, id]);
   };
 
   const buildInvitePayload = () => {
@@ -673,6 +853,7 @@ export default function EnsembleOnboardingFlow({
       }));
 
     const fromDirect = directInviteEntries
+      .filter((entry) => !inlineInviteErrors.directErrors.has(entry.id))
       .map((entry) => ({
         name: `${entry.first} ${entry.last}`.trim(),
         email: normalizeInviteEmail(entry.email),
@@ -681,6 +862,7 @@ export default function EnsembleOnboardingFlow({
 
     const fromCsv = csvEntries
       .filter((entry) => entry.email.trim())
+      .filter((entry) => !inlineInviteErrors.csvErrors.has(entry.id))
       .map((entry) => ({
         name: `${entry.first} ${entry.last}`.trim(),
         email: normalizeInviteEmail(entry.email),
@@ -730,6 +912,22 @@ export default function EnsembleOnboardingFlow({
 
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
+      if (response.status === 409 && payload.error === "voice_capacity_exceeded") {
+        const voiceLabel =
+          typeof payload?.capacity?.voice === "string"
+            ? payload.capacity.voice
+            : "Stimme";
+        const current = Number(payload?.capacity?.current ?? 0);
+        const limit = Number(payload?.capacity?.limit ?? 0);
+        throw new Error(
+          `${voiceLabel} ist voll (${current}/${limit}). Bitte zuerst Plätze freimachen.`
+        );
+      }
+      if (response.status === 409 && payload.error === "voice_missing_for_capacity") {
+        throw new Error(
+          "Mindestens ein ausgewählter Sänger hat keine Stimme. Bitte zuerst eine Stimme im Profil zuweisen."
+        );
+      }
       if (Array.isArray(payload.details)) {
         const invalidInviteRows: number[] = payload.details
           .filter(
@@ -783,6 +981,7 @@ export default function EnsembleOnboardingFlow({
             city,
             type: choirType,
             genres,
+            voice_distribution: normalizeVoiceDistribution(voiceDistributionDraft),
             rehearsal_weekdays: weekdays,
             rehearsal_start_time: startTime,
             rehearsal_end_time: endTime,
@@ -1255,7 +1454,7 @@ export default function EnsembleOnboardingFlow({
                   <Sparkles className="h-5 w-5 text-slate-300" />
                 </div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {voiceOrder.map((voice) => (
+                  {VOICE_ORDER.map((voice) => (
                     <div
                       key={voice}
                       className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
@@ -1268,7 +1467,7 @@ export default function EnsembleOnboardingFlow({
                         <span>{getVoiceLabel(voice)}</span>
                       </div>
                       <div className="mt-3 space-y-2">
-                        {voiceSplitDefaults.map((split) => (
+                        {(voiceSplitRows.get(voice) ?? []).map((split, splitIndex) => (
                           <div
                             key={`${voice}-${split.label}`}
                             className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
@@ -1279,7 +1478,9 @@ export default function EnsembleOnboardingFlow({
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={handleComingSoon}
+                                onClick={() =>
+                                  updateVoiceDistributionSlot(voice, splitIndex as 0 | 1 | 2, -1)
+                                }
                                 className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                               >
                                 –
@@ -1289,7 +1490,9 @@ export default function EnsembleOnboardingFlow({
                               </span>
                               <button
                                 type="button"
-                                onClick={handleComingSoon}
+                                onClick={() =>
+                                  updateVoiceDistributionSlot(voice, splitIndex as 0 | 1 | 2, 1)
+                                }
                                 className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                               >
                                 +
@@ -1338,6 +1541,9 @@ export default function EnsembleOnboardingFlow({
                       </button>
                     ))}
                   </div>
+                </div>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                  Die Stimm-Limits gelten für alle Wege (Datenbank, Excel, Direkt-Eintrag). Einladungen werden vor dem Versand gegen die Limits geprüft.
                 </div>
 
                 {singerMode === "search" ? (
@@ -1402,8 +1608,9 @@ export default function EnsembleOnboardingFlow({
                     ) : (
                       <div className="mt-3 space-y-4">
                         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                          {voiceOrder.map((voice) => {
+                          {VOICE_ORDER.map((voice) => {
                             const group = resultsByVoice.get(voice) ?? [];
+                            const remainingSeats = remainingSeatsByVoice.get(voice) ?? 0;
                             return (
                               <section key={`search-${voice}`} className="flex flex-col gap-3">
                                 <div className="flex items-center justify-between text-sm font-semibold text-slate-700">
@@ -1414,9 +1621,7 @@ export default function EnsembleOnboardingFlow({
                                     />
                                     <span>{getVoiceLabel(voice)}</span>
                                   </span>
-                                  <span className="text-xs text-slate-400">
-                                    {group.length}
-                                  </span>
+                                  <span className="text-xs text-slate-400">{`frei ${remainingSeats}`}</span>
                                 </div>
                                 <div className="flex flex-col gap-3">
                                   {group.length === 0 ? (
@@ -1424,7 +1629,10 @@ export default function EnsembleOnboardingFlow({
                                       {strings.ensembleOnboarding.singersEmpty}
                                     </div>
                                   ) : null}
-                                  {group.map((singer) => (
+                                  {group.map((singer) => {
+                                    const isSelected = selectedSingerIds.includes(singer.id);
+                                    const canAdd = isSelected || remainingSeats > 0;
+                                    return (
                                     <Link
                                       key={singer.id}
                                       href={`/singers/${singer.id}`}
@@ -1451,18 +1659,19 @@ export default function EnsembleOnboardingFlow({
                                                 event.stopPropagation();
                                                 toggleSingerSelection(singer.id);
                                               }}
+                                              disabled={!canAdd}
                                               aria-label={
-                                                selectedSingerIds.includes(singer.id)
+                                                isSelected
                                                   ? strings.ensembleOnboarding.singersAdded
                                                   : strings.ensembleOnboarding.singersAdd
                                               }
                                               className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
-                                                selectedSingerIds.includes(singer.id)
+                                                isSelected
                                                   ? "border-emerald-600 bg-emerald-600 text-white"
-                                                  : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                                  : "border-slate-200 text-slate-500 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                                               }`}
                                             >
-                                              {selectedSingerIds.includes(singer.id) ? (
+                                              {isSelected ? (
                                                 <Check className="h-3.5 w-3.5" />
                                               ) : (
                                                 <Plus className="h-3 w-3" />
@@ -1478,7 +1687,8 @@ export default function EnsembleOnboardingFlow({
                                         </div>
                                       </Card>
                                     </Link>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </section>
                             );
@@ -1517,6 +1727,7 @@ export default function EnsembleOnboardingFlow({
                                             event.stopPropagation();
                                             toggleSingerSelection(singer.id);
                                           }}
+                                          disabled
                                           aria-label={
                                             selectedSingerIds.includes(singer.id)
                                               ? strings.ensembleOnboarding.singersAdded
@@ -1525,7 +1736,7 @@ export default function EnsembleOnboardingFlow({
                                           className={`inline-flex h-7 w-7 items-center justify-center rounded-full border text-[11px] transition ${
                                             selectedSingerIds.includes(singer.id)
                                               ? "border-emerald-600 bg-emerald-600 text-white"
-                                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                              : "border-slate-200 text-slate-500 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                                           }`}
                                         >
                                           {selectedSingerIds.includes(singer.id) ? (
@@ -1566,7 +1777,13 @@ export default function EnsembleOnboardingFlow({
                       type="file"
                       accept=".csv,text/csv"
                       className="hidden"
+                      disabled={noSeatsLeft}
                       onChange={(event) => {
+                        if (noSeatsLeft) {
+                          setCsvUploadError("Keine freien Plätze mehr. CSV-Upload ist deaktiviert.");
+                          event.currentTarget.value = "";
+                          return;
+                        }
                         const file = event.currentTarget.files?.[0] ?? null;
                         void handleCsvFile(file);
                         event.currentTarget.value = "";
@@ -1574,10 +1791,15 @@ export default function EnsembleOnboardingFlow({
                     />
                     <button
                       type="button"
+                      disabled={noSeatsLeft}
                       onClick={() => csvInputRef.current?.click()}
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => {
                         event.preventDefault();
+                        if (noSeatsLeft) {
+                          setCsvUploadError("Keine freien Plätze mehr. CSV-Upload ist deaktiviert.");
+                          return;
+                        }
                         if (event.dataTransfer.files.length > 1) {
                           setCsvUploadError("Bitte nur eine CSV-Datei gleichzeitig hochladen.");
                           return;
@@ -1585,13 +1807,18 @@ export default function EnsembleOnboardingFlow({
                         const file = event.dataTransfer.files?.[0] ?? null;
                         void handleCsvFile(file);
                       }}
-                      className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-xs text-slate-500 transition hover:border-slate-300"
+                      className="mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-xs text-slate-500 transition hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span>{strings.ensembleOnboarding.singersUploadDrop}</span>
                       <span className="text-[11px] text-slate-400">
                         {strings.ensembleOnboarding.singersUploadFormat}
                       </span>
                     </button>
+                    {noSeatsLeft ? (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                        Alle Stimmplätze sind belegt. CSV-Upload ist gesperrt.
+                      </div>
+                    ) : null}
                     {csvUploadError ? (
                       <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                         {csvUploadError}
@@ -1615,6 +1842,11 @@ export default function EnsembleOnboardingFlow({
                             Entfernen
                           </button>
                         </div>
+                        {inlineInviteErrors.csvErrors.size > 0 ? (
+                          <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                            Einige CSV-Zeilen überschreiten das Stimm-Limit. Bitte markierte Zeilen korrigieren.
+                          </div>
+                        ) : null}
                         <div className="mt-3 overflow-x-auto">
                           <table className="min-w-full text-left text-xs text-slate-600">
                             <thead className="text-slate-400">
@@ -1623,17 +1855,25 @@ export default function EnsembleOnboardingFlow({
                                 <th className="pb-2 pr-4 font-medium">Nachname</th>
                                 <th className="pb-2 pr-4 font-medium">E-Mail</th>
                                 <th className="pb-2 pr-2 font-medium">Voice</th>
+                                <th className="pb-2 pr-2 font-medium">Hinweis</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {csvEntries.map((entry) => (
-                                <tr key={entry.id} className="border-t border-slate-100">
+                              {csvEntries.map((entry) => {
+                                const rowError = inlineInviteErrors.csvErrors.get(entry.id);
+                                return (
+                                <tr
+                                  key={entry.id}
+                                  className={`border-t ${rowError ? "border-rose-200 bg-rose-50/50" : "border-slate-100"}`}
+                                >
                                   <td className="py-2 pr-4">{entry.first}</td>
                                   <td className="py-2 pr-4">{entry.last}</td>
                                   <td className="py-2 pr-4">{entry.email}</td>
                                   <td className="py-2 pr-2">{entry.voice}</td>
+                                  <td className="py-2 pr-2 text-rose-700">{rowError || "—"}</td>
                                 </tr>
-                              ))}
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
@@ -1651,28 +1891,38 @@ export default function EnsembleOnboardingFlow({
                       {strings.ensembleOnboarding.singersDirectHint}
                     </p>
                     <div className="mt-3 space-y-3">
-                      {directEntries.map((entry) => (
+                      {directEntries.map((entry) => {
+                        const rowError = inlineInviteErrors.directErrors.get(entry.id);
+                        return (
                         <div
                           key={entry.id}
-                          className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600"
+                          className={`rounded-lg border bg-white p-3 text-xs ${
+                            rowError
+                              ? "border-rose-200 bg-rose-50/50 text-rose-700"
+                              : "border-slate-200 text-slate-600"
+                          }`}
                         >
+                          <div className="flex flex-wrap items-center gap-2">
                           <input
                             value={entry.first}
+                            disabled={noSeatsLeft}
                             onChange={(event) => updateDirectEntry(entry.id, "first", event.target.value)}
                             placeholder="Vorname"
-                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                           />
                           <input
                             value={entry.last}
+                            disabled={noSeatsLeft}
                             onChange={(event) => updateDirectEntry(entry.id, "last", event.target.value)}
                             placeholder="Nachname"
-                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                            className="min-w-[120px] flex-1 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                           />
                           <input
                             value={entry.email}
+                            disabled={noSeatsLeft}
                             onChange={(event) => updateDirectEntry(entry.id, "email", event.target.value)}
                             placeholder="E-Mail"
-                            className="min-w-[220px] flex-[2] rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                            className="min-w-[220px] flex-[2] rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
                           />
                           <div className="flex flex-wrap items-center gap-2">
                             {voiceOptions.map((voice) => {
@@ -1683,15 +1933,21 @@ export default function EnsembleOnboardingFlow({
                                   : voice === "Tenor"
                                     ? "Tenor"
                                     : "Bass";
+                              const mappedVoice = voiceKey as Voice;
+                              const voiceUnavailable =
+                                (remainingSeatsByVoice.get(mappedVoice) ?? 0) <= 0 &&
+                                entry.voice !== voice;
+                              const disableVoiceSelection = noSeatsLeft || voiceUnavailable;
                               return (
                                 <button
                                   key={voice}
                                   type="button"
+                                  disabled={disableVoiceSelection}
                                   onClick={() => updateDirectEntry(entry.id, "voice", voice)}
                                   className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs transition ${
                                     entry.voice === voice
                                       ? "border-slate-900 bg-slate-900 text-white"
-                                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                                      : "border-slate-200 text-slate-500 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
                                   }`}
                                 >
                                   <span
@@ -1703,15 +1959,26 @@ export default function EnsembleOnboardingFlow({
                               );
                             })}
                           </div>
+                          </div>
+                          {rowError ? (
+                            <div className="mt-2 text-xs text-rose-700">{rowError}</div>
+                          ) : null}
                         </div>
-                      ))}
+                        );
+                      })}
                       <button
                         type="button"
                         onClick={addDirectEntry}
+                        disabled={noSeatsLeft}
                         className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-slate-300"
                       >
                         {strings.ensembleOnboarding.singersEntryAdd}
                       </button>
+                      {noSeatsLeft ? (
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                          Alle Stimmplätze sind belegt. Direkt-Eintrag ist gesperrt.
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
@@ -2052,7 +2319,7 @@ export default function EnsembleOnboardingFlow({
                         {strings.ensembleOnboarding.singersByVoiceTitle}
                       </div>
                       <div className="mt-3 space-y-2">
-                        {voiceOrder.map((voice) => (
+                        {VOICE_ORDER.map((voice) => (
                           <div
                             key={`summary-${voice}`}
                             className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-sm text-slate-600"
@@ -2065,7 +2332,7 @@ export default function EnsembleOnboardingFlow({
                               {getVoiceLabel(voice)}
                             </span>
                             <span className="text-xs text-slate-400">
-                              Ziel {voiceSplitDefaults.reduce((sum, split) => sum + split.count, 0)}
+                              Ziel {capacityByVoice.get(voice) ?? 0}
                             </span>
                             <span className="font-medium text-slate-900">
                               {selectedCountsByVoice.get(voice) ?? 0}
@@ -2107,6 +2374,9 @@ export default function EnsembleOnboardingFlow({
               <button
                 type="button"
                 onClick={() => {
+                  if (disableFinishAction) {
+                    return;
+                  }
                   if (inviteSent) {
                     handleClose();
                     return;
@@ -2121,7 +2391,7 @@ export default function EnsembleOnboardingFlow({
                   }
                   handleNext();
                 }}
-                disabled={submitting}
+                disabled={submitting || disableFinishAction}
                 className="inline-flex items-center gap-2 rounded-full border border-slate-900 bg-slate-900 px-5 py-2 text-sm text-white transition hover:bg-slate-800 disabled:opacity-60"
               >
                 {submitting
@@ -2137,6 +2407,11 @@ export default function EnsembleOnboardingFlow({
               </button>
               </div>
             )}
+            {disableFinishAction ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                Stimm-Limit überschritten. Bitte markierte Einträge korrigieren, bevor du das Ensemble anlegst.
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

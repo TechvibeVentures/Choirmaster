@@ -67,6 +67,12 @@ export default async function Home() {
     city: "Basel",
     type: "mixed",
     genres: [],
+    voice_distribution: {
+      Soprano: [4, 4, 0],
+      Alto: [4, 4, 0],
+      Tenor: [4, 4, 0],
+      Bass: [4, 4, 0]
+    },
     rehearsal_pattern: {
       weekdays: ["Tue"] as const,
       start_time: "19:30",

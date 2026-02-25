@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { commitInvitesSchema } from "@/lib/apiSchemas";
 import { createAndSendInvites } from "@/lib/api/invites/sendInvites";
+import {
+  VOICE_ORDER,
+  getVoiceCapacity,
+  normalizeVoiceDistribution
+} from "@/lib/domain/voiceDistribution";
+import type { Voice } from "@/lib/domain/types";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
@@ -12,6 +18,51 @@ const normalizeSingerStatus = (value: unknown): "active" | "inactive" | "project
     return value;
   }
   return "project_only";
+};
+
+const normalizeVoice = (value: unknown): Voice | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "soprano" || normalized === "sopran") return "Soprano";
+  if (normalized === "alto" || normalized === "alt") return "Alto";
+  if (normalized === "tenor") return "Tenor";
+  if (normalized === "bass" || normalized === "basso") return "Bass";
+  return null;
+};
+
+const isActiveSingerMembership = (row: {
+  roles: unknown;
+  singer_status: unknown;
+}) => {
+  const roles = Array.isArray(row.roles)
+    ? row.roles.filter((role): role is string => typeof role === "string")
+    : [];
+  return roles.includes("singer") && row.singer_status !== "inactive";
+};
+
+type CapacityErrorDetails =
+  | { type: "voice_missing_for_capacity" }
+  | { type: "voice_capacity_exceeded"; voice: string; current: number; limit: number };
+
+const parseCapacityError = (message: string): CapacityErrorDetails | null => {
+  if (message.includes("voice_missing_for_capacity")) {
+    return { type: "voice_missing_for_capacity" };
+  }
+
+  if (!message.includes("voice_capacity_exceeded|")) return null;
+  const [, voice = "", current = "0", limit = "0"] = message.split("|");
+  return {
+    type: "voice_capacity_exceeded",
+    voice,
+    current: Number(current),
+    limit: Number(limit)
+  };
+};
+
+type ChoirMembershipRow = {
+  person_id: string;
+  roles: string[] | null;
+  singer_status: "active" | "inactive" | "project_only" | null;
 };
 
 export async function POST(
@@ -51,11 +102,18 @@ export async function POST(
 
     const choirRes = await serviceDb
       .from("choirs")
-      .select("name")
+      .select("name, voice_distribution")
       .eq("id", projectRes.data.choir_id)
       .single();
 
     const choirName = choirRes.data?.name ?? "";
+    const choirVoiceDistribution = normalizeVoiceDistribution(
+      choirRes.data?.voice_distribution
+    );
+    const capacityByVoice = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => {
+      capacityByVoice.set(voice, getVoiceCapacity(choirVoiceDistribution, voice));
+    });
 
     const invites = payload.invites.map((invite) => ({
       ...invite,
@@ -74,18 +132,25 @@ export async function POST(
       new Set(invites.map((invite) => invite.email).filter((value) => value.length > 0))
     );
 
-    const personsById = new Map<string, { id: string; email: string }>();
-    const personsByEmail = new Map<string, { id: string; email: string }>();
+    const personsById = new Map<string, { id: string; email: string; voice: Voice | null }>();
+    const personsByEmail = new Map<
+      string,
+      { id: string; email: string; voice: Voice | null }
+    >();
 
     if (personIdsFromPayload.length > 0) {
       const byIdRes = await serviceDb
         .from("persons")
-        .select("id, email")
+        .select("id, email, voice")
         .in("id", personIdsFromPayload);
       if (byIdRes.error) throw byIdRes.error;
       for (const row of byIdRes.data || []) {
         const normalized = normalizeEmail(row.email || "");
-        const mapped = { id: row.id, email: normalized };
+        const mapped = {
+          id: row.id,
+          email: normalized,
+          voice: normalizeVoice(row.voice)
+        };
         personsById.set(row.id, mapped);
         if (normalized) personsByEmail.set(normalized, mapped);
       }
@@ -94,17 +159,87 @@ export async function POST(
     if (inviteEmails.length > 0) {
       const byEmailRes = await serviceDb
         .from("persons")
-        .select("id, email")
+        .select("id, email, voice")
         .in("email", inviteEmails);
       if (byEmailRes.error) throw byEmailRes.error;
       for (const row of byEmailRes.data || []) {
         const normalized = normalizeEmail(row.email || "");
-        const mapped = { id: row.id, email: normalized };
+        const mapped = {
+          id: row.id,
+          email: normalized,
+          voice: normalizeVoice(row.voice)
+        };
         personsById.set(row.id, mapped);
         if (normalized) personsByEmail.set(normalized, mapped);
       }
     }
 
+    const choirMembershipsRes = await serviceDb
+      .from("choir_memberships")
+      .select("person_id, roles, singer_status")
+      .eq("choir_id", projectRes.data.choir_id);
+    if (choirMembershipsRes.error) throw choirMembershipsRes.error;
+
+    const choirMembershipRows = (choirMembershipsRes.data || []) as ChoirMembershipRow[];
+    const membershipPersonIds = Array.from(
+      new Set(
+        choirMembershipRows
+          .map((row) => row.person_id)
+          .filter((value): value is string => typeof value === "string" && value.length > 0)
+      )
+    );
+
+    const membershipVoicesByPersonId = new Map<string, Voice | null>();
+    if (membershipPersonIds.length > 0) {
+      const choirMembershipPersonsRes = await serviceDb
+        .from("persons")
+        .select("id, voice")
+        .in("id", membershipPersonIds);
+      if (choirMembershipPersonsRes.error) throw choirMembershipPersonsRes.error;
+      for (const row of choirMembershipPersonsRes.data || []) {
+        membershipVoicesByPersonId.set(row.id, normalizeVoice(row.voice));
+      }
+    }
+
+    const activeSingerVoiceByPersonId = new Map<string, Voice>();
+    const reservedByVoice = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => reservedByVoice.set(voice, 0));
+
+    for (const row of choirMembershipRows) {
+      if (!isActiveSingerMembership(row)) continue;
+      const voice = membershipVoicesByPersonId.get(row.person_id) ?? null;
+      if (!voice) continue;
+      activeSingerVoiceByPersonId.set(row.person_id, voice);
+      reservedByVoice.set(voice, (reservedByVoice.get(voice) ?? 0) + 1);
+    }
+
+    const reservedInviteEmails = new Set<string>();
+    const pendingInvitesRes = await serviceDb
+      .from("project_invites")
+      .select("email, voice")
+      .eq("choir_id", projectRes.data.choir_id)
+      .in("status", ["pending", "sent"])
+      .gt("expires_at", new Date().toISOString());
+    if (pendingInvitesRes.error) throw pendingInvitesRes.error;
+    for (const invite of pendingInvitesRes.data || []) {
+      const normalizedEmail = normalizeEmail(invite.email || "");
+      if (normalizedEmail) reservedInviteEmails.add(normalizedEmail);
+      const voice = normalizeVoice(invite.voice);
+      if (!voice) continue;
+      reservedByVoice.set(voice, (reservedByVoice.get(voice) ?? 0) + 1);
+    }
+
+    const reserveVoiceCapacity = (voice: Voice): CapacityErrorDetails | null => {
+      const current = reservedByVoice.get(voice) ?? 0;
+      const limit = capacityByVoice.get(voice) ?? 0;
+      if (current >= limit) {
+        return { type: "voice_capacity_exceeded", voice, current, limit };
+      }
+      reservedByVoice.set(voice, current + 1);
+      return null;
+    };
+
+    const anyDb = serviceDb as any;
     const invitesForEmail = [] as typeof invites;
     let attached = 0;
 
@@ -114,6 +249,30 @@ export async function POST(
       const person = personById || personByEmail;
 
       if (!person) {
+        if (!reservedInviteEmails.has(invite.email)) {
+          const inviteVoice = normalizeVoice(invite.voice);
+          if (!inviteVoice) {
+            return NextResponse.json(
+              { error: "voice_missing_for_capacity" },
+              { status: 409 }
+            );
+          }
+          const reservationError = reserveVoiceCapacity(inviteVoice);
+          if (reservationError?.type === "voice_capacity_exceeded") {
+            return NextResponse.json(
+              {
+                error: "voice_capacity_exceeded",
+                capacity: {
+                  voice: reservationError.voice,
+                  current: reservationError.current,
+                  limit: reservationError.limit
+                }
+              },
+              { status: 409 }
+            );
+          }
+          reservedInviteEmails.add(invite.email);
+        }
         invitesForEmail.push(invite);
         continue;
       }
@@ -122,6 +281,76 @@ export async function POST(
         ? invite.roles.filter((role): role is string => typeof role === "string" && role.length > 0)
         : [];
       const roles = inviteRoles.length ? Array.from(new Set([...inviteRoles, "singer"])) : ["singer"];
+      const singerStatus = normalizeSingerStatus(invite.singer_status);
+      const shouldBeActiveSinger = roles.includes("singer") && singerStatus !== "inactive";
+      const existingActiveVoice = activeSingerVoiceByPersonId.get(person.id) ?? null;
+      const effectiveVoice = person.voice;
+
+      if (shouldBeActiveSinger) {
+        if (!effectiveVoice) {
+          return NextResponse.json(
+            { error: "voice_missing_for_capacity" },
+            { status: 409 }
+          );
+        }
+        if (!existingActiveVoice) {
+          const reservationError = reserveVoiceCapacity(effectiveVoice);
+          if (reservationError?.type === "voice_capacity_exceeded") {
+            return NextResponse.json(
+              {
+                error: "voice_capacity_exceeded",
+                capacity: {
+                  voice: reservationError.voice,
+                  current: reservationError.current,
+                  limit: reservationError.limit
+                }
+              },
+              { status: 409 }
+            );
+          }
+          activeSingerVoiceByPersonId.set(person.id, effectiveVoice);
+        }
+      } else if (existingActiveVoice) {
+        activeSingerVoiceByPersonId.delete(person.id);
+        reservedByVoice.set(
+          existingActiveVoice,
+          Math.max(0, (reservedByVoice.get(existingActiveVoice) ?? 0) - 1)
+        );
+      }
+
+      if (shouldBeActiveSinger) {
+        const capacityCheck = await anyDb.rpc("assert_choir_voice_capacity", {
+          p_choir_id: projectRes.data.choir_id,
+          p_voice: effectiveVoice,
+          p_exclude_person_id: person.id
+        });
+
+        if (capacityCheck.error) {
+          const parsed = parseCapacityError(capacityCheck.error.message || "");
+          if (parsed?.type === "voice_missing_for_capacity") {
+            return NextResponse.json(
+              { error: "voice_missing_for_capacity" },
+              { status: 409 }
+            );
+          }
+
+          if (parsed?.type === "voice_capacity_exceeded") {
+            return NextResponse.json(
+              {
+                error: "voice_capacity_exceeded",
+                capacity: {
+                  voice: parsed.voice,
+                  current: parsed.current,
+                  limit: parsed.limit
+                }
+              },
+              { status: 409 }
+            );
+          }
+
+          throw capacityCheck.error;
+        }
+      }
 
       const membershipRes = await serviceDb
         .from("choir_memberships")
@@ -130,7 +359,7 @@ export async function POST(
             choir_id: projectRes.data.choir_id,
             person_id: person.id,
             roles,
-            singer_status: normalizeSingerStatus(invite.singer_status)
+            singer_status: singerStatus
           },
           { onConflict: "choir_id,person_id" }
         )

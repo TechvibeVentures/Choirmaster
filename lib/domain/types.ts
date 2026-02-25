@@ -1,5 +1,6 @@
 export type Weekday = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
 export type Voice = "Soprano" | "Alto" | "Tenor" | "Bass";
+export type VoiceDistribution = Record<Voice, [number, number, number]>;
 
 export type Choir = {
   id: string;
@@ -7,6 +8,7 @@ export type Choir = {
   city: string;
   type: "mixed" | "chamber" | "project";
   genres: string[];
+  voice_distribution: VoiceDistribution;
   rehearsal_pattern: {
     weekdays: Weekday[];
     start_time: string;

@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+const voiceDistributionSchema = z.object({
+  Soprano: z.tuple([
+    z.number().int().min(0),
+    z.number().int().min(0),
+    z.number().int().min(0)
+  ]),
+  Alto: z.tuple([
+    z.number().int().min(0),
+    z.number().int().min(0),
+    z.number().int().min(0)
+  ]),
+  Tenor: z.tuple([
+    z.number().int().min(0),
+    z.number().int().min(0),
+    z.number().int().min(0)
+  ]),
+  Bass: z.tuple([
+    z.number().int().min(0),
+    z.number().int().min(0),
+    z.number().int().min(0)
+  ])
+});
+
 export const bootstrapAdminChoirSchema = z.object({
   profile: z.object({
     first_name: z.string().optional().default(""),
@@ -14,6 +37,7 @@ export const bootstrapAdminChoirSchema = z.object({
     city: z.string().min(1),
     type: z.enum(["mixed", "chamber", "project"]).default("mixed"),
     genres: z.array(z.string()).optional().default([]),
+    voice_distribution: voiceDistributionSchema,
     rehearsal_weekdays: z.array(z.string()).optional().default(["Tue"]),
     rehearsal_start_time: z.string().optional().default("19:30"),
     rehearsal_end_time: z.string().optional().default("21:30"),

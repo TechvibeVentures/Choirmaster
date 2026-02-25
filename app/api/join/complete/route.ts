@@ -17,6 +17,24 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 const isPlaceholderToken = (token: string) => /^<[^<>]+>$/.test(token);
 
+type CapacityErrorDetails =
+  | { type: "voice_missing_for_capacity" }
+  | { type: "voice_capacity_exceeded"; voice: string; current: number; limit: number };
+
+const parseCapacityError = (message: string): CapacityErrorDetails | null => {
+  if (message.includes("voice_missing_for_capacity")) {
+    return { type: "voice_missing_for_capacity" };
+  }
+  if (!message.includes("voice_capacity_exceeded|")) return null;
+  const [, voice = "", current = "0", limit = "0"] = message.split("|");
+  return {
+    type: "voice_capacity_exceeded",
+    voice,
+    current: Number(current),
+    limit: Number(limit)
+  };
+};
+
 export async function POST(request: Request) {
   try {
     const payload = joinCompleteSchema.parse(await request.json());
@@ -92,13 +110,14 @@ export async function POST(request: Request) {
 
     const personByEmailRes = await (db as any)
       .from("persons")
-      .select("id")
+      .select("id, voice")
       .eq("email", email)
       .maybeSingle();
 
     if (personByEmailRes.error) throw personByEmailRes.error;
 
     let personId = personByEmailRes.data?.id as string | undefined;
+    let personVoice = personByEmailRes.data?.voice as string | null | undefined;
 
     if (!personId) {
       const insertedRes = await (db as any)
@@ -112,11 +131,12 @@ export async function POST(request: Request) {
           tags: [],
           voice: payload.voice ? normalizeVoice(payload.voice) : null
         })
-        .select("id")
+        .select("id, voice")
         .single();
 
       if (insertedRes.error) throw insertedRes.error;
       personId = insertedRes.data.id;
+      personVoice = insertedRes.data.voice;
     } else {
       const normalizedVoice = payload.voice ? normalizeVoice(payload.voice) : null;
       const updated = await (db as any)
@@ -129,10 +149,11 @@ export async function POST(request: Request) {
           ...(normalizedVoice ? { voice: normalizedVoice } : {})
         })
         .eq("id", personId)
-        .select("id")
+        .select("id, voice")
         .single();
 
       if (updated.error) throw updated.error;
+      personVoice = updated.data.voice;
     }
 
     const existingMembershipRes = await db
@@ -155,6 +176,38 @@ export async function POST(request: Request) {
       : ["singer"];
     const nextSingerStatus =
       existingMembershipRes.data?.singer_status ?? "project_only";
+
+    if (nextRoles.includes("singer") && nextSingerStatus !== "inactive") {
+      const capacityCheck = await (db as any).rpc("assert_choir_voice_capacity", {
+        p_choir_id: projectRes.data.choir_id,
+        p_voice: payload.voice ? normalizeVoice(payload.voice) : personVoice,
+        p_exclude_person_id: personId
+      });
+
+      if (capacityCheck.error) {
+        const parsed = parseCapacityError(capacityCheck.error.message || "");
+        if (parsed?.type === "voice_missing_for_capacity") {
+          return NextResponse.json(
+            { error: "voice_missing_for_capacity" },
+            { status: 409 }
+          );
+        }
+        if (parsed?.type === "voice_capacity_exceeded") {
+          return NextResponse.json(
+            {
+              error: "voice_capacity_exceeded",
+              capacity: {
+                voice: parsed.voice,
+                current: parsed.current,
+                limit: parsed.limit
+              }
+            },
+            { status: 409 }
+          );
+        }
+        throw capacityCheck.error;
+      }
+    }
 
     const membershipRes = await db
       .from("choir_memberships")

@@ -65,6 +65,24 @@ const decodePart = (value: string) => {
   }
 };
 
+type CapacityErrorDetails =
+  | { type: "voice_missing_for_capacity" }
+  | { type: "voice_capacity_exceeded"; voice: string; current: number; limit: number };
+
+const parseCapacityError = (message: string): CapacityErrorDetails | null => {
+  if (message.includes("voice_missing_for_capacity")) {
+    return { type: "voice_missing_for_capacity" };
+  }
+  if (!message.includes("voice_capacity_exceeded|")) return null;
+  const [, voice = "", current = "0", limit = "0"] = message.split("|");
+  return {
+    type: "voice_capacity_exceeded",
+    voice,
+    current: Number(current),
+    limit: Number(limit)
+  };
+};
+
 const getJoinTokenFromNextPath = (next: string, origin: string) => {
   if (!next || !next.startsWith("/") || next.startsWith("//")) return "";
   try {
@@ -451,6 +469,21 @@ export async function GET(request: NextRequest) {
     }
   } catch (inviteError) {
     console.error("callback invite finalize failed", inviteError);
+    const inviteErrorMessage =
+      inviteError instanceof Error
+        ? inviteError.message || ""
+        : typeof inviteError === "object" &&
+            inviteError !== null &&
+            "message" in inviteError
+          ? String((inviteError as { message?: unknown }).message ?? "")
+          : "";
+    const parsed = parseCapacityError(inviteErrorMessage);
+    if (parsed?.type === "voice_capacity_exceeded") {
+      return redirectToLogin("voice_capacity_exceeded");
+    }
+    if (parsed?.type === "voice_missing_for_capacity") {
+      return redirectToLogin("voice_missing_for_capacity");
+    }
     return redirectToLogin("callback_invite_finalize_failed");
   }
 

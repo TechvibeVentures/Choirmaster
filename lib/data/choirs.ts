@@ -4,6 +4,9 @@ import {
   normalizeChoirType,
   normalizeWeekdays
 } from "@/lib/data/common";
+import {
+  normalizeVoiceDistribution
+} from "@/lib/domain/voiceDistribution";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 
 const normalizeOptionalVoice = (value: string | null | undefined): Voice | null => {
@@ -34,7 +37,7 @@ export const getChoirsByIds = async (choirIds: string[]) => {
   const { data, error } = await supabase
     .from("choirs")
     .select(
-      "id, name, city, type, genres, rehearsal_weekdays, rehearsal_start_time, rehearsal_end_time, default_location"
+      "id, name, city, type, genres, voice_distribution, rehearsal_weekdays, rehearsal_start_time, rehearsal_end_time, default_location"
     )
     .in("id", choirIds);
 
@@ -46,6 +49,7 @@ export const getChoirsByIds = async (choirIds: string[]) => {
     city: row.city,
     type: normalizeChoirType(row.type),
     genres: row.genres || [],
+    voice_distribution: normalizeVoiceDistribution(row.voice_distribution),
     rehearsal_pattern: {
       weekdays: normalizeWeekdays(row.rehearsal_weekdays),
       start_time: row.rehearsal_start_time,

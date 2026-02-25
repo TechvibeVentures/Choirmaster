@@ -8,6 +8,10 @@ import Card from "@/components/Card";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
 import { useAppData } from "@/hooks/useAppData";
 import type { Voice } from "@/lib/domain/types";
+import {
+  VOICE_ORDER,
+  normalizeVoiceDistribution
+} from "@/lib/domain/voiceDistribution";
 import { getPersonName } from "@/lib/domain/utils";
 import { strings } from "@/lib/i18n";
 import { getVoiceLabel } from "@/lib/labels";
@@ -18,8 +22,6 @@ const experienceLabels: Record<string, string> = {
   advanced: "Fortgeschritten",
   professional: "Professionell"
 };
-
-const voiceOrder: Voice[] = ["Soprano", "Alto", "Tenor", "Bass"];
 
 const getInitials = (name: string) =>
   name
@@ -43,13 +45,6 @@ const voiceBorderColors: Record<Voice, string> = {
   Tenor: "var(--voice-tenor)",
   Bass: "var(--voice-bass)"
 };
-
-const voiceSplitDefaults = [
-  { label: "1", count: 4 },
-  { label: "2", count: 4 },
-  { label: "3", count: 0 }
-];
-
 
 const getCurrentProjectId = (
   projects: Array<{ date_range: { start: string; end: string }; id: string }>
@@ -128,10 +123,27 @@ export default function PeoplePage() {
   const currentProject = projects.find((project) => project.id === currentProjectId);
   const adminUser = people.find((person) => person.roles.includes("conductor"));
   const adminName = adminUser ? getPersonName(adminUser) : "Leitung";
+  const currentVoiceDistribution = useMemo(
+    () => normalizeVoiceDistribution(currentChoir?.voice_distribution),
+    [currentChoir?.voice_distribution]
+  );
+  const voiceSplitRows = useMemo(() => {
+    const rows = new Map<Voice, Array<{ label: string; count: number }>>();
+    VOICE_ORDER.forEach((voice) => {
+      rows.set(
+        voice,
+        currentVoiceDistribution[voice].map((count, index) => ({
+          label: `${index + 1}`,
+          count
+        }))
+      );
+    });
+    return rows;
+  }, [currentVoiceDistribution]);
 
   const grouped = useMemo(() => {
     const result = new Map<Voice, typeof people>();
-    voiceOrder.forEach((voice) => result.set(voice, []));
+    VOICE_ORDER.forEach((voice) => result.set(voice, []));
     people.forEach((person) => {
       const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
@@ -212,7 +224,7 @@ export default function PeoplePage() {
 
   const activeByVoice = useMemo(() => {
     const result = new Map<Voice, typeof people>();
-    voiceOrder.forEach((voice) => result.set(voice, []));
+    VOICE_ORDER.forEach((voice) => result.set(voice, []));
     projectActiveMembers.forEach((person) => {
       const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
@@ -223,7 +235,7 @@ export default function PeoplePage() {
 
   const passiveByVoice = useMemo(() => {
     const result = new Map<Voice, typeof people>();
-    voiceOrder.forEach((voice) => result.set(voice, []));
+    VOICE_ORDER.forEach((voice) => result.set(voice, []));
     projectPassiveMembers.forEach((person) => {
       const membership = getMembership(person.id, activeChoirId);
       if (!membership) return;
@@ -325,8 +337,8 @@ export default function PeoplePage() {
               <div className="text-xs uppercase text-slate-400">
                 Stimmaufteilung
               </div>
-              <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {voiceOrder.map((voice) => (
+                <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {VOICE_ORDER.map((voice) => (
                   <div
                     key={voice}
                     className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
@@ -339,7 +351,7 @@ export default function PeoplePage() {
                       <span>{getVoiceLabel(voice)}</span>
                     </div>
                     <div className="mt-3 space-y-2">
-                      {voiceSplitDefaults.map((split) => (
+                      {(voiceSplitRows.get(voice) ?? []).map((split) => (
                         <div
                           key={`${voice}-${split.label}`}
                           className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
@@ -439,12 +451,12 @@ export default function PeoplePage() {
               Aktive Sänger
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {voiceOrder.map((voice) => {
+              {VOICE_ORDER.map((voice) => {
                 const group = (grouped.get(voice) ?? []).filter(
                   (person) =>
                     confirmedIds.has(person.id) && !conductorIds.has(person.id)
                 );
-                const targetSeats = voiceSplitDefaults.reduce(
+                const targetSeats = (voiceSplitRows.get(voice) ?? []).reduce(
                   (sum, split) => sum + split.count,
                   0
                 );
@@ -568,7 +580,7 @@ export default function PeoplePage() {
               Passive Sänger
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {voiceOrder.map((voice) => {
+              {VOICE_ORDER.map((voice) => {
                 const group = (grouped.get(voice) ?? []).filter(
                   (person) =>
                     !confirmedIds.has(person.id) &&
@@ -643,7 +655,7 @@ export default function PeoplePage() {
               Ehemalige Sänger
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {voiceOrder.map((voice) => {
+              {VOICE_ORDER.map((voice) => {
                 const group = (grouped.get(voice) ?? []).filter(
                   (person) =>
                     !conductorIds.has(person.id) &&
@@ -717,7 +729,7 @@ export default function PeoplePage() {
                   Stimmaufteilung
                 </div>
                 <div className="mt-3 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {voiceOrder.map((voice) => (
+                  {VOICE_ORDER.map((voice) => (
                     <div
                       key={voice}
                       className="rounded-xl border border-slate-100 bg-slate-50/60 p-3"
@@ -734,7 +746,7 @@ export default function PeoplePage() {
                         <span>{getVoiceLabel(voice)}</span>
                       </button>
                       <div className="mt-3 space-y-2">
-                        {voiceSplitDefaults.map((split) => (
+                        {(voiceSplitRows.get(voice) ?? []).map((split) => (
                           <div
                             key={`${voice}-${split.label}`}
                             className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
@@ -802,9 +814,9 @@ export default function PeoplePage() {
                 Aktive Sänger
               </div>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {voiceOrder.map((voice) => {
+                {VOICE_ORDER.map((voice) => {
                   const members = activeByVoice.get(voice) ?? [];
-                  const splitCuts = voiceSplitDefaults.filter(
+                  const splitCuts = (voiceSplitRows.get(voice) ?? []).filter(
                     (split) => split.count > 0
                   );
                   const splitCounts = getEvenSplitCounts(
@@ -877,7 +889,7 @@ export default function PeoplePage() {
               Passive Sänger
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {voiceOrder.map((voice) => {
+              {VOICE_ORDER.map((voice) => {
                 const members = passiveByVoice.get(voice) ?? [];
                 return (
                   <div key={voice}>
