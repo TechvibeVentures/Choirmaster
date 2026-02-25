@@ -1,5 +1,5 @@
 .DS_Store
-.env*
+.env
 .next
 .vercel
 node_modules
@@ -9,4 +9,3 @@ yarn-error.log*
 pnpm-debug.log*
 .turbo
 .codex
-.env*.local
