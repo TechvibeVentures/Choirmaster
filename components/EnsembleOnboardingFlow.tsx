@@ -397,7 +397,8 @@ export default function EnsembleOnboardingFlow({
   }, [isSingerOnly, selectedProjectId]);
 
   useEffect(() => {
-    if (!isOpen || !activeChoirId) {
+    const canUseOnboardingFallback = !isSingerOnly && shouldIncludeProfile;
+    if (!isOpen || (!activeChoirId && !canUseOnboardingFallback)) {
       setSingerSearchResults([]);
       setSingerSearchError("");
       setSingerSearchLoading(false);
@@ -409,11 +410,16 @@ export default function EnsembleOnboardingFlow({
       setSingerSearchLoading(true);
       setSingerSearchError("");
       try {
-        const excludeCurrentChoir = isSingerOnly ? "true" : "false";
-        const response = await fetch(
-          `/api/choirs/${activeChoirId}/candidate-persons?excludeCurrentChoir=${excludeCurrentChoir}`,
-          { signal: controller.signal }
-        );
+        const response = activeChoirId
+          ? await fetch(
+              `/api/choirs/${activeChoirId}/candidate-persons?excludeCurrentChoir=${
+                isSingerOnly ? "true" : "false"
+              }`,
+              { signal: controller.signal }
+            )
+          : await fetch("/api/persons/candidate-persons", {
+              signal: controller.signal
+            });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
           throw new Error(payload.error || "Sänger konnten nicht geladen werden.");
@@ -437,7 +443,7 @@ export default function EnsembleOnboardingFlow({
 
     void run();
     return () => controller.abort();
-  }, [activeChoirId, isOpen, isSingerOnly]);
+  }, [activeChoirId, isOpen, isSingerOnly, shouldIncludeProfile]);
 
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
