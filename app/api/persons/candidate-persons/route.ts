@@ -3,6 +3,8 @@ import { normalizeExperience } from "@/lib/data/common";
 import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+
 const normalizeOptionalVoice = (value: string | null) => {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();
