@@ -19,7 +19,14 @@ export default function PageHeader({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [deletingChoirId, setDeletingChoirId] = useState<string | null>(null);
-  const { choirs, activeChoirId, setActiveChoirId, adminProfile } = useAppData();
+  const {
+    choirs,
+    activeChoirId,
+    setActiveChoirId,
+    adminProfile,
+    snapshot,
+    replaceSnapshot
+  } = useAppData();
   const menuRef = useRef<HTMLDivElement>(null);
   const showOverviewLink =
     currentPath.startsWith("/projects") &&
@@ -68,10 +75,27 @@ export default function PageHeader({
       const response = await fetch(`/api/choirs/${choirId}`, {
         method: "DELETE"
       });
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || "Ensemble konnte nicht gelöscht werden.");
       }
+
+      const nextChoirs = snapshot.choirs.filter((choir) => choir.id !== choirId);
+      const fallbackNextChoirId = nextChoirs[0]?.id ?? "";
+      const nextActiveChoirId =
+        choirId === activeChoirId
+          ? payload.nextActiveChoirId || fallbackNextChoirId
+          : activeChoirId;
+
+      replaceSnapshot({
+        ...snapshot,
+        choirs: nextChoirs,
+        activeChoirId: nextActiveChoirId,
+        personSettings: {
+          ...snapshot.personSettings,
+          active_choir_id: nextActiveChoirId || undefined
+        }
+      });
 
       setOpen(false);
       router.refresh();
