@@ -32,6 +32,7 @@ export async function createAndSendInvites(
     projectName: string;
     choirName: string;
     createdByPersonId: string;
+    origin?: string;
   },
   invites: InviteInput[]
 ) {
@@ -122,12 +123,18 @@ export async function createAndSendInvites(
     return { sent: 0, created: 0, skipped: invites.length, invitesToSend: [] };
   }
 
-  const origin =
+  const envAppUrl =
     typeof process.env.NEXT_PUBLIC_APP_URL === "string"
-      ? process.env.NEXT_PUBLIC_APP_URL
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000";
+      ? process.env.NEXT_PUBLIC_APP_URL.trim()
+      : "";
+  const envVercelUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "";
+  const origin =
+    (params.origin || "").trim() ||
+    envAppUrl ||
+    envVercelUrl ||
+    "http://localhost:3000";
 
   const { data: fnData, error: fnError } = await serviceDb.functions.invoke(
     "send-project-invites",

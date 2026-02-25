@@ -6,6 +6,26 @@ import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+const getFirstHeaderValue = (value: string | null) =>
+  value ? value.split(",")[0]?.trim() || "" : "";
+
+const getRequestOrigin = (request: Request) => {
+  const requestUrl = new URL(request.url);
+  const host =
+    getFirstHeaderValue(request.headers.get("x-forwarded-host")) ||
+    getFirstHeaderValue(request.headers.get("host"));
+  if (!host) return requestUrl.origin;
+  const proto =
+    getFirstHeaderValue(request.headers.get("x-forwarded-proto")) ||
+    requestUrl.protocol.replace(":", "") ||
+    "https";
+  try {
+    return new URL(`${proto}://${host}`).origin;
+  } catch {
+    return requestUrl.origin;
+  }
+};
+
 export async function POST(
   request: Request,
   { params }: { params: { projectId: string } }
@@ -17,6 +37,7 @@ export async function POST(
     }
 
     const payload = commitInvitesSchema.parse(await request.json());
+    const requestOrigin = getRequestOrigin(request);
 
     const serverDb = getServerSupabaseClient();
     const serviceDb = getServiceSupabaseClient();
@@ -56,7 +77,8 @@ export async function POST(
         choirId: projectRes.data.choir_id,
         projectName: projectRes.data.name ?? "",
         choirName,
-        createdByPersonId: session.person.id
+        createdByPersonId: session.person.id,
+        origin: requestOrigin
       },
       payload.invites
     );
