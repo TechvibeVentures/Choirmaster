@@ -72,15 +72,13 @@ export default function SignupPage() {
       }
 
       const supabase = getBrowserSupabaseClient();
-      const params = new URLSearchParams();
-      params.set("next", "/onboarding");
-
-      const redirectTo = `${window.location.origin}/auth/callback?${params.toString()}`;
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", "/onboarding");
+      const redirectTo = callbackUrl.toString();
       const { error } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
           emailRedirectTo: redirectTo,
-          redirectTo,
           data: {
             first_name: firstName.trim(),
             last_name: lastName.trim(),
