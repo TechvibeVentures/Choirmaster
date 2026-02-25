@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
@@ -61,6 +62,7 @@ export default function PersonDetailPage({
 }: {
   params: { personId: string };
 }) {
+  const router = useRouter();
   const {
     activeChoirId,
     availability,
@@ -93,6 +95,8 @@ export default function PersonDetailPage({
   const [savingAvailability, setSavingAvailability] = useState(false);
   const [availabilitySaveError, setAvailabilitySaveError] = useState("");
   const [availabilitySaveSuccess, setAvailabilitySaveSuccess] = useState("");
+  const [removingFromChoir, setRemovingFromChoir] = useState(false);
+  const [removeFromChoirError, setRemoveFromChoirError] = useState("");
   const [dirtyRehearsalIds, setDirtyRehearsalIds] = useState<Set<string>>(
     () => new Set()
   );
@@ -231,6 +235,35 @@ export default function PersonDetailPage({
     }
   };
 
+  const removeFromChoirAndProjects = async () => {
+    if (!selectedChoirId || removingFromChoir) return;
+
+    const confirmed = window.confirm(
+      "Person aus dem gewählten Ensemble und allen zugehörigen Projekten entfernen?"
+    );
+    if (!confirmed) return;
+
+    setRemovingFromChoir(true);
+    setRemoveFromChoirError("");
+    try {
+      const response = await fetch(
+        `/api/singers/${person.id}/choirs/${selectedChoirId}`,
+        { method: "DELETE" }
+      );
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error || "Entfernen fehlgeschlagen.");
+      }
+
+      router.replace("/singers");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Entfernen fehlgeschlagen.";
+      setRemoveFromChoirError(message);
+    } finally {
+      setRemovingFromChoir(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -295,6 +328,21 @@ export default function PersonDetailPage({
                   </button>
                 );
               })}
+            </div>
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => void removeFromChoirAndProjects()}
+                disabled={!selectedChoirId || removingFromChoir}
+                className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700 transition hover:border-rose-300 disabled:opacity-50"
+              >
+                {removingFromChoir
+                  ? "Entfernt..."
+                  : "Aus Ensemble und Projekten entfernen"}
+              </button>
+              {removeFromChoirError ? (
+                <p className="mt-2 text-sm text-rose-600">{removeFromChoirError}</p>
+              ) : null}
             </div>
           </Card>
         </div>
