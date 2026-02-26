@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { getBrowserSupabaseClient } from "@/lib/supabase/browser";
+import { formatMagicLinkError } from "@/lib/supabase/authErrors";
 
 type ValidationPayload = {
   valid: boolean;
@@ -31,7 +32,6 @@ export default function JoinTokenPage({
 }: {
   params: { token: string };
 }) {
-  const router = useRouter();
   const token = useMemo(() => {
     try {
       return decodeURIComponent(params.token);
@@ -49,6 +49,8 @@ export default function JoinTokenPage({
   const [email, setEmail] = useState("");
   const [voice, setVoice] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     const run = async () => {
@@ -88,8 +90,11 @@ export default function JoinTokenPage({
     event.preventDefault();
     if (!canSubmit) return;
 
+    setSubmitError("");
+    setSent(false);
     setSubmitting(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       const response = await fetch("/api/join/complete", {
         method: "POST",
         headers: {
@@ -97,7 +102,7 @@ export default function JoinTokenPage({
         },
         body: JSON.stringify({
           token,
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           first_name: firstName,
           last_name: lastName,
           voice: voice || null
@@ -105,18 +110,44 @@ export default function JoinTokenPage({
       });
 
       if (!response.ok) {
-        throw new Error("join failed");
+        const body = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof body.error === "string" && body.error
+            ? body.error
+            : "Beitritt konnte nicht abgeschlossen werden."
+        );
       }
 
-      const nextPath = `/singer-profile?join_token=${encodeURIComponent(token)}`;
-      router.push(
-        `/login?next=${encodeURIComponent(nextPath)}&email=${encodeURIComponent(
-          email.trim().toLowerCase()
-        )}`
-      );
-      router.refresh();
-    } catch {
-      window.alert("Beitritt konnte nicht abgeschlossen werden.");
+      const supabase = getBrowserSupabaseClient();
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", "/singer-profile");
+      const { error } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          emailRedirectTo: callbackUrl.toString()
+        }
+      });
+
+      if (error) throw error;
+      setSent(true);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Beitritt konnte nicht abgeschlossen werden.";
+      if (message === "voice_capacity_exceeded") {
+        setSubmitError(
+          "Beitritt nicht möglich: Für diese Stimme ist das Ensemble aktuell voll. Bitte Admin kontaktieren."
+        );
+      } else if (message === "voice_missing_for_capacity") {
+        setSubmitError(
+          "Beitritt nicht möglich: Für dein Profil fehlt eine gültige Stimme. Bitte Admin kontaktieren."
+        );
+      } else if (message.includes("Beitritt konnte nicht abgeschlossen werden")) {
+        setSubmitError(message);
+      } else {
+        setSubmitError(formatMagicLinkError(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -173,6 +204,14 @@ export default function JoinTokenPage({
                 {submitting ? "Speichert..." : "Beitritt abschließen"}
               </button>
             </form>
+            {sent ? (
+              <p className="mt-3 text-xs text-emerald-700">
+                Magic Link wurde versendet. Bitte E-Mail öffnen und den Link anklicken.
+              </p>
+            ) : null}
+            {submitError ? (
+              <p className="mt-3 text-xs text-rose-600">{submitError}</p>
+            ) : null}
           </>
         ) : null}
       </div>

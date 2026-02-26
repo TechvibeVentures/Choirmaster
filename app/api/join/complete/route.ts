@@ -79,11 +79,42 @@ export async function POST(request: Request) {
         );
       }
 
+      const { error: acceptError } = await db.rpc("accept_project_invite", {
+        p_token: token,
+        p_first_name: payload.first_name || "",
+        p_last_name: payload.last_name || "",
+        p_voice: payload.voice ? normalizeVoice(payload.voice) : null
+      });
+
+      if (acceptError) {
+        const parsed = parseCapacityError(acceptError.message || "");
+        if (parsed?.type === "voice_missing_for_capacity") {
+          return NextResponse.json(
+            { error: "voice_missing_for_capacity" },
+            { status: 409 }
+          );
+        }
+        if (parsed?.type === "voice_capacity_exceeded") {
+          return NextResponse.json(
+            {
+              error: "voice_capacity_exceeded",
+              capacity: {
+                voice: parsed.voice,
+                current: parsed.current,
+                limit: parsed.limit
+              }
+            },
+            { status: 409 }
+          );
+        }
+        throw acceptError;
+      }
+
       return NextResponse.json({
         inviteId: inviteRes.data.id,
         choirId: inviteRes.data.choir_id,
         projectId: inviteRes.data.project_id,
-        status: "ready_for_magic_link"
+        status: "invite_accepted"
       });
     }
 
