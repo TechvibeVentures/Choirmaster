@@ -175,6 +175,14 @@ const parseCsvLine = (line: string, delimiter: "," | ";") => {
   return values.map((value) => value.replace(/^\uFEFF/, "").trim());
 };
 
+const parseTimeToMinutes = (value: string) => {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours * 60 + minutes;
+};
+
 export default function EnsembleOnboardingFlow({
   open,
   onClose,
@@ -1007,6 +1015,17 @@ export default function EnsembleOnboardingFlow({
 
     if (!firstName || !lastName) {
       window.alert("Bitte Vor- und Nachname eingeben.");
+      return;
+    }
+
+    const startMinutes = parseTimeToMinutes(startTime);
+    const endMinutes = parseTimeToMinutes(endTime);
+    if (startMinutes === null || endMinutes === null) {
+      window.alert("Bitte gib gültige Start- und Endzeiten ein.");
+      return;
+    }
+    if (endMinutes <= startMinutes) {
+      window.alert("Die Endzeit muss nach der Startzeit liegen.");
       return;
     }
 

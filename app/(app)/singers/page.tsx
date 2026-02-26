@@ -1,14 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
 import { useAppData } from "@/hooks/useAppData";
-import type { Voice } from "@/lib/domain/types";
+import type { Voice, VoiceDistribution } from "@/lib/domain/types";
 import {
+  cloneVoiceDistribution,
   VOICE_ORDER,
   normalizeVoiceDistribution
 } from "@/lib/domain/voiceDistribution";
@@ -92,15 +93,24 @@ export default function PeoplePage() {
     availability,
     choirs,
     getMembership,
+    memberships,
     people,
     projectParticipations,
     projects,
-    rehearsalsByProject
+    replaceSnapshot,
+    rehearsalsByProject,
+    snapshot
   } = useAppData();
 
   const [view, setView] = useState<"list" | "seating">("list");
   const [voiceSplitOpen, setVoiceSplitOpen] = useState(false);
   const [finderOpen, setFinderOpen] = useState(false);
+  const [voiceDistributionSaving, setVoiceDistributionSaving] = useState(false);
+  const currentChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0];
+  const [voiceDistributionDraft, setVoiceDistributionDraft] =
+    useState<VoiceDistribution>(() =>
+      normalizeVoiceDistribution(currentChoir?.voice_distribution)
+    );
   const currentProjectId = useMemo(() => getCurrentProjectId(projects), [projects]);
   const handleComingSoon = () => {
     alert("Diese Funktion kommt in einer späteren Version der App.");
@@ -119,13 +129,18 @@ export default function PeoplePage() {
     setFinderOpen(false);
   };
 
-  const currentChoir = choirs.find((choir) => choir.id === activeChoirId) || choirs[0];
+  useEffect(() => {
+    setVoiceDistributionDraft(
+      normalizeVoiceDistribution(currentChoir?.voice_distribution)
+    );
+  }, [currentChoir?.id, currentChoir?.voice_distribution]);
+
   const currentProject = projects.find((project) => project.id === currentProjectId);
   const adminUser = people.find((person) => person.roles.includes("conductor"));
   const adminName = adminUser ? getPersonName(adminUser) : "Leitung";
   const currentVoiceDistribution = useMemo(
-    () => normalizeVoiceDistribution(currentChoir?.voice_distribution),
-    [currentChoir?.voice_distribution]
+    () => normalizeVoiceDistribution(voiceDistributionDraft),
+    [voiceDistributionDraft]
   );
   const voiceSplitRows = useMemo(() => {
     const rows = new Map<Voice, Array<{ label: string; count: number }>>();
@@ -140,6 +155,109 @@ export default function PeoplePage() {
     });
     return rows;
   }, [currentVoiceDistribution]);
+
+  const currentSingerCountsByVoice = useMemo(() => {
+    const counts = new Map<Voice, number>();
+    VOICE_ORDER.forEach((voice) => counts.set(voice, 0));
+
+    memberships.forEach((membership) => {
+      const hasSingerRole =
+        !membership.roles || membership.roles.length === 0
+          ? true
+          : membership.roles.includes("singer");
+      if (!hasSingerRole) return;
+      if (membership.singer_status === "inactive") return;
+      counts.set(membership.voice, (counts.get(membership.voice) ?? 0) + 1);
+    });
+
+    return counts;
+  }, [memberships]);
+
+  const getVoiceCapacity = (distribution: VoiceDistribution, voice: Voice) =>
+    distribution[voice].reduce((sum, slot) => sum + slot, 0);
+
+  const persistVoiceDistribution = async (nextDistribution: VoiceDistribution) => {
+    if (!currentChoir?.id) return false;
+
+    setVoiceDistributionSaving(true);
+    try {
+      const response = await fetch(`/api/choirs/${currentChoir.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          voice_distribution: nextDistribution
+        })
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          window.alert("Bitte zuerst einige Sänger in dieser Stimme löschen.");
+        } else {
+          window.alert(payload.error || "Stimmaufteilung konnte nicht aktualisiert werden.");
+        }
+        setVoiceDistributionDraft(
+          normalizeVoiceDistribution(currentChoir.voice_distribution)
+        );
+        return false;
+      }
+
+      const savedDistribution = normalizeVoiceDistribution(
+        payload?.choir?.voice_distribution ?? nextDistribution
+      );
+
+      replaceSnapshot({
+        ...snapshot,
+        choirs: snapshot.choirs.map((choir) =>
+          choir.id === currentChoir.id
+            ? { ...choir, voice_distribution: savedDistribution }
+            : choir
+        )
+      });
+      setVoiceDistributionDraft(savedDistribution);
+      return true;
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Stimmaufteilung konnte nicht aktualisiert werden.";
+      window.alert(message);
+      setVoiceDistributionDraft(
+        normalizeVoiceDistribution(currentChoir.voice_distribution)
+      );
+      return false;
+    } finally {
+      setVoiceDistributionSaving(false);
+    }
+  };
+
+  const updateVoiceDistributionSlot = async (
+    voice: Voice,
+    index: 0 | 1 | 2,
+    delta: -1 | 1
+  ) => {
+    if (!currentChoir?.id || voiceDistributionSaving) return;
+
+    const next = cloneVoiceDistribution(currentVoiceDistribution);
+    const current = next[voice][index];
+    const requested = Math.max(0, current + delta);
+    if (requested === current) return;
+    next[voice][index] = requested;
+
+    if (delta < 0) {
+      const singerCount = currentSingerCountsByVoice.get(voice) ?? 0;
+      const nextCapacity = getVoiceCapacity(next, voice);
+      if (nextCapacity < singerCount) {
+        window.alert("Bitte zuerst einige Sänger in dieser Stimme löschen.");
+        return;
+      }
+    }
+
+    setVoiceDistributionDraft(next);
+    await persistVoiceDistribution(next);
+  };
 
   const grouped = useMemo(() => {
     const result = new Map<Voice, typeof people>();
@@ -351,7 +469,7 @@ export default function PeoplePage() {
                       <span>{getVoiceLabel(voice)}</span>
                     </div>
                     <div className="mt-3 space-y-2">
-                      {(voiceSplitRows.get(voice) ?? []).map((split) => (
+                      {(voiceSplitRows.get(voice) ?? []).map((split, splitIndex) => (
                         <div
                           key={`${voice}-${split.label}`}
                           className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
@@ -362,8 +480,15 @@ export default function PeoplePage() {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={handleComingSoon}
-                              className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              onClick={() =>
+                                void updateVoiceDistributionSlot(
+                                  voice,
+                                  splitIndex as 0 | 1 | 2,
+                                  -1
+                                )
+                              }
+                              disabled={voiceDistributionSaving}
+                              className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               –
                             </button>
@@ -372,8 +497,15 @@ export default function PeoplePage() {
                             </span>
                             <button
                               type="button"
-                              onClick={handleComingSoon}
-                              className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                              onClick={() =>
+                                void updateVoiceDistributionSlot(
+                                  voice,
+                                  splitIndex as 0 | 1 | 2,
+                                  1
+                                )
+                              }
+                              disabled={voiceDistributionSaving}
+                              className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               +
                             </button>
@@ -746,7 +878,7 @@ export default function PeoplePage() {
                         <span>{getVoiceLabel(voice)}</span>
                       </button>
                       <div className="mt-3 space-y-2">
-                        {(voiceSplitRows.get(voice) ?? []).map((split) => (
+                        {(voiceSplitRows.get(voice) ?? []).map((split, splitIndex) => (
                           <div
                             key={`${voice}-${split.label}`}
                             className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1"
@@ -757,8 +889,15 @@ export default function PeoplePage() {
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
-                                onClick={handleComingSoon}
-                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                                onClick={() =>
+                                  void updateVoiceDistributionSlot(
+                                    voice,
+                                    splitIndex as 0 | 1 | 2,
+                                    -1
+                                  )
+                                }
+                                disabled={voiceDistributionSaving}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 –
                               </button>
@@ -767,8 +906,15 @@ export default function PeoplePage() {
                               </span>
                               <button
                                 type="button"
-                                onClick={handleComingSoon}
-                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                                onClick={() =>
+                                  void updateVoiceDistributionSlot(
+                                    voice,
+                                    splitIndex as 0 | 1 | 2,
+                                    1
+                                  )
+                                }
+                                disabled={voiceDistributionSaving}
+                                className="h-6 w-6 rounded-full border border-slate-200 text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 +
                               </button>

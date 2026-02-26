@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const voiceDistributionSchema = z.object({
+export const voiceDistributionSchema = z.object({
   Soprano: z.tuple([
     z.number().int().min(0),
     z.number().int().min(0),
@@ -48,6 +48,10 @@ export const bootstrapAdminChoirSchema = z.object({
 
 export const setActiveChoirSchema = z.object({
   choirId: z.string().uuid()
+});
+
+export const updateChoirVoiceDistributionSchema = z.object({
+  voice_distribution: voiceDistributionSchema
 });
 
 export const commitInvitesSchema = z.object({
