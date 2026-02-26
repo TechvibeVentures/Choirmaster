@@ -26,8 +26,6 @@ type ValidationPayload = {
   emailLocked?: boolean;
 };
 
-const voiceOptions = ["", "Soprano", "Alto", "Tenor", "Bass"];
-
 export default function JoinTokenPage({
   params
 }: {
@@ -82,9 +80,8 @@ export default function JoinTokenPage({
   }, [token]);
 
   const canSubmit = useMemo(
-    () =>
-      Boolean(payload?.valid && !submitting && email.trim() && voice.trim()),
-    [payload?.valid, submitting, email, voice]
+    () => Boolean(payload?.valid && !submitting && email.trim()),
+    [payload?.valid, submitting, email]
   );
 
   const completeJoin = async (event: React.FormEvent) => {
@@ -157,26 +154,6 @@ export default function JoinTokenPage({
 
             <form onSubmit={completeJoin} className="mt-6 grid gap-4">
               <label className="text-sm text-slate-600">
-                Vorname
-                <input
-                  value={firstName}
-                  onChange={(event) => setFirstName(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  type="text"
-                  placeholder="Vorname"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
-                Nachname
-                <input
-                  value={lastName}
-                  onChange={(event) => setLastName(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  type="text"
-                  placeholder="Nachname"
-                />
-              </label>
-              <label className="text-sm text-slate-600">
                 E-Mail
                 <input
                   value={email}
@@ -187,21 +164,6 @@ export default function JoinTokenPage({
                   placeholder="name@chor.de"
                   required
                 />
-              </label>
-              <label className="text-sm text-slate-600">
-                Stimme
-                <select
-                  value={voice}
-                  onChange={(event) => setVoice(event.target.value)}
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                  required
-                >
-                  {voiceOptions.map((option) => (
-                    <option key={option || "empty"} value={option}>
-                      {option || "Stimme auswählen"}
-                    </option>
-                  ))}
-                </select>
               </label>
               <button
                 type="submit"
