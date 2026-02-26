@@ -1850,6 +1850,21 @@ export default function EnsembleOnboardingFlow({
                         {strings.ensembleOnboarding.singersUploadFormat}
                       </span>
                     </button>
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                        CSV/Excel Kopfzeile
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {requiredCsvHeaders.map((header) => (
+                          <span
+                            key={header}
+                            className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700"
+                          >
+                            {header}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                     {noSeatsLeft ? (
                       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                         Alle Stimmplätze sind belegt. CSV-Upload ist gesperrt.
