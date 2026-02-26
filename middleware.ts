@@ -169,18 +169,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (pathname === "/") {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname =
-      userKind === "admin"
-        ? "/dashboard"
-        : userKind === "singer"
-        ? "/singer-profile"
-        : "/onboarding";
-    redirectUrl.search = "";
-    return NextResponse.redirect(redirectUrl);
-  }
-
   if (userKind === "singer" && !matchesPrefix(pathname, singerAllowedPrefixes)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/singer-profile";
