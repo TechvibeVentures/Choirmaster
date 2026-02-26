@@ -567,19 +567,38 @@ export default function EnsembleOnboardingFlow({
     if (!file) return;
     setCsvUploadError("");
 
-    const isCsvByName = file.name.toLowerCase().endsWith(".csv");
+    const fileName = file.name.toLowerCase();
+    const isCsvByName = fileName.endsWith(".csv");
+    const isExcelByName = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
     const isCsvByType =
       file.type === "text/csv" || file.type === "application/vnd.ms-excel";
+    const isExcelByType =
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.type === "application/vnd.ms-excel";
 
-    if (!isCsvByName && !isCsvByType) {
+    if (!isCsvByName && !isExcelByName && !isCsvByType && !isExcelByType) {
       setCsvEntries([]);
       setCsvFileName("");
-      setCsvUploadError("Bitte genau eine CSV-Datei hochladen.");
+      setCsvUploadError("Bitte eine CSV- oder Excel-Datei (.xlsx/.xls) hochladen.");
       return;
     }
 
     try {
-      const text = await file.text();
+      let text = "";
+      if (isExcelByName || isExcelByType) {
+        const XLSX = await import("xlsx");
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          throw new Error("Die Excel-Datei ist leer.");
+        }
+        const worksheet = workbook.Sheets[firstSheetName];
+        text = XLSX.utils.sheet_to_csv(worksheet);
+      } else {
+        text = await file.text();
+      }
       const parsed = parseCsvInvites(text);
       setCsvEntries(parsed);
       setCsvFileName(file.name);
@@ -587,7 +606,7 @@ export default function EnsembleOnboardingFlow({
       const message =
         error instanceof Error && error.message
           ? error.message
-          : "CSV konnte nicht verarbeitet werden.";
+          : "Datei konnte nicht verarbeitet werden.";
       setCsvEntries([]);
       setCsvFileName("");
       setCsvUploadError(message);
@@ -1790,7 +1809,7 @@ export default function EnsembleOnboardingFlow({
                     <input
                       ref={csvInputRef}
                       type="file"
-                      accept=".csv,text/csv"
+                      accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                       className="hidden"
                       disabled={noSeatsLeft}
                       onChange={(event) => {
@@ -1816,7 +1835,9 @@ export default function EnsembleOnboardingFlow({
                           return;
                         }
                         if (event.dataTransfer.files.length > 1) {
-                          setCsvUploadError("Bitte nur eine CSV-Datei gleichzeitig hochladen.");
+                          setCsvUploadError(
+                            "Bitte nur eine Datei (CSV/Excel) gleichzeitig hochladen."
+                          );
                           return;
                         }
                         const file = event.dataTransfer.files?.[0] ?? null;

@@ -47,11 +47,25 @@ export const useAppData = () => {
         new Date(`${b.date_range.start}T00:00:00`).getTime()
     );
     const now = new Date();
-    return (
-      sorted.find(
-        (project) => new Date(`${project.date_range.end}T00:00:00`) >= now
-      ) || sorted[0] || null
-    );
+    const primary =
+      sorted.find((project) => new Date(`${project.date_range.end}T00:00:00`) >= now) ||
+      sorted[0] ||
+      null;
+
+    if (!primary) return null;
+
+    const primaryConcerts = snapshot.concertsByProject[primary.id] ?? [];
+    if (primaryConcerts.length > 0) return primary;
+
+    const fallbackWithConcerts =
+      sorted.find((project) => {
+        const hasConcerts = (snapshot.concertsByProject[project.id] ?? []).length > 0;
+        const notEnded = new Date(`${project.date_range.end}T00:00:00`) >= now;
+        return hasConcerts && notEnded;
+      }) ||
+      sorted.find((project) => (snapshot.concertsByProject[project.id] ?? []).length > 0);
+
+    return fallbackWithConcerts || primary;
   };
 
   return {
