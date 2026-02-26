@@ -4,6 +4,9 @@ import { normalizeExperience } from "@/lib/data/common";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const normalizeOptionalVoice = (value: string | null) => {
   if (!value) return null;
   const normalized = value.trim().toLowerCase();

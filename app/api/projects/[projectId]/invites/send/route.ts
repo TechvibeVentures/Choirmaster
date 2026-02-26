@@ -6,6 +6,9 @@ import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const getFirstHeaderValue = (value: string | null) =>
   value ? value.split(",")[0]?.trim() || "" : "";
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import AvailabilityMatrix from "@/components/AvailabilityMatrix";
 import Card from "@/components/Card";
 import { useAppData } from "@/hooks/useAppData";
@@ -17,6 +19,7 @@ const voiceColors: Record<Voice, string> = {
 };
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
   const {
     activeChoirId,
     availability,
@@ -134,9 +137,52 @@ export default function DashboardPage() {
   const availabilityPercent = totalProjectSingers
     ? Math.round((availabilityYesCount / totalProjectSingers) * 100)
     : 0;
+  const [onboardingFeedback, setOnboardingFeedback] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const fromSession = window.sessionStorage.getItem("choirmaster:onboarding-feedback");
+    if (fromSession) {
+      setOnboardingFeedback(fromSession);
+      window.sessionStorage.removeItem("choirmaster:onboarding-feedback");
+      return;
+    }
+
+    const onboardingStatus = searchParams.get("onboarding");
+    if (!onboardingStatus) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("onboarding");
+    const search = url.searchParams.toString();
+    window.history.replaceState({}, "", `${url.pathname}${search ? `?${search}` : ""}${url.hash}`);
+
+    if (onboardingStatus === "created_with_warnings") {
+      setOnboardingFeedback(
+        "Ensemble erstellt, aber Einladungen konnten nicht vollständig gesendet werden. Bitte in der Sänger-Ansicht erneut senden."
+      );
+      return;
+    }
+    if (onboardingStatus === "created") {
+      setOnboardingFeedback("Ensemble erfolgreich erstellt.");
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col gap-6">
+      {onboardingFeedback ? (
+        <Card className="border-emerald-200 bg-emerald-50">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-emerald-800">{onboardingFeedback}</p>
+            <button
+              type="button"
+              onClick={() => setOnboardingFeedback("")}
+              className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-medium text-emerald-700 transition hover:border-emerald-300"
+            >
+              Schliessen
+            </button>
+          </div>
+        </Card>
+      ) : null}
       <section className="grid gap-4 lg:grid-cols-2">
         <Card className="w-full min-w-0">
           <div className="flex items-center gap-2">

@@ -1029,11 +1029,16 @@ export default function EnsembleOnboardingFlow({
       });
 
       if (inviteWarning) {
-        window.alert(
-          `${inviteWarning} Das Ensemble wurde erstellt. Du kannst Einladungen in der Sänger-Ansicht erneut senden.`
-        );
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            "choirmaster:onboarding-feedback",
+            `${inviteWarning} Das Ensemble wurde erstellt. Du kannst Einladungen in der Sänger-Ansicht erneut senden.`
+          );
+        }
+        window.location.href = "/dashboard?onboarding=created_with_warnings";
+        return;
       }
-      window.location.href = "/dashboard";
+      window.location.href = "/dashboard?onboarding=created";
     } catch (error) {
       const message =
         error instanceof Error && error.message

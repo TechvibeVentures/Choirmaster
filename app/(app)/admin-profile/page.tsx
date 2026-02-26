@@ -117,6 +117,10 @@ export default function ProfilePage() {
     }
   };
 
+  const handleComingSoon = () => {
+    window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex justify-end">
@@ -240,9 +244,10 @@ export default function ProfilePage() {
                   </button>
                   <button
                     type="button"
+                    onClick={handleComingSoon}
                     className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
                   >
-                    {strings.profile.actions.changePassword}
+                    {strings.profile.actions.changePassword} (kommt bald)
                   </button>
                 </div>
               </div>
@@ -288,9 +293,10 @@ export default function ProfilePage() {
                       </span>
                       <button
                         type="button"
+                        onClick={handleComingSoon}
                         className="rounded-full border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
                       >
-                        {strings.profile.actions.editChoir}
+                        {strings.profile.actions.editChoir} (kommt bald)
                       </button>
                     </div>
                   </div>

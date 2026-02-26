@@ -3,6 +3,9 @@ import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function DELETE(
   _request: Request,
   { params }: { params: { choirId: string } }

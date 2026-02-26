@@ -195,6 +195,7 @@ export default function SingerViewPage() {
   const [paymentStatus, setPaymentStatus] = useState<
     "unpaid" | "pending" | "confirmed"
   >("unpaid");
+  const [paymentInfo, setPaymentInfo] = useState("");
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [attendanceSaveError, setAttendanceSaveError] = useState("");
   const [attendanceSaveSuccess, setAttendanceSaveSuccess] = useState("");
@@ -231,6 +232,7 @@ export default function SingerViewPage() {
     setCity(singer?.city ?? "");
     setParticipationStatus(participation?.invite_status ?? "invited");
     setPaymentStatus("unpaid");
+    setPaymentInfo("");
     setProfileSaveError("");
     setProfileSaveSuccess("");
   }, [
@@ -681,18 +683,32 @@ export default function SingerViewPage() {
                         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                           Mitgliedschaftsbeitrag bezahlt
                         </span>
+                      ) : paymentStatus === "pending" ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+                          Mitgliedschaftsbeitrag: kommt bald
+                        </span>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setPaymentStatus("pending")}
+                          onClick={() => {
+                            setPaymentStatus("pending");
+                            setPaymentInfo(
+                              "Online-Zahlungen sind im MVP noch nicht verfügbar. Du erhältst den Beitragsprozess in einer späteren Version."
+                            );
+                          }}
                           className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                         >
-                          Mitgliedschaftsbeitrag bezahlen
+                          Mitgliedschaftsbeitrag bezahlen (kommt bald)
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
+              {paymentInfo ? (
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  {paymentInfo}
+                </p>
+              ) : null}
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-400">

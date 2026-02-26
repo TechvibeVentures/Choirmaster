@@ -12,6 +12,9 @@ import { getCurrentSessionPerson } from "@/lib/currentSession";
 import { getServerSupabaseClient } from "@/lib/supabase/server";
 import { getServiceSupabaseClient } from "@/lib/supabase/service";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const normalizeSingerStatus = (value: unknown): "active" | "inactive" | "project_only" => {
   if (value === "active" || value === "inactive" || value === "project_only") {
