@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import EnsembleOnboardingFlow from "@/components/EnsembleOnboardingFlow";
@@ -21,6 +21,16 @@ export default function ShellChrome({
     people: allPeople
   });
   const [showEnsembleFlow, setShowEnsembleFlow] = useState(false);
+
+  useEffect(() => {
+    const handleOpenCreateChoir = () => {
+      setShowEnsembleFlow(true);
+    };
+    window.addEventListener("choirmaster:create-choir", handleOpenCreateChoir);
+    return () => {
+      window.removeEventListener("choirmaster:create-choir", handleOpenCreateChoir);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">

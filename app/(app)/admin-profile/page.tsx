@@ -123,16 +123,6 @@ export default function ProfilePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => void logout()}
-          disabled={loggingOut}
-          className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 disabled:opacity-60"
-        >
-          {loggingOut ? "Abmeldung..." : "Abmelden"}
-        </button>
-      </div>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="flex flex-col gap-6">
           <Card>
@@ -224,16 +214,7 @@ export default function ProfilePage() {
                 ) : null}
               </div>
               <div className="sm:col-span-2 mt-2 border-t border-slate-100 pt-4">
-                <label className="text-sm text-slate-600">
-                  {strings.profile.fields.password}
-                  <input
-                    className={`${inputStyles} bg-slate-50 text-slate-500`}
-                    defaultValue="********"
-                    type="password"
-                    readOnly
-                  />
-                </label>
-                <div className="mt-3 flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => void saveProfile()}
@@ -244,10 +225,11 @@ export default function ProfilePage() {
                   </button>
                   <button
                     type="button"
-                    onClick={handleComingSoon}
-                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
+                    onClick={() => void logout()}
+                    disabled={loggingOut}
+                    className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 disabled:opacity-60"
                   >
-                    {strings.profile.actions.changePassword} (kommt bald)
+                    {loggingOut ? "Abmeldung..." : "Abmelden"}
                   </button>
                 </div>
               </div>
@@ -268,7 +250,9 @@ export default function ProfilePage() {
               </div>
               <button
                 type="button"
-                onClick={() => router.push("/onboarding")}
+                onClick={() => {
+                  window.dispatchEvent(new Event("choirmaster:create-choir"));
+                }}
                 className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-slate-300"
               >
                 {strings.profile.actions.addChoir}
