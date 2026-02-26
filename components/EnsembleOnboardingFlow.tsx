@@ -270,6 +270,7 @@ export default function EnsembleOnboardingFlow({
   const [csvEntries, setCsvEntries] = useState<
     Array<{ id: string; first: string; last: string; email: string; voice: string }>
   >([]);
+  const [selectedCsvEntryIds, setSelectedCsvEntryIds] = useState<string[]>([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [csvUploadError, setCsvUploadError] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
@@ -498,6 +499,29 @@ export default function EnsembleOnboardingFlow({
     setSelectedSingerIds((prev) => prev.filter((item) => item !== id));
   };
 
+  const toggleCsvEntrySelection = (id: string) => {
+    setSelectedCsvEntryIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAllCsvEntriesSelection = () => {
+    if (!csvEntries.length) {
+      setSelectedCsvEntryIds([]);
+      return;
+    }
+    setSelectedCsvEntryIds((prev) =>
+      prev.length === csvEntries.length ? [] : csvEntries.map((entry) => entry.id)
+    );
+  };
+
+  const removeSelectedCsvEntries = () => {
+    if (!selectedCsvEntryIds.length) return;
+    const selectedSet = new Set(selectedCsvEntryIds);
+    setCsvEntries((prev) => prev.filter((entry) => !selectedSet.has(entry.id)));
+    setSelectedCsvEntryIds([]);
+  };
+
   const parseCsvInvites = (text: string) => {
     const lines = text
       .replace(/\r\n/g, "\n")
@@ -566,6 +590,7 @@ export default function EnsembleOnboardingFlow({
   const handleCsvFile = async (file: File | null) => {
     if (!file) return;
     setCsvUploadError("");
+    setSelectedCsvEntryIds([]);
 
     const fileName = file.name.toLowerCase();
     const isCsvByName = fileName.endsWith(".csv");
@@ -1881,17 +1906,28 @@ export default function EnsembleOnboardingFlow({
                           <div className="text-xs text-slate-500">
                             Datei: <span className="font-medium text-slate-700">{csvFileName}</span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCsvEntries([]);
-                              setCsvFileName("");
-                              setCsvUploadError("");
-                            }}
-                            className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
-                          >
-                            Entfernen
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={removeSelectedCsvEntries}
+                              disabled={selectedCsvEntryIds.length === 0}
+                              className="rounded-full border border-rose-200 px-2 py-1 text-[11px] text-rose-700 hover:border-rose-300 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Ausgewählte löschen
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCsvEntries([]);
+                                setSelectedCsvEntryIds([]);
+                                setCsvFileName("");
+                                setCsvUploadError("");
+                              }}
+                              className="rounded-full border border-slate-200 px-2 py-1 text-[11px] text-slate-500 hover:border-slate-300"
+                            >
+                              Entfernen
+                            </button>
+                          </div>
                         </div>
                         {inlineInviteErrors.csvErrors.size > 0 ? (
                           <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
@@ -1902,6 +1938,18 @@ export default function EnsembleOnboardingFlow({
                           <table className="min-w-full text-left text-xs text-slate-600">
                             <thead className="text-slate-400">
                               <tr>
+                                <th className="pb-2 pr-3 font-medium">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      csvEntries.length > 0 &&
+                                      selectedCsvEntryIds.length === csvEntries.length
+                                    }
+                                    onChange={toggleAllCsvEntriesSelection}
+                                    className="h-3.5 w-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                                    aria-label="Alle CSV-Zeilen auswählen"
+                                  />
+                                </th>
                                 <th className="pb-2 pr-4 font-medium">Vorname</th>
                                 <th className="pb-2 pr-4 font-medium">Nachname</th>
                                 <th className="pb-2 pr-4 font-medium">E-Mail</th>
@@ -1917,6 +1965,15 @@ export default function EnsembleOnboardingFlow({
                                   key={entry.id}
                                   className={`border-t ${rowError ? "border-rose-200 bg-rose-50/50" : "border-slate-100"}`}
                                 >
+                                  <td className="py-2 pr-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedCsvEntryIds.includes(entry.id)}
+                                      onChange={() => toggleCsvEntrySelection(entry.id)}
+                                      className="h-3.5 w-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                                      aria-label={`CSV-Zeile ${entry.first} ${entry.last} auswählen`}
+                                    />
+                                  </td>
                                   <td className="py-2 pr-4">{entry.first}</td>
                                   <td className="py-2 pr-4">{entry.last}</td>
                                   <td className="py-2 pr-4">{entry.email}</td>
