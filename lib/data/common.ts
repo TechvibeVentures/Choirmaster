@@ -201,6 +201,12 @@ export const buildAdminProfile = (
   choirMemberships: ChoirMembership[]
 ): AdminProfile => {
   const role = mapChoirRoleToProfileRole(choirMemberships.flatMap((item) => item.roles || []));
+  const adminChoirMemberships = choirMemberships.filter((membership) => {
+    const roles = membership.roles || [];
+    return (
+      roles.includes("chairman") || roles.includes("conductor") || roles.includes("manager")
+    );
+  });
   return {
     id: currentPerson.id,
     first_name: currentPerson.first_name,
@@ -214,9 +220,10 @@ export const buildAdminProfile = (
     notification_prefs: settings.notification_prefs,
     session_days: settings.session_days,
     mfa_enabled: settings.mfa_enabled,
-    choir_roles: choirMemberships.map((membership) => {
+    choir_roles: adminChoirMemberships.map((membership) => {
       const roles = membership.roles || [];
-      const isAdmin = roles.includes("chairman") || roles.includes("conductor");
+      const isAdmin =
+        roles.includes("chairman") || roles.includes("conductor") || roles.includes("manager");
       return {
         choir_id: membership.choir_id,
         role: mapMembershipRolesToAdminRole(roles),

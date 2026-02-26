@@ -10,6 +10,8 @@ const roleMap: Record<"chair" | "conductor" | "manager", string> = {
   conductor: "conductor",
   manager: "manager"
 };
+const isAdminMembershipRole = (role: string) =>
+  role === "chairman" || role === "conductor" || role === "manager";
 
 const weekdayToLuxon: Record<string, number> = {
   Mon: 1,
@@ -188,25 +190,84 @@ export async function POST(request: Request) {
       }
     }
 
-    const choirRes = await service
-      .from("choirs")
-      .insert({
-        name: payload.choir.name,
-        city: payload.choir.city,
-        type: payload.choir.type,
-        genres: payload.choir.genres,
-        voice_distribution: payload.choir.voice_distribution,
-        rehearsal_weekdays: payload.choir.rehearsal_weekdays,
-        rehearsal_start_time: payload.choir.rehearsal_start_time,
-        rehearsal_end_time: payload.choir.rehearsal_end_time,
-        default_location: payload.choir.default_location || null
-      })
-      .select("id")
-      .single();
+    const desiredChoirName = payload.choir.name.trim().toLowerCase();
+    let choirId = "";
+    let reusedExistingChoir = false;
 
-    if (choirRes.error) throw choirRes.error;
+    const existingMembershipsRes = await service
+      .from("choir_memberships")
+      .select("choir_id, roles")
+      .eq("person_id", personId);
 
-    const choirId = choirRes.data.id;
+    if (existingMembershipsRes.error) {
+      throw existingMembershipsRes.error;
+    }
+
+    const adminChoirIds = Array.from(
+      new Set(
+        (existingMembershipsRes.data || [])
+          .filter((row) => (row.roles || []).some((role) => isAdminMembershipRole(role)))
+          .map((row) => row.choir_id)
+      )
+    );
+
+    if (adminChoirIds.length > 0) {
+      const existingChoirsRes = await service
+        .from("choirs")
+        .select("id, name")
+        .in("id", adminChoirIds);
+
+      if (existingChoirsRes.error) {
+        throw existingChoirsRes.error;
+      }
+
+      const matchingChoir = (existingChoirsRes.data || []).find(
+        (choir) => choir.name.trim().toLowerCase() === desiredChoirName
+      );
+
+      if (matchingChoir) {
+        const choirUpdateRes = await service
+          .from("choirs")
+          .update({
+            city: payload.choir.city,
+            type: payload.choir.type,
+            genres: payload.choir.genres,
+            voice_distribution: payload.choir.voice_distribution,
+            rehearsal_weekdays: payload.choir.rehearsal_weekdays,
+            rehearsal_start_time: payload.choir.rehearsal_start_time,
+            rehearsal_end_time: payload.choir.rehearsal_end_time,
+            default_location: payload.choir.default_location || null
+          })
+          .eq("id", matchingChoir.id)
+          .select("id")
+          .single();
+
+        if (choirUpdateRes.error) throw choirUpdateRes.error;
+        choirId = choirUpdateRes.data.id;
+        reusedExistingChoir = true;
+      }
+    }
+
+    if (!choirId) {
+      const choirRes = await service
+        .from("choirs")
+        .insert({
+          name: payload.choir.name,
+          city: payload.choir.city,
+          type: payload.choir.type,
+          genres: payload.choir.genres,
+          voice_distribution: payload.choir.voice_distribution,
+          rehearsal_weekdays: payload.choir.rehearsal_weekdays,
+          rehearsal_start_time: payload.choir.rehearsal_start_time,
+          rehearsal_end_time: payload.choir.rehearsal_end_time,
+          default_location: payload.choir.default_location || null
+        })
+        .select("id")
+        .single();
+
+      if (choirRes.error) throw choirRes.error;
+      choirId = choirRes.data.id;
+    }
 
     const membershipRes = await service
       .from("choir_memberships")
@@ -245,7 +306,7 @@ export async function POST(request: Request) {
     let projectId = "";
     let projectAccessToken = "";
 
-    if (payload.createDefaultProject) {
+    if (payload.createDefaultProject && !reusedExistingChoir) {
       const today = new Date();
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + 90);

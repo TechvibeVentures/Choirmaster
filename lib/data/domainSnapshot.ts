@@ -81,7 +81,11 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
       myMemberships
         .filter((item: any) => {
           const roles = item.roles || [];
-          return roles.includes("chairman") || roles.includes("conductor");
+          return (
+            roles.includes("chairman") ||
+            roles.includes("conductor") ||
+            roles.includes("manager")
+          );
         })
         .map((item: any) => item.choir_id)
     )
