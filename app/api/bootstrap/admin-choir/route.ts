@@ -203,10 +203,15 @@ export async function POST(request: Request) {
       throw existingMembershipsRes.error;
     }
 
+    const membershipRows = (existingMembershipsRes.data || []) as Array<{
+      choir_id: string;
+      roles: string[] | null;
+    }>;
+
     const adminChoirIds = Array.from(
       new Set(
-        (existingMembershipsRes.data || [])
-          .filter((row) => (row.roles || []).some((role) => isAdminMembershipRole(role)))
+        membershipRows
+          .filter((row) => (row.roles || []).some((role: string) => isAdminMembershipRole(role)))
           .map((row) => row.choir_id)
       )
     );
@@ -221,7 +226,11 @@ export async function POST(request: Request) {
         throw existingChoirsRes.error;
       }
 
-      const matchingChoir = (existingChoirsRes.data || []).find(
+      const existingChoirs = (existingChoirsRes.data || []) as Array<{
+        id: string;
+        name: string;
+      }>;
+      const matchingChoir = existingChoirs.find(
         (choir) => choir.name.trim().toLowerCase() === desiredChoirName
       );
 
