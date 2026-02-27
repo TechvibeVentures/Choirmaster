@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Pencil } from "lucide-react";
 import Card from "@/components/Card";
 import VoiceBadge from "@/components/VoiceBadge";
@@ -77,6 +77,7 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
     activeChoirId,
     availability,
     concertsByProject,
+    concertPrograms,
     getMembership,
     people,
     projectParticipations,
@@ -97,28 +98,22 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
-  const concertProgram = [
-    { title: "The Parting Glass", composer: "Trad. Irish / Arr. J. Wilson" },
-    { title: "Sally Gardens", composer: "Herbert Hughes" },
-    { title: "The Skye Boat Song", composer: "Trad. Scottish / Arr. J. Rutter" },
-    { title: "Greensleeves", composer: "Trad. English / Arr. R. Vaughan Williams" },
-    { title: "Caledonia", composer: "Dougie MacLean / Arr. P. Knight" },
-    { title: "Loch Lomond", composer: "Trad. Scottish / Arr. J. L. Frazier" },
-    { title: "Scarborough Fair", composer: "Trad. English / Arr. J. Rutter" },
-    { title: "Fields of Gold", composer: "Sting / Arr. P. Lawson" },
-    { title: "Danny Boy", composer: "Trad. / Arr. J. Larsson" },
-    { title: "The Water is Wide", composer: "Trad. / Arr. J. Carter" },
-    { title: "A Gaelic Blessing", composer: "John Rutter" },
-    { title: "My Love is Like a Red, Red Rose", composer: "Trad. / Arr. R. Browne" },
-    { title: "Wild Mountain Thyme", composer: "Trad. / Arr. B. Chilcott" },
-    { title: "The Ash Grove", composer: "Trad. Welsh / Arr. D. Willcocks" },
-    { title: "All Through the Night", composer: "Trad. Welsh / Arr. P. Knight" },
-    { title: "She Moved Through the Fair", composer: "Trad. / Arr. H. Davies" },
-    { title: "The Parting Glass (Reprise)", composer: "Trad. / Arr. J. Wilson" },
-    { title: "The Lark in the Clear Air", composer: "Trad. / Arr. E. Daley" },
-    { title: "Skye Boat Song (Encore)", composer: "Trad. / Arr. J. Rutter" },
-    { title: "Abide with Me", composer: "William H. Monk / Arr. A. Briggs" }
-  ];
+  const concertProgram = useMemo(() => {
+    const choirPrograms = concertPrograms.filter(
+      (program) => program.choir_id === activeChoirId
+    );
+    const projectPrograms = choirPrograms.filter(
+      (program) => program.project_id === project.id
+    );
+
+    const preferredProgram =
+      projectPrograms.find((program) => program.status === "current") ||
+      projectPrograms[0] ||
+      choirPrograms.find((program) => program.status === "current") ||
+      choirPrograms[0];
+
+    return preferredProgram?.pieces ?? [];
+  }, [activeChoirId, concertPrograms, project.id]);
 
   const splitConcertSegments = (timeLabel: string) =>
     timeLabel.split("·").map((segment) => segment.trim()).filter(Boolean);
@@ -355,10 +350,10 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <Link href="/sheets" className="block h-full">
+        <Link href={`/sheets?projectId=${project.id}`} className="block h-full">
           <Card className="flex h-full min-h-[320px] flex-col transition hover:border-slate-300">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold">Konzertprogramm</h3>
+              <h3 className="text-base font-semibold">{strings.repertoire.programTitle}</h3>
               <button
                 type="button"
                 onClick={handleComingSoon}
@@ -369,29 +364,35 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
               </button>
             </div>
             <div className="mt-4 flex-1">
-              <ol className="space-y-2 text-sm text-slate-600">
-                {(showAllProgram
-                  ? concertProgram
-                  : concertProgram.slice(0, 3)
-                ).map((piece, index) => (
-                  <li
-                    key={`${piece.title}-${index}`}
-                    className="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-400">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="flex-1 text-sm text-slate-700">
-                        {piece.title}
-                      </span>
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {piece.composer}
-                    </div>
-                  </li>
-                ))}
-              </ol>
+              {concertProgram.length > 0 ? (
+                <ol className="space-y-2 text-sm text-slate-600">
+                  {(showAllProgram
+                    ? concertProgram
+                    : concertProgram.slice(0, 3)
+                  ).map((piece, index) => (
+                    <li
+                      key={`${piece.title}-${index}`}
+                      className="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-slate-400">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+                        <span className="flex-1 text-sm text-slate-700">
+                          {piece.title}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {piece.composer}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-3 py-6 text-sm text-slate-500">
+                  {strings.repertoire.noOtherPrograms}
+                </div>
+              )}
               {concertProgram.length > 3 ? (
                 <button
                   type="button"
@@ -403,8 +404,8 @@ export default function ProjectDetailView({ projectId }: { projectId: string }) 
                   className="mt-3 w-full rounded-xl border border-dashed border-slate-200 bg-white px-3 py-2 text-left text-xs text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
                 >
                   {showAllProgram
-                    ? "Weniger anzeigen"
-                    : `${concertProgram.length - 3} weitere Stücke`}
+                    ? strings.repertoire.showLess
+                    : `${concertProgram.length - 3} ${strings.repertoire.morePieces}`}
                 </button>
               ) : null}
             </div>

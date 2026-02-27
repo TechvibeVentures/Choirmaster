@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+type RepertoireTopBarProps = {
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+};
 
-export default function RepertoireTopBar() {
-  const [alerted, setAlerted] = useState(false);
-
+export default function RepertoireTopBar({
+  searchValue,
+  onSearchChange
+}: RepertoireTopBarProps) {
   const showComingSoon = () => {
-    if (alerted) return;
-    setAlerted(true);
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
@@ -17,7 +19,8 @@ export default function RepertoireTopBar() {
         <input
           type="search"
           placeholder="Noten durchsuchen"
-          onClick={showComingSoon}
+          value={searchValue}
+          onChange={(event) => onSearchChange(event.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition focus:border-slate-300 focus:outline-none"
         />
       </div>

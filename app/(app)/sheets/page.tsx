@@ -1,26 +1,48 @@
 "use client";
 
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Card from "@/components/Card";
 import RepertoireTopBar from "@/components/RepertoireTopBar";
 import { useAppData } from "@/hooks/useAppData";
 import { strings } from "@/lib/i18n";
 
 export default function RepertoirePage() {
+  const searchParams = useSearchParams();
   const { activeChoirId, concertPrograms, repertoirePieces } = useAppData();
+  const requestedProjectId = searchParams.get("projectId") || "";
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
   };
 
-  const choirPrograms = concertPrograms.filter(
-    (program) => program.choir_id === activeChoirId
+  const choirPrograms = useMemo(
+    () => concertPrograms.filter((program) => program.choir_id === activeChoirId),
+    [activeChoirId, concertPrograms]
   );
 
-  const currentProgram =
-    choirPrograms.find((program) => program.status === "current") ||
-    choirPrograms[0];
+  const titleQuery = searchQuery.trim().toLowerCase();
+  const filteredPrograms = useMemo(
+    () =>
+      titleQuery
+        ? choirPrograms.filter((program) =>
+            program.title.toLowerCase().includes(titleQuery)
+          )
+        : choirPrograms,
+    [choirPrograms, titleQuery]
+  );
 
-  const otherPrograms = choirPrograms
+  const projectProgram = requestedProjectId
+    ? filteredPrograms.find((program) => program.project_id === requestedProjectId)
+    : undefined;
+
+  const currentProgram =
+    projectProgram ||
+    filteredPrograms.find((program) => program.status === "current") ||
+    filteredPrograms[0];
+
+  const otherPrograms = filteredPrograms
     .filter((program) => program.id !== currentProgram?.id)
     .slice(0, 5);
 
@@ -32,7 +54,10 @@ export default function RepertoirePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <RepertoireTopBar />
+      <RepertoireTopBar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
       <section className="grid gap-4 lg:grid-cols-[2fr,1fr]">
         <Card className="order-2 flex h-full flex-col lg:order-1">
           <div className="flex flex-wrap items-start justify-between gap-3">
