@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import AppDataProvider from "@/components/providers/AppDataProvider";
+import ReactQueryProvider from "@/components/providers/ReactQueryProvider";
 import { createEmptyDomainSnapshot, getDomainSnapshot } from "@/lib/data/domainSnapshot";
 
 export const metadata: Metadata = {
@@ -30,7 +31,9 @@ export default async function RootLayout({
   return (
     <html lang="de">
       <body className="min-h-screen bg-white">
-        <AppDataProvider initialSnapshot={snapshot}>{children}</AppDataProvider>
+        <ReactQueryProvider>
+          <AppDataProvider initialSnapshot={snapshot}>{children}</AppDataProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

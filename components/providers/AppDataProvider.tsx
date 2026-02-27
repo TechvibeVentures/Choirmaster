@@ -6,10 +6,9 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode
 } from "react";
-import { usePathname } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { DomainSnapshot } from "@/lib/domain/types";
 
 type AppDataContextValue = {
@@ -20,6 +19,20 @@ type AppDataContextValue = {
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
+const SNAPSHOT_QUERY_KEY = ["context", "snapshot"] as const;
+
+const fetchSnapshot = async (signal?: AbortSignal): Promise<DomainSnapshot> => {
+  const response = await fetch("/api/context/snapshot", {
+    cache: "no-store",
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch context snapshot");
+  }
+
+  return (await response.json()) as DomainSnapshot;
+};
 
 export default function AppDataProvider({
   initialSnapshot,
@@ -28,37 +41,20 @@ export default function AppDataProvider({
   initialSnapshot: DomainSnapshot;
   children: ReactNode;
 }) {
-  const [snapshot, setSnapshot] = useState<DomainSnapshot>(initialSnapshot);
-  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const { data: snapshot = initialSnapshot } = useQuery({
+    queryKey: SNAPSHOT_QUERY_KEY,
+    queryFn: ({ signal }) => fetchSnapshot(signal),
+    initialData: initialSnapshot,
+    staleTime: 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false
+  });
 
   useEffect(() => {
-    setSnapshot(initialSnapshot);
-  }, [initialSnapshot]);
-
-  useEffect(() => {
-    if (!pathname) return;
-
-    const controller = new AbortController();
-    const run = async () => {
-      try {
-        const response = await fetch("/api/context/snapshot", {
-          cache: "no-store",
-          signal: controller.signal
-        });
-
-        if (!response.ok) return;
-        const nextSnapshot = (await response.json()) as DomainSnapshot;
-        setSnapshot(nextSnapshot);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        console.error("AppDataProvider snapshot refresh error", error);
-      }
-    };
-
-    void run();
-
-    return () => controller.abort();
-  }, [pathname]);
+    queryClient.setQueryData(SNAPSHOT_QUERY_KEY, initialSnapshot);
+  }, [initialSnapshot, queryClient]);
 
   const setActiveChoirId = useCallback(async (choirId: string) => {
     const response = await fetch("/api/context/active-choir", {
@@ -73,24 +69,31 @@ export default function AppDataProvider({
       throw new Error("Failed to update active choir");
     }
 
-    setSnapshot((prev) => ({
-      ...prev,
-      activeChoirId: choirId,
-      personSettings: {
-        ...prev.personSettings,
-        active_choir_id: choirId
-      }
-    }));
-  }, []);
+    queryClient.setQueryData<DomainSnapshot>(SNAPSHOT_QUERY_KEY, (prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        activeChoirId: choirId,
+        personSettings: {
+          ...prev.personSettings,
+          active_choir_id: choirId
+        }
+      };
+    });
+  }, [queryClient]);
+
+  const replaceSnapshot = useCallback((next: DomainSnapshot) => {
+    queryClient.setQueryData(SNAPSHOT_QUERY_KEY, next);
+  }, [queryClient]);
 
   const value = useMemo(
     () => ({
       snapshot,
       activeChoirId: snapshot.activeChoirId,
       setActiveChoirId,
-      replaceSnapshot: (next: DomainSnapshot) => setSnapshot(next)
+      replaceSnapshot
     }),
-    [setActiveChoirId, snapshot]
+    [replaceSnapshot, setActiveChoirId, snapshot]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

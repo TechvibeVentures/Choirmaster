@@ -90,20 +90,27 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
         .map((item: any) => item.choir_id)
     )
   ) as string[];
-  const choirs = await getChoirsByIds(choirIds);
+  const [choirs, memberships, projectsRows, repertoire] = await Promise.all([
+    getChoirsByIds(choirIds),
+    getChoirMembershipsByChoirIds(choirIds),
+    getProjectsByChoirIds(choirIds, {
+      currentPersonId: currentPerson.id,
+      adminChoirIds
+    }),
+    getRepertoireByChoirIds(choirIds)
+  ]);
 
   const fallbackChoirId = choirs[0]?.id || "";
-  const personSettings = await getPersonSettings(currentPerson.id, fallbackChoirId);
+  const personSettingsPromise = getPersonSettings(currentPerson.id, fallbackChoirId);
+
+  const personIds = Array.from(new Set(memberships.map((item) => item.person_id)));
+  const peoplePromise = getPersonsByIds(personIds);
+  const [personSettings, people] = await Promise.all([personSettingsPromise, peoplePromise]);
 
   const activeChoirId =
     personSettings.active_choir_id && choirs.some((item) => item.id === personSettings.active_choir_id)
       ? personSettings.active_choir_id
       : fallbackChoirId;
-
-  const memberships = await getChoirMembershipsByChoirIds(choirIds);
-
-  const personIds = Array.from(new Set(memberships.map((item) => item.person_id)));
-  const people = await getPersonsByIds(personIds);
 
   const peopleWithRoles = people.map((person) => ({
     ...person,
@@ -114,10 +121,6 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
     )
   }));
 
-  const projectsRows = await getProjectsByChoirIds(choirIds, {
-    currentPersonId: currentPerson.id,
-    adminChoirIds
-  });
   const projectIds = projectsRows.map((item) => item.id);
   const adminProjectIds = projectsRows
     .filter((item) => adminChoirIds.includes(item.choir_id))
@@ -154,18 +157,18 @@ export const getDomainSnapshot = async (): Promise<DomainSnapshot> => {
   );
 
   const concertsByProject = mapConcertsByProject(projectsRows);
-
-  const projectParticipations = await getProjectParticipantsByProjectIds(
+  const projectParticipationsPromise = getProjectParticipantsByProjectIds(
     projectIds,
     {
       currentPersonId: currentPerson.id,
       adminProjectIds
     }
   );
-
-  const availability = await getAvailabilityByRehearsalIds(rehearsals.map((item) => item.id));
-
-  const repertoire = await getRepertoireByChoirIds(choirIds);
+  const availabilityPromise = getAvailabilityByRehearsalIds(rehearsals.map((item) => item.id));
+  const [projectParticipations, availability] = await Promise.all([
+    projectParticipationsPromise,
+    availabilityPromise
+  ]);
 
   const currentPersonMemberships = memberships.filter(
     (membership) => membership.person_id === currentPerson.id
