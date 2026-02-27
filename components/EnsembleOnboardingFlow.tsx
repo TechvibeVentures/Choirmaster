@@ -44,6 +44,12 @@ type Props = {
 
 type ChoirType = "mixed" | "chamber" | "project";
 type ProfileRole = "chair" | "conductor" | "manager";
+type CityAutocompleteSuggestion = {
+  placeId: string;
+  city: string;
+  country: string;
+  label: string;
+};
 
 const ensembleSteps = [
   strings.ensembleOnboarding.stepBasics,
@@ -287,7 +293,42 @@ export default function EnsembleOnboardingFlow({
   const [projectAccessToken, setProjectAccessToken] = useState("");
   const [projectAccessTokenError, setProjectAccessTokenError] = useState("");
   const [projectMenuOpen, setProjectMenuOpen] = useState(false);
+  const [profileCityAutocompleteOpen, setProfileCityAutocompleteOpen] = useState(false);
+  const [profileCityAutocompleteLoading, setProfileCityAutocompleteLoading] =
+    useState(false);
+  const [profileCityAutocompleteError, setProfileCityAutocompleteError] = useState("");
+  const [profileCitySuggestions, setProfileCitySuggestions] = useState<
+    CityAutocompleteSuggestion[]
+  >([]);
+  const [selectedProfileCitySuggestion, setSelectedProfileCitySuggestion] =
+    useState<CityAutocompleteSuggestion | null>(
+      profileCity
+        ? {
+            placeId: `legacy-profile:${profileCity}`,
+            city: profileCity,
+            country: "",
+            label: profileCity
+          }
+        : null
+    );
+  const [cityAutocompleteOpen, setCityAutocompleteOpen] = useState(false);
+  const [cityAutocompleteLoading, setCityAutocompleteLoading] = useState(false);
+  const [cityAutocompleteError, setCityAutocompleteError] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<CityAutocompleteSuggestion[]>([]);
+  const [selectedCitySuggestion, setSelectedCitySuggestion] =
+    useState<CityAutocompleteSuggestion | null>(
+      initialChoir?.city
+        ? {
+            placeId: `legacy:${initialChoir.city}`,
+            city: initialChoir.city,
+            country: "",
+            label: initialChoir.city
+          }
+        : null
+    );
   const projectMenuRef = useRef<HTMLDivElement>(null);
+  const profileCityAutocompleteRef = useRef<HTMLDivElement>(null);
+  const cityAutocompleteRef = useRef<HTMLDivElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const handleClose = () => {
     if (onClose) {
@@ -302,6 +343,14 @@ export default function EnsembleOnboardingFlow({
   useEffect(() => {
     if (!isOpen) {
       setStep(0);
+      setProfileCityAutocompleteOpen(false);
+      setProfileCityAutocompleteLoading(false);
+      setProfileCityAutocompleteError("");
+      setProfileCitySuggestions([]);
+      setCityAutocompleteOpen(false);
+      setCityAutocompleteLoading(false);
+      setCityAutocompleteError("");
+      setCitySuggestions([]);
     }
   }, [isOpen]);
 
@@ -320,6 +369,12 @@ export default function EnsembleOnboardingFlow({
     const handleClick = (event: MouseEvent) => {
       if (!projectMenuRef.current?.contains(event.target as Node)) {
         setProjectMenuOpen(false);
+      }
+      if (!profileCityAutocompleteRef.current?.contains(event.target as Node)) {
+        setProfileCityAutocompleteOpen(false);
+      }
+      if (!cityAutocompleteRef.current?.contains(event.target as Node)) {
+        setCityAutocompleteOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClick);
@@ -454,6 +509,170 @@ export default function EnsembleOnboardingFlow({
     return () => controller.abort();
   }, [activeChoirId, isOpen, isSingerOnly, shouldIncludeProfile]);
 
+  useEffect(() => {
+    if (!profileCityAutocompleteOpen) return;
+    const query = profileCity.trim();
+    if (query.length < 2) {
+      setProfileCitySuggestions([]);
+      setProfileCityAutocompleteError("");
+      setProfileCityAutocompleteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      const run = async () => {
+        setProfileCityAutocompleteLoading(true);
+        setProfileCityAutocompleteError("");
+        try {
+          const response = await fetch(
+            `/api/cities/autocomplete?q=${encodeURIComponent(query)}`,
+            { signal: controller.signal }
+          );
+          const payload = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(
+              typeof payload?.error === "string"
+                ? payload.error
+                : "Städte konnten nicht geladen werden."
+            );
+          }
+
+          const rawSuggestions: unknown[] = Array.isArray(payload?.suggestions)
+            ? payload.suggestions
+            : [];
+          const suggestions = rawSuggestions
+            .filter(
+              (
+                item: unknown
+              ): item is {
+                placeId: string;
+                city: string;
+                country?: string;
+                label?: string;
+              } =>
+                Boolean(
+                  item &&
+                    typeof item === "object" &&
+                    typeof (item as { placeId?: unknown }).placeId === "string" &&
+                    typeof (item as { city?: unknown }).city === "string"
+                )
+            )
+            .map((item): CityAutocompleteSuggestion => ({
+              placeId: item.placeId,
+              city: item.city,
+              country: item.country || "",
+              label: item.label || item.city
+            }));
+
+          setProfileCitySuggestions(suggestions);
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : "Städte konnten nicht geladen werden.";
+          setProfileCitySuggestions([]);
+          setProfileCityAutocompleteError(message);
+        } finally {
+          if (!controller.signal.aborted) {
+            setProfileCityAutocompleteLoading(false);
+          }
+        }
+      };
+
+      void run();
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [profileCity, profileCityAutocompleteOpen]);
+
+  useEffect(() => {
+    if (!cityAutocompleteOpen) return;
+    const query = city.trim();
+    if (query.length < 2) {
+      setCitySuggestions([]);
+      setCityAutocompleteError("");
+      setCityAutocompleteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      const run = async () => {
+        setCityAutocompleteLoading(true);
+        setCityAutocompleteError("");
+        try {
+          const response = await fetch(
+            `/api/cities/autocomplete?q=${encodeURIComponent(query)}`,
+            { signal: controller.signal }
+          );
+          const payload = await response.json().catch(() => ({}));
+
+          if (!response.ok) {
+            throw new Error(
+              typeof payload?.error === "string"
+                ? payload.error
+                : "Städte konnten nicht geladen werden."
+            );
+          }
+
+          const rawSuggestions: unknown[] = Array.isArray(payload?.suggestions)
+            ? payload.suggestions
+            : [];
+          const suggestions = rawSuggestions
+            .filter(
+              (
+                item: unknown
+              ): item is {
+                placeId: string;
+                city: string;
+                country?: string;
+                label?: string;
+              } =>
+                Boolean(
+                  item &&
+                    typeof item === "object" &&
+                    typeof (item as { placeId?: unknown }).placeId === "string" &&
+                    typeof (item as { city?: unknown }).city === "string"
+                )
+            )
+            .map((item): CityAutocompleteSuggestion => ({
+              placeId: item.placeId,
+              city: item.city,
+              country: item.country || "",
+              label: item.label || item.city
+            }));
+
+          setCitySuggestions(suggestions);
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : "Städte konnten nicht geladen werden.";
+          setCitySuggestions([]);
+          setCityAutocompleteError(message);
+        } finally {
+          if (!controller.signal.aborted) {
+            setCityAutocompleteLoading(false);
+          }
+        }
+      };
+
+      void run();
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [city, cityAutocompleteOpen]);
+
   const toggleGenre = (genre: string) => {
     setGenres((prev) =>
       prev.includes(genre) ? prev.filter((item) => item !== genre) : [...prev, genre]
@@ -466,11 +685,59 @@ export default function EnsembleOnboardingFlow({
     );
   };
 
-  const handleNext = () =>
-    setStep((prev) => Math.min(prev + 1, steps.length - 1));
   const handlePrev = () => setStep((prev) => Math.max(prev - 1, 0));
   const handleComingSoon = () => {
     window.alert("Diese Funktion kommt in einer späteren Version der App.");
+  };
+  const profileCityValidationMessage = useMemo(() => {
+    const trimmed = profileCity.trim();
+    if (!trimmed) return "";
+    if (selectedProfileCitySuggestion && selectedProfileCitySuggestion.city === trimmed) {
+      return "";
+    }
+    return "Bitte eine Stadt aus der Vorschlagsliste auswählen.";
+  }, [profileCity, selectedProfileCitySuggestion]);
+
+  const ensureValidProfileCitySelection = () => {
+    const trimmed = profileCity.trim();
+    if (!trimmed) {
+      return "";
+    }
+    if (!selectedProfileCitySuggestion || selectedProfileCitySuggestion.city !== trimmed) {
+      window.alert("Bitte eine Stadt aus der Vorschlagsliste auswählen.");
+      return null;
+    }
+    return trimmed;
+  };
+
+  const cityValidationMessage = useMemo(() => {
+    const trimmed = city.trim();
+    if (!trimmed) return "";
+    if (selectedCitySuggestion && selectedCitySuggestion.city === trimmed) return "";
+    return "Bitte eine Stadt aus der Vorschlagsliste auswählen.";
+  }, [city, selectedCitySuggestion]);
+
+  const ensureValidCitySelection = () => {
+    const trimmed = city.trim();
+    if (!trimmed) {
+      window.alert("Bitte eine Stadt eingeben.");
+      return null;
+    }
+    if (!selectedCitySuggestion || selectedCitySuggestion.city !== trimmed) {
+      window.alert("Bitte eine Stadt aus der Vorschlagsliste auswählen.");
+      return null;
+    }
+    return trimmed;
+  };
+
+  const handleNext = () => {
+    if (!isSingerOnly && step === profileStepIndex && !ensureValidProfileCitySelection()) {
+      return;
+    }
+    if (!isSingerOnly && step === basicsStepIndex && !ensureValidCitySelection()) {
+      return;
+    }
+    setStep((prev) => Math.min(prev + 1, steps.length - 1));
   };
   const inviteLink = projectAccessToken
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/join/${projectAccessToken}`
@@ -1012,9 +1279,17 @@ export default function EnsembleOnboardingFlow({
   const submitBootstrap = async () => {
     const firstName = profileFirstName.trim();
     const lastName = profileLastName.trim();
+    const selectedProfileCity = ensureValidProfileCitySelection();
+    const selectedChoirCity = ensureValidCitySelection();
 
     if (!firstName || !lastName) {
       window.alert("Bitte Vor- und Nachname eingeben.");
+      return;
+    }
+    if (selectedProfileCity === null) {
+      return;
+    }
+    if (!selectedChoirCity) {
       return;
     }
 
@@ -1040,14 +1315,14 @@ export default function EnsembleOnboardingFlow({
           profile: {
             first_name: firstName,
             last_name: lastName,
-            city: profileCity,
+            city: selectedProfileCity,
             role: profileRole,
             language: "Deutsch",
             timezone: profileTimezone || "Europe/Zurich"
           },
           choir: {
             name,
-            city,
+            city: selectedChoirCity,
             type: choirType,
             genres,
             voice_distribution: normalizeVoiceDistribution(voiceDistributionDraft),
@@ -1258,7 +1533,25 @@ export default function EnsembleOnboardingFlow({
                   <button
                     key={label}
                     type="button"
-                    onClick={() => setStep(index)}
+                    onClick={() => {
+                      if (
+                        !isSingerOnly &&
+                        step === profileStepIndex &&
+                        index > profileStepIndex &&
+                        !ensureValidProfileCitySelection()
+                      ) {
+                        return;
+                      }
+                      if (
+                        !isSingerOnly &&
+                        step === basicsStepIndex &&
+                        index > basicsStepIndex &&
+                        !ensureValidCitySelection()
+                      ) {
+                        return;
+                      }
+                      setStep(index);
+                    }}
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-left text-xs font-medium transition sm:text-sm ${
                       step === index
                         ? "bg-slate-900 text-white"
@@ -1322,11 +1615,81 @@ export default function EnsembleOnboardingFlow({
                   </label>
                   <label className="text-sm text-slate-600">
                     {strings.ensembleOnboarding.profileCity}
-                    <input
-                      value={profileCity}
-                      onChange={(event) => setProfileCity(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
+                    <div className="relative mt-2" ref={profileCityAutocompleteRef}>
+                      <input
+                        value={profileCity}
+                        onFocus={() => setProfileCityAutocompleteOpen(true)}
+                        onChange={(event) => {
+                          setProfileCity(event.target.value);
+                          setSelectedProfileCitySuggestion(null);
+                          setProfileCityAutocompleteOpen(true);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
+                            setProfileCityAutocompleteOpen(false);
+                            return;
+                          }
+                          if (event.key === "Enter" && profileCitySuggestions.length > 0) {
+                            event.preventDefault();
+                            const suggestion = profileCitySuggestions[0];
+                            setProfileCity(suggestion.city);
+                            setSelectedProfileCitySuggestion(suggestion);
+                            setProfileCityAutocompleteOpen(false);
+                          }
+                        }}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 focus:outline-none ${
+                          profileCityValidationMessage
+                            ? "border-rose-300 focus:border-rose-400"
+                            : "border-slate-200 focus:border-slate-300"
+                        }`}
+                        autoComplete="off"
+                        aria-invalid={profileCityValidationMessage ? "true" : "false"}
+                        aria-describedby={
+                          profileCityValidationMessage ? "profile-city-error" : undefined
+                        }
+                      />
+                      {profileCityAutocompleteOpen && profileCity.trim().length >= 2 ? (
+                        <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                          {profileCityAutocompleteLoading ? (
+                            <div className="px-3 py-2 text-sm text-slate-500">
+                              Suche Städte...
+                            </div>
+                          ) : profileCityAutocompleteError ? (
+                            <div className="px-3 py-2 text-sm text-rose-600">
+                              {profileCityAutocompleteError}
+                            </div>
+                          ) : profileCitySuggestions.length > 0 ? (
+                            <ul className="max-h-56 overflow-y-auto">
+                              {profileCitySuggestions.map((suggestion) => (
+                                <li key={suggestion.placeId}>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(event) => {
+                                      event.preventDefault();
+                                      setProfileCity(suggestion.city);
+                                      setSelectedProfileCitySuggestion(suggestion);
+                                      setProfileCityAutocompleteOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                                  >
+                                    {suggestion.label}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-slate-500">
+                              Keine passenden Städte gefunden.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                    {profileCityValidationMessage ? (
+                      <div id="profile-city-error" className="mt-1 text-xs text-rose-600">
+                        {profileCityValidationMessage}
+                      </div>
+                    ) : null}
                   </label>
                 </div>
                 <div className="mt-4">
@@ -1393,11 +1756,79 @@ export default function EnsembleOnboardingFlow({
                   </label>
                   <label className="text-sm text-slate-600">
                     {strings.ensembleOnboarding.city}
-                    <input
-                      value={city}
-                      onChange={(event) => setCity(event.target.value)}
-                      className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-slate-300 focus:outline-none"
-                    />
+                    <div className="relative mt-2" ref={cityAutocompleteRef}>
+                      <input
+                        value={city}
+                        onFocus={() => setCityAutocompleteOpen(true)}
+                        onChange={(event) => {
+                          setCity(event.target.value);
+                          setSelectedCitySuggestion(null);
+                          setCityAutocompleteOpen(true);
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
+                            setCityAutocompleteOpen(false);
+                            return;
+                          }
+                          if (event.key === "Enter" && citySuggestions.length > 0) {
+                            event.preventDefault();
+                            const suggestion = citySuggestions[0];
+                            setCity(suggestion.city);
+                            setSelectedCitySuggestion(suggestion);
+                            setCityAutocompleteOpen(false);
+                          }
+                        }}
+                        className={`w-full rounded-lg border px-3 py-2 text-sm text-slate-900 focus:outline-none ${
+                          cityValidationMessage
+                            ? "border-rose-300 focus:border-rose-400"
+                            : "border-slate-200 focus:border-slate-300"
+                        }`}
+                        autoComplete="off"
+                        aria-invalid={cityValidationMessage ? "true" : "false"}
+                        aria-describedby={cityValidationMessage ? "choir-city-error" : undefined}
+                      />
+                      {cityAutocompleteOpen && city.trim().length >= 2 ? (
+                        <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                          {cityAutocompleteLoading ? (
+                            <div className="px-3 py-2 text-sm text-slate-500">
+                              Suche Städte...
+                            </div>
+                          ) : cityAutocompleteError ? (
+                            <div className="px-3 py-2 text-sm text-rose-600">
+                              {cityAutocompleteError}
+                            </div>
+                          ) : citySuggestions.length > 0 ? (
+                            <ul className="max-h-56 overflow-y-auto">
+                              {citySuggestions.map((suggestion) => (
+                                <li key={suggestion.placeId}>
+                                  <button
+                                    type="button"
+                                    onMouseDown={(event) => {
+                                      event.preventDefault();
+                                      setCity(suggestion.city);
+                                      setSelectedCitySuggestion(suggestion);
+                                      setCityAutocompleteOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                                  >
+                                    {suggestion.label}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-slate-500">
+                              Keine passenden Städte gefunden.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                    {cityValidationMessage ? (
+                      <div id="choir-city-error" className="mt-1 text-xs text-rose-600">
+                        {cityValidationMessage}
+                      </div>
+                    ) : null}
                   </label>
                 </div>
                 <div className="mt-4">

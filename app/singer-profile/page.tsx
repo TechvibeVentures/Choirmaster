@@ -96,6 +96,13 @@ const getRoleLabels = (roles?: string[]) => {
   return unique.length ? unique : ["Sänger"];
 };
 
+type CityAutocompleteSuggestion = {
+  placeId: string;
+  city: string;
+  country: string;
+  label: string;
+};
+
 export default function SingerViewPage() {
   const router = useRouter();
   const {
@@ -186,6 +193,21 @@ export default function SingerViewPage() {
   const [email, setEmail] = useState(singer?.email ?? "");
   const [phone, setPhone] = useState(singer?.phone ?? "");
   const [city, setCity] = useState(singer?.city ?? "");
+  const [cityAutocompleteOpen, setCityAutocompleteOpen] = useState(false);
+  const [cityAutocompleteLoading, setCityAutocompleteLoading] = useState(false);
+  const [cityAutocompleteError, setCityAutocompleteError] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<CityAutocompleteSuggestion[]>([]);
+  const [selectedCitySuggestion, setSelectedCitySuggestion] =
+    useState<CityAutocompleteSuggestion | null>(
+      singer?.city
+        ? {
+            placeId: `legacy-singer:${singer.city}`,
+            city: singer.city,
+            country: "",
+            label: singer.city
+          }
+        : null
+    );
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState("");
   const [profileSaveSuccess, setProfileSaveSuccess] = useState("");
@@ -195,7 +217,6 @@ export default function SingerViewPage() {
   const [paymentStatus, setPaymentStatus] = useState<
     "unpaid" | "pending" | "confirmed"
   >("unpaid");
-  const [paymentInfo, setPaymentInfo] = useState("");
   const [savingAttendance, setSavingAttendance] = useState(false);
   const [attendanceSaveError, setAttendanceSaveError] = useState("");
   const [attendanceSaveSuccess, setAttendanceSaveSuccess] = useState("");
@@ -213,6 +234,7 @@ export default function SingerViewPage() {
   );
   const attendanceStateRef = useRef(attendanceState);
   const attendanceContextRef = useRef<string>("");
+  const cityAutocompleteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     attendanceStateRef.current = attendanceState;
@@ -230,9 +252,22 @@ export default function SingerViewPage() {
     setEmail(singer?.email ?? "");
     setPhone(singer?.phone ?? "");
     setCity(singer?.city ?? "");
+    setSelectedCitySuggestion(
+      singer?.city
+        ? {
+            placeId: `legacy-singer:${singer.city}`,
+            city: singer.city,
+            country: "",
+            label: singer.city
+          }
+        : null
+    );
+    setCityAutocompleteOpen(false);
+    setCityAutocompleteLoading(false);
+    setCityAutocompleteError("");
+    setCitySuggestions([]);
     setParticipationStatus(participation?.invite_status ?? "invited");
     setPaymentStatus("unpaid");
-    setPaymentInfo("");
     setProfileSaveError("");
     setProfileSaveSuccess("");
   }, [
@@ -247,6 +282,102 @@ export default function SingerViewPage() {
     participation?.invite_status,
     voice
   ]);
+
+  useEffect(() => {
+    const handleClick = (event: MouseEvent) => {
+      if (!cityAutocompleteRef.current?.contains(event.target as Node)) {
+        setCityAutocompleteOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    if (!cityAutocompleteOpen) return;
+    const query = city.trim();
+    if (query.length < 2) {
+      setCitySuggestions([]);
+      setCityAutocompleteError("");
+      setCityAutocompleteLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      const run = async () => {
+        setCityAutocompleteLoading(true);
+        setCityAutocompleteError("");
+        try {
+          const response = await fetch(
+            `/api/cities/autocomplete?q=${encodeURIComponent(query)}`,
+            { signal: controller.signal }
+          );
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) {
+            throw new Error(
+              typeof payload?.error === "string"
+                ? payload.error
+                : "Städte konnten nicht geladen werden."
+            );
+          }
+
+          const rawSuggestions: unknown[] = Array.isArray(payload?.suggestions)
+            ? payload.suggestions
+            : [];
+          const suggestions = rawSuggestions
+            .filter(
+              (
+                item: unknown
+              ): item is {
+                placeId: string;
+                city: string;
+                country?: string;
+                label?: string;
+              } =>
+                Boolean(
+                  item &&
+                    typeof item === "object" &&
+                    typeof (item as { placeId?: unknown }).placeId === "string" &&
+                    typeof (item as { city?: unknown }).city === "string"
+                )
+            )
+            .map((item): CityAutocompleteSuggestion => ({
+              placeId: item.placeId,
+              city: item.city,
+              country: item.country || "",
+              label: item.label || item.city
+            }));
+          setCitySuggestions(suggestions);
+        } catch (error) {
+          if (controller.signal.aborted) return;
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : "Städte konnten nicht geladen werden.";
+          setCitySuggestions([]);
+          setCityAutocompleteError(message);
+        } finally {
+          if (!controller.signal.aborted) {
+            setCityAutocompleteLoading(false);
+          }
+        }
+      };
+      void run();
+    }, 300);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [city, cityAutocompleteOpen]);
+
+  const cityValidationMessage = useMemo(() => {
+    const trimmed = city.trim();
+    if (!trimmed) return "";
+    if (selectedCitySuggestion && selectedCitySuggestion.city === trimmed) return "";
+    return "Bitte eine Stadt aus der Vorschlagsliste auswählen.";
+  }, [city, selectedCitySuggestion]);
 
   useEffect(() => {
     const attendanceContext = [
@@ -285,6 +416,10 @@ export default function SingerViewPage() {
   const saveProfile = async () => {
     if (!singer || !selectedVoice || !selectedChoirId) {
       setProfileSaveError("Profil konnte nicht gespeichert werden.");
+      return;
+    }
+    if (city.trim() && (!selectedCitySuggestion || selectedCitySuggestion.city !== city.trim())) {
+      setProfileSaveError("Bitte eine Stadt aus der Vorschlagsliste auswählen.");
       return;
     }
 
@@ -508,13 +643,81 @@ export default function SingerViewPage() {
                   />
                 </label>
                 <label className="text-sm text-slate-600">
-                Ort
-                <input
-                  className={inputStyles}
-                  value={city}
-                  onChange={(event) => setCity(event.target.value)}
-                  type="text"
-                />
+                  Ort
+                  <div className="relative mt-1" ref={cityAutocompleteRef}>
+                    <input
+                      className={`w-full rounded-xl border px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${
+                        cityValidationMessage
+                          ? "border-rose-300 focus:border-rose-400"
+                          : "border-slate-200 focus:border-slate-400"
+                      }`}
+                      value={city}
+                      onFocus={() => setCityAutocompleteOpen(true)}
+                      onChange={(event) => {
+                        setCity(event.target.value);
+                        setSelectedCitySuggestion(null);
+                        setCityAutocompleteOpen(true);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Escape") {
+                          setCityAutocompleteOpen(false);
+                          return;
+                        }
+                        if (event.key === "Enter" && citySuggestions.length > 0) {
+                          event.preventDefault();
+                          const suggestion = citySuggestions[0];
+                          setCity(suggestion.city);
+                          setSelectedCitySuggestion(suggestion);
+                          setCityAutocompleteOpen(false);
+                        }
+                      }}
+                      autoComplete="off"
+                      type="text"
+                      aria-invalid={cityValidationMessage ? "true" : "false"}
+                      aria-describedby={cityValidationMessage ? "singer-city-error" : undefined}
+                    />
+                    {cityAutocompleteOpen && city.trim().length >= 2 ? (
+                      <div className="absolute z-20 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+                        {cityAutocompleteLoading ? (
+                          <div className="px-3 py-2 text-sm text-slate-500">
+                            Suche Städte...
+                          </div>
+                        ) : cityAutocompleteError ? (
+                          <div className="px-3 py-2 text-sm text-rose-600">
+                            {cityAutocompleteError}
+                          </div>
+                        ) : citySuggestions.length > 0 ? (
+                          <ul className="max-h-56 overflow-y-auto">
+                            {citySuggestions.map((suggestion) => (
+                              <li key={suggestion.placeId}>
+                                <button
+                                  type="button"
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    setCity(suggestion.city);
+                                    setSelectedCitySuggestion(suggestion);
+                                    setCityAutocompleteOpen(false);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                                >
+                                  {suggestion.label}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-slate-500">
+                            Keine passenden Städte gefunden.
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                  {cityValidationMessage ? (
+                    <div id="singer-city-error" className="mt-1 text-xs text-rose-600">
+                      {cityValidationMessage}
+                    </div>
+                  ) : null}
                 </label>
                 <div className="sm:col-span-2">
                   <p className="text-sm text-slate-600">
@@ -685,32 +888,20 @@ export default function SingerViewPage() {
                         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                           Mitgliedschaftsbeitrag bezahlt
                         </span>
-                      ) : paymentStatus === "pending" ? (
-                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
-                          Mitgliedschaftsbeitrag: kommt bald
-                        </span>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => {
-                            setPaymentStatus("pending");
-                            setPaymentInfo(
-                              "Online-Zahlungen sind im MVP noch nicht verfügbar. Du erhältst den Beitragsprozess in einer späteren Version."
-                            );
-                          }}
+                          onClick={() =>
+                            window.alert("Diese Funktion kommt in einer späteren Version der App.")
+                          }
                           className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                         >
-                          Mitgliedschaftsbeitrag bezahlen (kommt bald)
+                          Mitgliedschaftsbeitrag bezahlen
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
-              {paymentInfo ? (
-                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                  {paymentInfo}
-                </p>
-              ) : null}
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-slate-400">
